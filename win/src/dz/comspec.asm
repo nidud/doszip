@@ -7,6 +7,7 @@ include winbase.inc
 PUBLIC	__pCommandCom
 PUBLIC	__pCommandArg
 PUBLIC	__comspec
+PUBLIC	comspec_type
 
 	.data
 comspec_type	dd 0 ; %COMSPEC% or CMD.EXE

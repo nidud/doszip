@@ -5,6 +5,13 @@ include cfini.inc
 include winbase.inc
 include dzlib.inc
 
+extern  __comspec:byte
+extern  __pCommandArg:LPSTR
+extern  __pCommandCom:LPSTR
+extern  comspec_type:dword
+
+process proto :LPSTR, :LPSTR, :dword
+
     .code
 
 CreateConsole proc uses esi edi ebx string:string_t, flag:uint_t

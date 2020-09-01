@@ -12,6 +12,11 @@ include stdio.inc
 include crtl.inc
 
 extern  __comspec:byte
+extern  __pCommandArg:LPSTR
+extern  __pCommandCom:LPSTR
+extern  comspec_type:dword
+
+__initcomspec proto
 
     .data
     __CFBase LPINI 0

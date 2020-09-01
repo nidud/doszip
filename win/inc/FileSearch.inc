@@ -6,7 +6,7 @@
 
 FFMAXHIT equ 9999
 
-.class FileSearch directory:string_t
+.class FileSearch
 
     dialog      ptr_t ?
     basedir     string_t ?
@@ -15,6 +15,7 @@ FFMAXHIT equ 9999
     oldff       ptr_t ?
     oldhelp     ptr_t ?
 
+    FileSearch  proc :string_t
     Release     proc
     WndProc     proc :uint_t
     Find        proc

@@ -4,6 +4,11 @@ include string.inc
 include malloc.inc
 include direct.inc
 
+extern	 __pCommandArg:LPSTR
+extern	 __pCommandCom:LPSTR
+
+process proto :LPSTR, :LPSTR, :dword
+
 MAXCMDL equ 0x8000
 PUBLIC	cp_quote
 

@@ -13,6 +13,8 @@ include crtl.inc
 include cfini.inc
 include winbase.inc
 
+extern  comspec_type:dword
+
     .data
 
 com_wsub  dd path_a
