@@ -188,7 +188,7 @@ CallbackFile proc private uses esi edi ebx directory:string_t, wfblk:ptr
             strfcat(&path, directory, edi)
             mov result,test_userabort()
 
-            .ifz
+            .if !eax
                 .if directory
                     .if cmpwarg(edi, fp_maskp)
                         inc esi

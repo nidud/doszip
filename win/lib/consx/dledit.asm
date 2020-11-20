@@ -186,7 +186,6 @@ event_add proc uses ebx
 
         movzx eax,bl
         .if _ltype[eax+1] & _CONTROL
-
             .if !eax || !([edx].ti_flag & _TE_USECONTROL)
                 mov eax,_TE_RETEVENT
                 .break
@@ -195,8 +194,7 @@ event_add proc uses ebx
         mov eax,[edx].ti_bcnt
         inc eax
         .if eax < [edx].ti_bcol
-            tiincx(edx)
-            .ifnz
+            .if tiincx(edx)
                 inc [edx].ti_bcnt
                 .if getline()
                     or  [edx].ti_flag,_TE_MODIFIED
@@ -440,7 +438,7 @@ ClipDelete proc
                 tidecx( edx )
                 .break .if ZERO?
                 dec ecx
-            .until  eax == ecx
+            .until eax == ecx
             inc ecx
         .endif
         mov eax,[edx].ti_bp
@@ -470,8 +468,7 @@ ClipCC proc uses esi edi
     mov esi,TI
     mov edi,eax      ; AX: Copy == 0, Cut == 1
     .repeat
-        ClipIsSelected() ; get size of selection
-        .ifnz
+        .if ClipIsSelected() ; get size of selection
             mov edx,TI
             mov eax,[edx].ti_bp
             add eax,[edx].ti_clso
@@ -496,8 +493,7 @@ ClipPaste proc uses esi edi ebx
     .else
         ClipSet()
     .endif
-    ClipboardPaste()
-    .ifnz
+    .if ClipboardPaste()
         mov edx,TI
         push [edx].ti_xoff
         push [edx].ti_boff
@@ -524,8 +520,7 @@ ClipPaste endp
 
 ClipEvent proc uses esi edi ebx
     mov esi,eax
-    ClipIsSelected()
-    .ifz
+    .if !ClipIsSelected()
         ClipSet()       ; reset clipboard if not selected
     .endif
     .repeat
@@ -584,8 +579,7 @@ ClipEvent proc uses esi edi ebx
                 .endsw
             .endif
             .if esi == KEY_DEL     ; Delete selected text ?
-                ClipDelete()
-                .ifz
+                .if !ClipDelete()
                     ClipSet()      ; set clipboard to cursor
                     mov eax,esi    ; return event
                     .endc
@@ -710,7 +704,7 @@ modal proc uses esi edi
         tgetevent()
         mov edi,ClipEvent()
         mov esi,tievent()
-    .until  eax == _TE_RETEVENT
+    .until eax == _TE_RETEVENT
     getline()
     mov eax,edi ; return current event (keystroke)
     ret

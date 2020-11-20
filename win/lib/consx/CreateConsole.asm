@@ -9,6 +9,8 @@ include string.inc
 include consx.inc
 include winbase.inc
 
+process proto :LPSTR, :LPSTR, :dword
+
     .code
 
 CreateConsole proc uses esi edi string:LPSTR, flag

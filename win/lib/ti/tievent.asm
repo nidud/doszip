@@ -240,7 +240,6 @@ ticlippaste endp
 ticopyselection proc uses esi edi ti:PTINFO
 
     mov esi,ti
-
     .if tigeto(esi, [esi].ti_clsl, [esi].ti_clso)
         mov edi,eax
         .if tigeto(esi, [esi].ti_clel, [esi].ti_cleo)
@@ -255,10 +254,9 @@ ticopyselection endp
 ticlipcut proc uses esi ti:PTINFO, delete:UINT
     mov esi,ti
     .if tiselected(esi)
-        ticopyselection(esi)
-        jz  toend
-        dec eax
-        jnz toend
+        .if !ticopyselection(esi)
+            jmp toend
+        .endif
     .endif
     .if delete
         ticlipdel(esi)

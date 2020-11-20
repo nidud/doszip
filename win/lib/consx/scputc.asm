@@ -10,13 +10,19 @@ include consx.inc
 
 scputc proc uses eax ecx edx x, y, l, char
 
-    local NumberOfCharsWritten
+  local NumberOfCharsWritten
 
     movzx ecx,byte ptr char
+if 0
+    .if AsciiSymbols[ecx]
+        movzx eax,AsciiSymbols[ecx]
+        mov cx,UnicodeSymbols[eax*2]
+    .endif
+endif
     movzx eax,byte ptr x
     movzx edx,byte ptr y
     shl   edx,16
-    mov   dx,ax
+    or    edx,eax
 
     FillConsoleOutputCharacter(
         hStdOutput,
