@@ -21,7 +21,7 @@ externdef _diskflag:DWORD
 
 process proc uses esi edi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlags:dword
 
-local PI:PROCESS_INFORMATION, SINFO:STARTUPINFO, ConsoleMode:dword
+  local PI:PROCESS_INFORMATION, SINFO:STARTUPINFO, ConsoleMode:dword
 
     xor eax,eax
     mov errno,eax

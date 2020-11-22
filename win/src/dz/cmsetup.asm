@@ -106,9 +106,12 @@ cmsystem proc uses esi edi ebx
             and ecx,CON_MOUSE or CON_IOSFN or CON_CMDENV
             .if ecx != eax
 
-                mov ecx,ENABLE_WINDOW_INPUT
-                .if eax & CON_MOUSE
+                ; added v3.59 - Windows 10 console
 
+                mov ecx,OldConsoleMode
+                and ecx,not ENABLE_MOUSE_INPUT
+                or  ecx,ENABLE_WINDOW_INPUT
+                .if eax & CON_MOUSE
                     or ecx,ENABLE_MOUSE_INPUT
                 .endif
                 SetConsoleMode(hStdInput, ecx)

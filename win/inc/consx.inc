@@ -222,6 +222,8 @@ PCURSOR		TYPEDEF PTR S_CURSOR
 
 externdef	console_dl:S_DOBJ	; Init screen (user screen)
 externdef	console_cu:S_CURSOR	; Init cursor (set on exit)
+externdef	OldConsoleMode:dword
+
 externdef	tdcolor:PVOID		; = &at_background
 externdef	tdialog:PVOID
 externdef	tdllist:PVOID
