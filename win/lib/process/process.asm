@@ -13,6 +13,7 @@ include conio.inc
 include winbase.inc
 
 externdef _diskflag:DWORD
+externdef OldConsoleMode:dword
 
     .data
     errorlevel dd 0
@@ -38,6 +39,9 @@ process proc uses esi edi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlags:dword
 
     SetErrorMode(OldErrorMode)
     GetConsoleMode(hStdInput, &ConsoleMode)
+
+    ; added v3.59 - Windows 10 console
+    SetConsoleMode(hStdInput, OldConsoleMode)
 
     mov edx,CreationFlags
     and edx,CREATE_NEW_CONSOLE or DETACHED_PROCESS

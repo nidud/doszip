@@ -22,13 +22,8 @@ Install proc private
     GetConsoleMode(hStdInput, &OldConsoleMode)
 
     mov hCurrentWindow,GetForegroundWindow()
-
-    ; added v3.59 - Windows 10 console
-
-    mov eax,OldConsoleMode
-    or  eax,ENABLE_WINDOW_INPUT
+    mov eax,ENABLE_WINDOW_INPUT
     .if console & CON_MOUSE
-
         or eax,ENABLE_MOUSE_INPUT
     .endif
     SetConsoleMode(hStdInput, eax)
