@@ -1,0 +1,19 @@
+
+Changes in 2.57 - 12 Feb 2022
+- changed "Jump" to "Skip" in Delete dialog
+- fixed color issue in Move dialog
+- fixed issue with pipe command -- unzip -hh | more
+
+Changes in 2.55 - 9 Apr 2015
+- fixed bug in colour setup -- updated default colours for Edit/View
+
+Changes in 2.54 - 5 Nov 2014
+- fixed bug in reading .ZIP files created using backslash
+  versions up to 2.24 handle this but not later versions
+
+Changes in 2.53 - 6 Oct 2014
+- removed the .\DOC directory -- %DZ% == %DOSZIP%
+  syntax highlighting settings is moved to DZ.INI
+  history is moved to DZ.CFG -- now a text file
+- Note: New INI entries 00= --> 0=
+- Default CPU is now .186
