@@ -58,8 +58,8 @@ at_background   db 0x00,0x00,0x00,0x10,0x30,0x10,0x30,0x00
 mklist          S_MKLST <0,0,0,-1,0>
 
 history         dd 0
-searchstring    db 128 dup(0)
-replacestring   db 128 dup(0)
+searchstring    db 256 dup(0)
+replacestring   db 256 dup(0)
 cp_selectmask   db 128 dup(0)
 filelist_bat    db "filelist.bat"
                 db _MAX_PATH-12 dup(0)

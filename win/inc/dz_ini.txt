@@ -10,7 +10,7 @@
 ;
 
 [Environ]
-0=INCLUDE=%ASMCDIR%\include
+0=INCLUDE=%ASMCDIR%\include;%ASMCDIR%\include\DirectX;%ASMCDIR%\include\winrt
 
 [Path]
 0=%DZ%

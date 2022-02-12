@@ -44,7 +44,7 @@ GetPathFromHistory proto :ptr
 
     .data
 
-    ff LPFILESEARCH 0
+    ff ptr FileSearch 0
 
     GLCMD   struct
     key     uint_t ?
@@ -390,7 +390,7 @@ InitPath proc directory:string_t
 InitPath endp
 
 
-FileSearch::SearchPath proc uses esi edi ebx directory:string_t
+FileSearch::Searchpath proc uses esi edi ebx directory:string_t
 
   local path[_MAX_PATH]:byte, retval:int_t, length:int_t
 
@@ -467,7 +467,7 @@ FileSearch::SearchPath proc uses esi edi ebx directory:string_t
     mov eax,retval
     ret
 
-FileSearch::SearchPath endp
+FileSearch::Searchpath endp
 
 
 FileSearch::Find proc uses esi edi ebx
@@ -506,7 +506,7 @@ FileSearch::Find proc uses esi edi ebx
         mov edi,[edx].S_TOBJ.to_data[ID_LOCATION*TOFFSET]
 
         progress_set(edi, 0, FFMAXHIT+2)
-        [ebx].SearchPath(edi)
+        [ebx].Searchpath(edi)
         progress_close()
 
         CursorSet(&cursor)
@@ -984,7 +984,7 @@ FileSearch::FileSearch proc uses esi edi ebx directory:string_t
     mov [ebx].ll.ll_list,eax
 
     for m,<Release,WndProc,Find,Modal,PutCellId,UpdateCell,CurItem,\
-           CurFile,List,ClearList,SearchPath>
+           CurFile,List,ClearList,Searchpath>
         mov [edi].FileSearchVtbl.m,FileSearch_&m&
         endm
 

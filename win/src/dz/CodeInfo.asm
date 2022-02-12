@@ -754,7 +754,7 @@ CIEditEvent endp
 
 CIPopUp proc uses esi edi ebx
 
-  local scword[128]:byte, ascii:byte
+  local scword[256]:byte, ascii:byte
 
     mov al,tclrascii
     mov ascii,al

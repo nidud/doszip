@@ -12,7 +12,7 @@ cmsearchidd proc uses esi edi ebx sflag
 
         mov edi,eax
         mov ebx,eax
-        mov [ebx].S_TOBJ.to_count[1*16],128 shr 4
+        mov [ebx].S_TOBJ.to_count[1*16],256 shr 4
         mov [ebx].S_TOBJ.to_data[1*16],offset searchstring
         mov eax,sflag
         mov dl,_O_FLAGB

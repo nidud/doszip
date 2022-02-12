@@ -34,7 +34,7 @@ scgetword proc uses esi edi ebx linebuf:LPSTR
     .untilz
 
     mov esi,linebuf
-    mov ecx,32
+    mov ecx,256
     xor eax,eax
 
     .repeat

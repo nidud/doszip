@@ -157,7 +157,7 @@ tisearch endp
 
 tisearchxy proc ti:PTINFO
 
-  local linebuf[128]:byte
+  local linebuf[256]:byte
 
     .if scgetword(&linebuf)
 
@@ -211,8 +211,8 @@ iddreplace proc private uses ebx
 
     .if rsopen(IDD_Replace)
         mov ebx,eax
-        mov [ebx].S_TOBJ.to_count[ID_OLDSTRING],128 shr 4
-        mov [ebx].S_TOBJ.to_count[ID_NEWSTRING],128 shr 4
+        mov [ebx].S_TOBJ.to_count[ID_OLDSTRING],256 shr 4
+        mov [ebx].S_TOBJ.to_count[ID_NEWSTRING],256 shr 4
         mov eax,offset searchstring
         mov [ebx].S_TOBJ.to_data[ID_OLDSTRING],eax
         mov eax,offset replacestring

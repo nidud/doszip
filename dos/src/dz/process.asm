@@ -260,6 +260,8 @@ endif
 	jnz	command_com
 	invoke	strchr,bx::di,'<'
 	jnz	command_com
+	invoke	strchr,bx::di,'|' ; added 2.56 (bttrx)
+	jnz	command_com
 	invoke	strchr,bx::di,' '
 	jz	@F
 	mov	bx,ax

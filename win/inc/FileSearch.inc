@@ -26,6 +26,5 @@ FFMAXHIT equ 9999
     CurFile     proc
     List        proc
     ClearList   proc
-    SearchPath  proc directory:string_t
-
-    .ends
+    Searchpath  proc :string_t
+   .ends
