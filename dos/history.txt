@@ -1,4 +1,7 @@
 
+Changes in 2.58 - 15 Feb 2022
+- added country-specific data format
+
 Changes in 2.57 - 12 Feb 2022
 - changed "Jump" to "Skip" in Delete dialog
 - fixed color issue in Move dialog

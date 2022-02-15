@@ -9,7 +9,7 @@ include helpid.inc
 
 _DATA	segment
 
-CP_COPYING db 'LICENSE.TXT',0
+CP_COPYING db 'LICENSE',0
 CP_DZTXT   db 'DOSZIP.TXT',0
 Offset_README label WORD
 	dw 0		; DZ.TXT
@@ -62,7 +62,7 @@ DZABOUT_RC label WORD
 	M_WZIP	' The Doszip Commander Version ',78
 	db	VERSSTR
 	db	' Dos16'
-	M_WZIP	' Copyright (C) 97-2016 Doszip Developers',11
+	M_WZIP	' Copyright (C) 97-2022 Doszip Developers',11
 	M_WZIP	' ',11
 	M_WZIP	'Ä',39
 	M_WZIP	' License:     GNU General Public License',11

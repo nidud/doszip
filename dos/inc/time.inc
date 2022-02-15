@@ -6,6 +6,11 @@ endif
 
 DT_BASEYEAR	equ 1980
 
+DFORMAT_USA	equ 0
+DFORMAT_EUROPE	equ 1
+DFORMAT_JAPAN	equ 2
+externdef	dos_dateformat:BYTE
+
 putedxal	PROTO
 wcputnum	PROTO
 

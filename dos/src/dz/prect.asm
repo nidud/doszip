@@ -5,6 +5,7 @@ include doszip.inc
 include conio.inc
 include mouse.inc
 include string.inc
+include time.inc
 include dos.inc
 ifdef __ROT__
 include tinfo.inc
@@ -569,11 +570,19 @@ endif
 	.endif
 	push	ax
 	mov	ax,si
-	shr	ax,5
-	and	ax,000Fh
-	push	ax
-	mov	ax,si
-	and	ax,001Fh
+	.if dos_dateformat == DFORMAT_EUROPE
+	    shr ax,5
+	    and ax,000Fh
+	    push ax
+	    mov ax,si
+	    and ax,001Fh
+	.else
+	    and ax,001Fh
+	    push ax
+	    mov ax,si
+	    shr ax,5
+	    and ax,000Fh
+	.endif
 	push	ax
 	mov	ax,di
 	call	fbcolor
