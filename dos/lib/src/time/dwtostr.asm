@@ -7,39 +7,26 @@ include time.inc
 
 dwtostr PROC _CType PUBLIC USES bx cx buf:DWORD, date:size_t
 
+    mov ax,date
     les bx,buf
-    mov ax,date
-    mov cx,'/'
-    .if dos_dateformat == DFORMAT_EUROPE
-        mov cl,'.'
-        and ax,001Fh ; dd.mm.yy
-    .else
-        shr ax,5
-        and ax,000Fh ; mm/dd/yy
+    dwexpand()
+    .if dos_dateformat == DFORMAT_JAPAN
+        xchg ax,cx ; yy/mm/dd
+    .elseif dos_dateformat == DFORMAT_USA
+        xchg ax,dx ; mm/dd/yy
     .endif
     putedxal()
-    mov es:[bx],cl
+    mov al,date_separator
+    mov es:[bx],al
     inc bx
-    mov ax,date
-    .if dos_dateformat == DFORMAT_EUROPE
-        shr ax,5
-        and ax,000Fh ; mm
-    .else
-        and ax,001Fh ; dd
-    .endif
+    mov ax,dx
     putedxal()
-    mov es:[bx],cl
+    mov al,date_separator
+    mov es:[bx],al
     inc bx
-    mov ax,date
-    shr ax,9
-    add ax,DT_BASEYEAR
-    .if ax >= 2000
-        sub ax,2000
-    .else
-        sub ax,1900
-    .endif
+    mov ax,cx
     putedxal()
-    mov es:[bx],ch
+    mov byte ptr es:[bx],0
     mov dx,es
     mov ax,WORD PTR buf
     ret

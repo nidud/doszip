@@ -552,37 +552,23 @@ fbputmax:
 	pop	bx
 	ret
 
-fbputdate PROC pascal PRIVATE USES si di fb:DWORD, y:WORD
+fbputdate PROC pascal PRIVATE USES di fb:DWORD, y:WORD
 	les	bx,fb
 	mov	di,es:[bx].S_FBLK.fb_flag
 	mov	ax,WORD PTR es:[bx].S_FBLK.fb_time+2
-	mov	si,ax
 ifdef __ROT__
 	.if di & _A_ROOTDIR
 	    or di,_A_SYSTEM
 	.endif
 endif
-	shr ax,9
-	.if ax >= 20
-	    sub ax,20
-	.else
-	    add ax,80
+	dwexpand()
+	.if dos_dateformat == DFORMAT_JAPAN
+	   xchg ax,cx ; yy/mm/dd
+	.elseif dos_dateformat == DFORMAT_USA
+	   xchg ax,dx ; mm/dd/yy
 	.endif
-	push	ax
-	mov	ax,si
-	.if dos_dateformat == DFORMAT_EUROPE
-	    shr ax,5
-	    and ax,000Fh
-	    push ax
-	    mov ax,si
-	    and ax,001Fh
-	.else
-	    and ax,001Fh
-	    push ax
-	    mov ax,si
-	    shr ax,5
-	    and ax,000Fh
-	.endif
+	push	cx
+	push	dx
 	push	ax
 	mov	ax,di
 	call	fbcolor

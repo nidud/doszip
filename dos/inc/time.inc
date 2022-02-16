@@ -10,6 +10,8 @@ DFORMAT_USA	equ 0
 DFORMAT_EUROPE	equ 1
 DFORMAT_JAPAN	equ 2
 externdef	dos_dateformat:BYTE
+externdef	date_separator:BYTE
+externdef	time_separator:BYTE
 
 putedxal	PROTO
 wcputnum	PROTO
@@ -24,6 +26,7 @@ gethour		PROTO _CType
 getmin		PROTO _CType
 getsec		PROTO _CType
 
+dwexpand	PROTO _CType ; ax to ax:dx:cx -- dd:mm:yyyy
 dwtolstr	PROTO _CType :DWORD, :WORD
 dwtostr		PROTO _CType :DWORD, :WORD
 strtodw		PROTO _CType :DWORD

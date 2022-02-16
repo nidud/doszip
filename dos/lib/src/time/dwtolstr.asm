@@ -7,13 +7,19 @@ include time.inc
 
 dwtolstr PROC _CType PUBLIC uses bx string:DWORD, date:size_t
 
+    .if dos_dateformat == DFORMAT_JAPAN
+        add word ptr string,2
+    .endif
     invoke dwtostr, string, date
-
-    add ax,6
     mov bx,ax
-    mov ax,es:[bx]
-    mov es:[bx+2],ax ; dd.mm.[..]yy
-    mov byte ptr es:[bx+4],0
+    .if dos_dateformat == DFORMAT_JAPAN
+        sub bx,2 ; xxyy/mm/dd
+    .else
+        add bx,6
+        mov ax,es:[bx]
+        mov es:[bx+2],ax ; dd.mm.xxyy
+        mov byte ptr es:[bx+4],0
+    .endif
     mov ax,date
     shr ax,9
     add ax,DT_BASEYEAR
