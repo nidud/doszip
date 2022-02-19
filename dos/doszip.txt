@@ -2,9 +2,9 @@ DOSZIP.TXT--
 Copyright 2022 Doszip Developers.
 
 DOSZIP COMMANDER
-Version 2.60
+Version 2.61
 
-Welcome to Doszip Commander Version 2.60!
+Welcome to Doszip Commander Version 2.61!
 =========================================
 
 

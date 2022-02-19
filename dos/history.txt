@@ -1,8 +1,5 @@
 
-Changes in 2.60 - 19 Feb 2022
-- fixed/extended country-specific time/data format
-
-Changes in 2.59 - 16 Feb 2022
+Changes in 2.61 - 19 Feb 2022
 - extended country-specific data format
 
 Changes in 2.58 - 15 Feb 2022

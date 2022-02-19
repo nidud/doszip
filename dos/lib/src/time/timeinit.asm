@@ -48,6 +48,7 @@ LOCAL	country_info[64]:byte
 	mov	al,country_info
 	mov	dos_dateformat,al
 	cmp	al,DFORMAT_EUROPE
+	mov	al,'.'
 	je	europe
 	mov	al,'/'
 europe:
@@ -60,8 +61,8 @@ dos_2_11:
 	mov	time_separator,al
 	mov	cp_timefrm[3],al ; "%2u:%02u"
 	mov	al,country_info[0x0B]
-	mov	date_separator,al
 dos_2_10:
+	mov	date_separator,al
 	mov	cp_datefrm[3],al ; "%2u.%02u.%02u"
 	mov	cp_datefrm[8],al
 toend:
