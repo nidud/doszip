@@ -28,7 +28,7 @@ tupdtime PROC _CType PUBLIC
 		add bx,bx
 		mov al,ch
 		call wcputnum
-		mov al,':'
+		mov al,time_separator
 		mov es:[bx+4],al
 		.if console & CON_LTIME
 		    mov es:[bx+10],al

@@ -1,5 +1,5 @@
 ; DZ.ASM--
-; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
+; Copyright (C) 2022 Doszip Developers -- see LICENSE.TXT
 
 	.186
 	.model	small
@@ -16,7 +16,7 @@ start	PROC
 	jmp	around
 	db	10
 copy	db	'The Doszip Commander Version ',VERSSTR,', '
-	db	'Copyright (c) 1997-2016 Doszip Developers',13,10,13,10,'$'
+	db	'Copyright (c) 1997-2022 Doszip Developers',13,10,13,10,'$'
 errenv	db	'Environment invalid',13,10,'$'
 around:
 	mov	ax,cs

@@ -48,8 +48,9 @@ LOCAL	country_info[64]:byte
 	mov	al,country_info
 	mov	dos_dateformat,al
 	cmp	al,DFORMAT_EUROPE
-	je	toend
+	je	europe
 	mov	al,'/'
+europe:
 	cmp	_osmajor,2
 	ja	dos_2_11
 	cmp	_osminor,11
@@ -67,6 +68,6 @@ toend:
 	ret
 timeinit ENDP
 
-pragma_init timeinit, 4
+pragma_init timeinit, 8
 
 	END

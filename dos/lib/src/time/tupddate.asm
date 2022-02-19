@@ -26,27 +26,41 @@ tupddate PROC _CType PUBLIC
 		    sub bl,3
 		.endif
 		sub cx,2000
+		.if dos_dateformat == DFORMAT_JAPAN
+		    xchg dl,cl ; yy??/mm/dd
+		.elseif dos_dateformat == DFORMAT_USA
+		    xchg dl,dh ; mm/dd/yy??
+		.endif
 		.if console & CON_LDATE
 		    sub bl,2
 		    add bx,bx
-		    mov BYTE PTR es:[bx],'2'
-		    mov BYTE PTR es:[bx+2],'0'
-		    add bx,4
-		    mov al,cl
+		    .if dos_dateformat == DFORMAT_JAPAN
+			mov BYTE PTR es:[bx],'2'
+			mov BYTE PTR es:[bx+2],'0'
+			add bx,4
+		    .endif
+		    mov al,dl
 		    call wcputnum
 		    add bx,6
-		    mov BYTE PTR es:[bx-2],'-'
+		    mov al,date_separator
+		    mov es:[bx-2],al
 		    mov al,dh
 		    call wcputnum
 		    add bx,6
-		    mov BYTE PTR es:[bx-2],'-'
-		    mov al,dl
+		    mov al,date_separator
+		    mov es:[bx-2],al
+		    .if dos_dateformat != DFORMAT_JAPAN
+			mov BYTE PTR es:[bx],'2'
+			mov BYTE PTR es:[bx+2],'0'
+			add bx,4
+		    .endif
+		    mov al,cl
 		    call wcputnum
 		.else
 		    add bx,bx
 		    mov al,dl
 		    call wcputnum
-		    mov al,'.'
+		    mov al,date_separator
 		    mov es:[bx+4],al
 		    mov es:[bx+10],al
 		    .if ah == '0'
