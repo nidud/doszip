@@ -1,24 +1,22 @@
-; __FTTOTIME.ASM--
+; FILEDATETOSTRINGA.ASM--
 ;
 ; Copyright (c) The Asmc Contributors. All rights reserved.
 ; Consult your license regarding permissions and restrictions.
 ;
-
 include time.inc
 include winbase.inc
 
     .code
 
-__FTToTime proc uses ecx edx ft:LPFILETIME
+FileDateToStringA proc string:ptr char_t, ft:ptr FILETIME
 
-  local ftime:FILETIME
-  local stime:SYSTEMTIME
+  local ftime:FILETIME, stime:SYSTEMTIME
 
     FileTimeToLocalFileTime(ft, &ftime)
     FileTimeToSystemTime(&ftime, &stime)
-    __STToTime(&stime)
+    SystemDateToStringA(string, &stime)
     ret
 
-__FTToTime endp
+FileDateToStringA endp
 
     END

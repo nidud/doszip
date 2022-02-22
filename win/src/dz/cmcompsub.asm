@@ -284,7 +284,7 @@ local path[_MAX_PATH*2]:sbyte, result:dword, found[4]:byte
 
             .if flags & _COMP_WRITE ; Compare Last modification time
 
-                __FTToTime(&[ebx].WIN32_FIND_DATA.ftLastWriteTime)
+                FileTimeToTime(&[ebx].WIN32_FIND_DATA.ftLastWriteTime)
                 mov edx,[esi]
                 .continue .if eax != [edx].S_FBLK.fb_time
             .endif
@@ -298,7 +298,7 @@ local path[_MAX_PATH*2]:sbyte, result:dword, found[4]:byte
                     pop ecx
                     push eax
                     _close(ecx)
-                    __FTToTime(&[ebx].WIN32_FIND_DATA.ftCreationTime)
+                    FileTimeToTime(&[ebx].WIN32_FIND_DATA.ftCreationTime)
                     pop ecx
                     .continue .if eax != ecx
                 .endif
@@ -314,7 +314,7 @@ local path[_MAX_PATH*2]:sbyte, result:dword, found[4]:byte
                     pop ecx
                     push eax
                     _close(ecx)
-                    __FTToTime(&[ebx].WIN32_FIND_DATA.ftLastAccessTime)
+                    FileTimeToTime(&[ebx].WIN32_FIND_DATA.ftLastAccessTime)
                     pop ecx
                     .continue .if eax != ecx
                 .endif
@@ -401,7 +401,7 @@ local fsize:qword
         strfcat(&path, directory, &[edi].WIN32_FIND_DATA.cFileName)
         mov eax,ff_count
         .if eax < MAXHIT
-            __FTToTime(&[edi].WIN32_FIND_DATA.ftLastWriteTime)
+            FileTimeToTime(&[edi].WIN32_FIND_DATA.ftLastWriteTime)
             mov ecx,eax
             .if fballoc(&path, ecx, fsize, [edi].WIN32_FIND_DATA.dwFileAttributes)
                 mov ecx,ff_count

@@ -2,7 +2,11 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
-Changes in 3.56 - xx xxx 2019
+Changes in 3.61 - 22 Feb 2022
+- added country-specific date format
+
+Changes in 3.59 - 20 Nov 2020
+- Update for Windows 10 Console -- exec / clip board
 - added exit as inline command
 - added /nologo command line option - suppress copyright message
 - added /cmd command line option - start with command prompt only

@@ -1,9 +1,9 @@
 
 Changes in 2.61 - 19 Feb 2022
-- extended country-specific data format
+- extended country-specific date format
 
 Changes in 2.58 - 15 Feb 2022
-- added country-specific data format
+- added country-specific date format
 
 Changes in 2.57 - 12 Feb 2022
 - changed "Jump" to "Skip" in Delete dialog

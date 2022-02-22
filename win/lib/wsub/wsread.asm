@@ -47,7 +47,8 @@ wsreadwf proc private uses esi edi ebx wsub:ptr S_WSUB, attrib
                 .if ecx & _A_SUBDIR
                     lea eax,[edi].WIN32_FIND_DATA.ftCreationTime
                 .endif
-                __FTToTime(eax)
+                FileTimeToTime(eax)
+                mov ecx,[edi].WIN32_FIND_DATA.dwFileAttributes
                 and ecx,_A_FATTRIB
                 lea edx,[edi].WIN32_FIND_DATA.cFileName
                 .if !([ebx].S_WSUB.ws_flag & _W_LONGNAME) && \

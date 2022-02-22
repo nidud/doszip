@@ -82,6 +82,41 @@ cmfilter_date proc private uses edi ebx
     ret
 cmfilter_date endp
 
+TDateToString proc private string:ptr sbyte, tptr:time_t
+
+  local SystemTime:SYSTEMTIME
+
+    TimeToSystemTime(tptr, &SystemTime)
+    SystemDateToStringA(string, &SystemTime)
+    ret
+
+TDateToString endp
+
+atodate proc private string:ptr sbyte
+
+  local SystemTime:SYSTEMTIME
+
+    StringToSystemDateA(string, &SystemTime)
+
+    movzx eax,SystemTime.wYear
+    movzx edx,SystemTime.wMonth
+    movzx ecx,SystemTime.wDay
+    .if eax <= 1900	; year yy | yyyy
+	.if eax < 80
+	    add eax,100
+	.endif
+	add eax,1900
+    .endif
+    sub eax,DT_BASEYEAR
+    shl eax,9		; year
+    shl edx,5		; month
+    or	eax,edx
+    or	eax,ecx		; yyyyyyymmmmddddd
+    shl eax,16		; <date>:<time>
+    ret
+
+atodate endp
+
 filter_edit proc uses esi edi ebx filt:ptr, glcmd:ptr
 
   local FileTime:FILETIME

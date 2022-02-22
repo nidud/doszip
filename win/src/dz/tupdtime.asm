@@ -2,16 +2,17 @@ include time.inc
 include consx.inc
 include winnls.inc
 
+public time_id
+
     .data
-    _sec    dd 61
-    iso_s   db "dd.MM.yy",0
+     time_id dd 61
 
     .code
 
 tupdtime proc uses esi edi ebx
 
-local ts:SYSTEMTIME
-local buf[64]:byte
+  local ts:SYSTEMTIME
+  local buf[64]:byte
 
     mov ebx,console
     xor eax,eax
@@ -33,39 +34,42 @@ local buf[64]:byte
             movzx eax,ts.wMinute
         .endif
 
-        .if eax != _sec
+        .if eax != time_id
 
-            mov _sec,eax
-            mov esi,GetUserDefaultLCID()
+            mov time_id,eax
             mov ebx,_scrcol
             inc ebx
 
             .if edi & CON_UTIME
 
-                mov edx,TIME_NOSECONDS
-                .if edi & CON_LTIME
-
-                    xor edx,edx
+                SystemTimeToStringA(&buf, &ts)
+                .if !( edi & CON_LTIME )
+                    mov buf[5],0
+                    sub ebx,6
+                .else
+                    sub ebx,9
                 .endif
-                .if GetTimeFormat(esi, edx, &ts, 0, &buf, 32)
-
-                    sub ebx,eax
-                    scputs(ebx, 0, 0, 0, &buf)
-                .endif
+                scputs(ebx, 0, 0, 0, &buf)
             .endif
 
             .if edi & CON_UDATE
 
-                lea edx,iso_s
-                .if edi & CON_LDATE
-
-                    xor edx,edx
+                SystemDateToStringA(&buf, &ts)
+                .if !(edi & CON_LDATE)
+                    lea esi,buf
+                    mov al,[esi+2]
+                    .if ( al >= '0' && al <= '9' )
+                        add esi,2
+                    .else
+                        mov eax,[esi+6]
+                        shr eax,16
+                        mov [esi+6],eax
+                    .endif
+                    sub ebx,9
+                .else
+                    sub ebx,11
                 .endif
-                .if GetDateFormat(esi, 0, &ts, edx, &buf, 32)
-
-                    sub ebx,eax
-                    scputs(ebx, 0, 0, 0, &buf)
-                .endif
+                scputs(ebx, 0, 0, 0, &buf)
             .endif
         .endif
     .endif

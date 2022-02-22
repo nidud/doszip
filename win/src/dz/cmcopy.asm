@@ -393,7 +393,7 @@ fp_copyfile proc uses esi edi ebx directory, wblk
         mov edi,[ebx].WIN32_FIND_DATA.nFileSizeLow
         .if !progress_set(&[ebx].WIN32_FIND_DATA.cFileName, __outpath, esi::edi)
 
-            __FTToTime(&[ebx].WIN32_FIND_DATA.ftLastWriteTime)
+            FileTimeToTime(&[ebx].WIN32_FIND_DATA.ftLastWriteTime)
             mov edx,[ebx].WIN32_FIND_DATA.dwFileAttributes
             and edx,_A_FATTRIB
             .if copy_flag & _COPY_OARCHIVE

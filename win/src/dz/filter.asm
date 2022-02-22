@@ -93,7 +93,7 @@ filter_fblk ENDP
 
 filter_wblk PROC USES esi ebx wf:PTR WIN32_FIND_DATA
 	mov	ebx,wf
-	__FTToTime( addr [ebx].WIN32_FIND_DATA.ftLastWriteTime )
+	FileTimeToTime( addr [ebx].WIN32_FIND_DATA.ftLastWriteTime )
 	and	eax,0xFFFF0000
 	mov	ecx,[ebx].WIN32_FIND_DATA.dwFileAttributes
 	mov	edx,[ebx].WIN32_FIND_DATA.nFileSizeLow

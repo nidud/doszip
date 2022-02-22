@@ -1436,6 +1436,11 @@ fblk_select proc fp:LPFBLK
 fblk_select endp
 
 fbputfile proc uses esi edi ebx fb, x, y, l
+
+  local SystemTime:SYSTEMTIME
+  local Time[32]:char_t
+  local Date[32]:char_t
+
     mov eax,fb
     mov ebx,eax
     add eax,S_FBLK.fb_name
@@ -1501,64 +1506,28 @@ fbputfile proc uses esi edi ebx fb, x, y, l
         scputf(ebx, y, esi, 0, "%7u%c", eax, ecx)
     .endif
 @2:
-    mov eax,x
-    add eax,l
-    sub eax,14
-    push eax
-    add eax,9
-    puttime()
-    pop eax
-    putdate()
+    mov ebx,fb
+    TimeToSystemTime([ebx].S_FBLK.fb_time, &SystemTime)
+    SystemDateToStringA(&Date, &SystemTime)
+    SystemTimeToStringA(&Time, &SystemTime)
+    mov ebx,fbcolor(ebx)
+    mov edi,x
+    add edi,l
+    sub edi,5
+    scputs(edi, y, ebx, 5, addr Time)
+    sub edi,9
+    lea esi,Date
+    mov al,[esi+2]
+    .if ( al >= '0' && al <= '9' )
+        add esi,2
+    .else
+        mov eax,[esi+6]
+        shr eax,16
+        mov [esi+6],eax
+    .endif
+    scputs(edi, y, ebx, 8, esi)
     ret
 
-putdate:
-    mov x,eax
-    mov ebx,fb
-    mov edi,[ebx].S_FBLK.fb_flag
-    movzx eax,word ptr [ebx].S_FBLK.fb_time+2
-    mov esi,eax
-    .if edi & _FB_ROOTDIR
-        or edi,_A_SYSTEM
-    .endif
-    shr eax,9
-    .if eax >= 20
-        sub eax,20
-    .else
-        add eax,80
-    .endif
-    push eax
-    mov  eax,esi
-    shr  eax,5
-    and  eax,000Fh
-    push eax
-    mov  eax,esi
-    and  eax,001Fh
-    push eax
-    fbcolor(ebx)
-    scputf(x, y, eax, 0, addr cp_datefrm)
-    add  esp,12
-    retn
-
-puttime:
-    mov x,eax
-    mov ebx,fb
-    mov eax,[ebx].S_FBLK.fb_time
-    shr eax,5
-    and eax,003Fh
-    push eax
-    mov eax,[ebx].S_FBLK.fb_time
-    shr eax,11
-    and eax,001Fh
-    push eax
-    mov eax,[ebx].S_FBLK.fb_flag
-    .if eax & _FB_ROOTDIR
-
-        or eax,_A_SYSTEM
-    .endif
-    fbcolor(ebx)
-    scputf(x, y, eax, 0, addr cp_timefrm)
-    add esp,8
-    retn
 fbputfile endp
 
 panel_putmini proc uses esi edi ebx panel:LPPANEL
@@ -1834,71 +1803,36 @@ fbputmax proc uses ebx
 
 fbputmax endp
 
-fbputtime proc uses ebx fb, wp
+fbputdate proc uses esi edi ebx fb:ptr, wp:ptr, updTime:BOOL
+
+  local SystemTime:SYSTEMTIME
+  local Time[32]:char_t
+  local Date[32]:char_t
 
     mov ebx,fb
-    mov eax,[ebx].S_FBLK.fb_time
-    shr eax,5
-    and eax,003Fh
-    push eax
-    mov eax,[ebx].S_FBLK.fb_time
-    shr eax,11
-    and eax,001Fh
-    push eax
-    fbcolor(ebx)
-    shl eax,8
-    wcputf(wp, 0, eax, addr cp_timefrm)
-    add esp,8
-    ret
-
-fbputtime endp
-
-fbputdate proc uses esi edi ebx fb, wp
-
-    mov ebx,fb
-    mov edi,[ebx].S_FBLK.fb_flag
-    movzx eax,word ptr [ebx].S_FBLK.fb_time+2
-    mov esi,eax
-
-    .if edi & _FB_ROOTDIR
-
-        or edi,_A_SYSTEM
-    .endif
-
-    shr eax,9
-    .if eax >= 20
-
-        sub eax,20
+    TimeToSystemTime([ebx].S_FBLK.fb_time, &SystemTime)
+    SystemDateToStringA(&Date, &SystemTime)
+    mov ebx,fbcolor(ebx)
+    shl ebx,8
+    lea esi,Date
+    mov al,[esi+2]
+    .if ( al >= '0' && al <= '9' )
+        add esi,2
     .else
-
-        add eax,80
+        mov eax,[esi+6]
+        shr eax,16
+        mov [esi+6],eax
     .endif
-
-    push  eax
-    mov   eax,esi
-    shr   eax,5
-    and   eax,000Fh
-    push  eax
-    mov   eax,esi
-    and   eax,001Fh
-    push  eax
-    fbcolor(ebx)
-    shl   eax,8
-    wcputf(wp, 0, eax, addr cp_datefrm)
-    add   esp,12
+    wcputs(wp, 0, ebx, esi)
+    .if updTime
+        SystemTimeToStringA(&Time, &SystemTime)
+        add wp,18
+        mov Time[5],0
+        wcputs(wp, 0, ebx, &Time)
+    .endif
     ret
+
 fbputdate endp
-
-fbputdatetime proc
-
-    push eax
-    add eax,18
-    fbputtime([ebp+20], eax)
-    pop eax
-    fbputdate([ebp+20], eax)
-    ret
-
-fbputdatetime endp
 
 fbloadbock proc
 
@@ -2029,7 +1963,7 @@ fbputsd proc uses esi edi ebx fb, wp, l
 
     mov eax,edx
     add eax,32
-    fbputdatetime()
+    fbputdate(fb, eax, 1)
     ret
 
 fbputsd endp
@@ -2096,14 +2030,13 @@ fbputld proc uses esi edi ebx fb, wp, l
     mov eax,wp
     add eax,l
     add eax,l
+    sub eax,16
+    xor ecx,ecx
     .if cflag & _C_HORIZONTAL
-
-        sub eax,28
-        fbputdatetime()
-    .else
-        sub eax,16
-        fbputdate(fb, eax)
+        inc ecx
+        sub eax,28-16
     .endif
+    fbputdate(fb, eax, ecx)
     ret
 fbputld endp
 

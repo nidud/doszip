@@ -10,6 +10,8 @@ include stdlib.inc
 include string.inc
 
 EXTERN  CRLF$:byte
+EXTERN  time_id:dword
+
 tupdtime proto
 
     .data
@@ -333,6 +335,7 @@ apiupdate proc
 
     comhide()
     doszip_hide()
+    mov time_id,61
     doszip_show()
     ret
 
@@ -362,6 +365,7 @@ apiega  endp
 
 open_idd proc uses ebx id, lpMTitle
 
+    mov time_id,61
     mov eax,id
     .if rsopen(menus_iddtable[eax*4])
 
@@ -398,7 +402,7 @@ close_idd endp
 
 modal_idd proc uses esi edi ebx index, stInfo, dialog, wpMenusTitle
 
-local   stBuffer[256]:word
+  local stBuffer[256]:word
 
     lea esi,stBuffer
     mov edi,dialog
@@ -533,7 +537,7 @@ readtools endp
 
 tools_idd proc uses esi edi ebx lsize, p, section
 
-local mtitle, tbuf[256]:byte
+  local mtitle, tbuf[256]:byte
 
     .while 1
 

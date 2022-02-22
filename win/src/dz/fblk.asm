@@ -38,13 +38,11 @@ fballocwf proc uses esi ebx wfblk:PVOID, flag
     mov ebx,wfblk
     mov ecx,[ebx]
     lea eax,[ebx].ftLastWriteTime
-
     .if cl & _A_SUBDIR
-
         lea eax,[ebx].ftCreationTime
     .endif
-
-    __FTToTime(eax)
+    FileTimeToTime(eax)
+    mov ecx,[ebx]
     and ecx,_A_FATTRIB
     or  ecx,flag
     lea edx,[ebx].cFileName
@@ -111,7 +109,10 @@ fbselect endp
 
 fbupdir proc flag
 
-    clock()
+  local ts:SYSTEMTIME
+
+    GetLocalTime(&ts)
+    SystemTimeToTime(&ts)
     mov ecx,flag
     or  ecx,_FB_UPDIR or _A_SUBDIR
     fballoc(addr cp_dotdot, eax, 0, ecx)

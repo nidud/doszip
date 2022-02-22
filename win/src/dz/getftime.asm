@@ -15,7 +15,7 @@ getftime proc uses ecx edx handle:SINT
 
             osmaperr()
         .else
-            __FTToTime(addr FileTime)
+            FileTimeToTime(addr FileTime)
         .endif
     .endif
     ret
@@ -33,7 +33,7 @@ getftime_access proc uses ecx edx handle:SINT
 
             osmaperr()
         .else
-            __FTToTime(addr FileTime)
+            FileTimeToTime(addr FileTime)
         .endif
     .endif
     ret
@@ -51,7 +51,7 @@ getftime_create PROC USES ecx edx handle:SINT
 
             osmaperr()
         .else
-            __FTToTime( addr FileTime )
+            FileTimeToTime( addr FileTime )
         .endif
     .endif
     ret
