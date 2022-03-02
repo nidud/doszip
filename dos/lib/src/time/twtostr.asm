@@ -8,7 +8,7 @@ include time.inc
 twtostr PROC _CType PUBLIC USES cx string:DWORD, timew:size_t
 	push	bx
 	les	bx,string
-	mov	cx,':'
+	mov	cl,time_separator
 	mov	ax,timew
 	shr	ax,11
 	and	ax,001Fh
@@ -25,7 +25,7 @@ twtostr PROC _CType PUBLIC USES cx string:DWORD, timew:size_t
 	and	ax,001Fh
 	shl	ax,1
 	call	putedxal
-	mov	es:[bx],ch
+	mov	byte ptr es:[bx],0
 	mov	dx,es
 	mov	ax,WORD PTR string
 	pop	bx
