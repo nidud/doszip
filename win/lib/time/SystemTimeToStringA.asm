@@ -8,19 +8,27 @@ include winnls.inc
 
     .code
 
-SystemTimeToStringA proc string:ptr char_t, stime:ptr SYSTEMTIME
-if (_WIN32_WINNT GE _WIN32_WINNT_VISTA)
-   .new timeString[64]:wchar_t
-    GetTimeFormatEx(NULL, TIME_FORCE24HOURFORMAT, stime, NULL, &timeString, lengthof(timeString))
-    .for ( edx = string, ecx = 0 : ecx < 9 : ecx++ )
-        mov al,byte ptr timeString[ecx*2]
-        mov [edx+ecx],al
-    .endf
-    mov byte ptr [edx+ecx],0
-else
+SystemTimeToStringA proc uses esi edi string:ptr char_t, stime:ptr SYSTEMTIME
+
+   .new timeString[16]:char_t
+
+    mov edi,string
+    lea esi,timeString
+
     mov ecx,GetUserDefaultLCID()
-    GetTimeFormatA(ecx, TIME_FORCE24HOURFORMAT, stime, NULL, string, 9)
-endif
+    GetTimeFormatA(ecx, TIME_FORCE24HOURFORMAT, stime, NULL, esi, lengthof(timeString))
+
+    ; 0:0:0 --> 00:00:00 -- WinXP
+
+    .for ( al = '0', edx = 0 : edx < 3 : edx++ )
+
+        mov ecx,3
+        .if ( [esi+1] < al || byte ptr [esi+1] > '9' )
+            stosb
+            dec ecx
+        .endif
+        rep movsb
+    .endf
     .return( string )
 
 SystemTimeToStringA endp

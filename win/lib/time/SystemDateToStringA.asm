@@ -10,19 +10,47 @@ include winnls.inc
 
     .code
 
-SystemDateToStringA proc string:ptr char_t, date:ptr SYSTEMTIME
-if (_WIN32_WINNT GE _WIN32_WINNT_VISTA)
-   .new dateString[64]:wchar_t
-    GetDateFormatEx(NULL, DATE_SHORTDATE, date, NULL, &dateString, lengthof(dateString), NULL)
-    .for ( edx = string, ecx = 0 : ecx < 10 : ecx++ )
-        mov al,byte ptr dateString[ecx*2]
-        mov [edx+ecx],al
-    .endf
-    mov byte ptr [edx+ecx],0
-else
+SystemDateToStringA proc uses esi edi string:ptr char_t, date:ptr SYSTEMTIME
+
+   .new dateString[16]:char_t
+
+    lea esi,dateString
+    mov edi,string
     mov ecx,GetUserDefaultLCID()
-    GetDateFormatA(ecx, DATE_SHORTDATE, date, NULL, string, 11)
-endif
+    GetDateFormatA(ecx, DATE_SHORTDATE, date, NULL, esi, lengthof(dateString))
+
+    mov ax,'90'
+    mov cx,[esi+1]
+    .if ( cl >= '0' && cl <= '9' && ch >= '0' && ch <= '9' )
+
+        mov ecx,5 ; 'yyyy?'
+        rep movsb
+        mov ecx,3
+        .if ( [esi+1] < al || [esi+1] > ah )
+            stosb
+            dec ecx
+        .endif
+        rep movsb
+        mov ecx,3
+        .if ( [esi+1] < al || [esi+1] > ah )
+            stosb
+            dec ecx
+        .endif
+        rep movsb
+    .else
+        mov ecx,3
+        .if ( [esi+1] < al || [esi+1] > ah )
+            stosb
+            dec ecx
+        .endif
+        rep movsb
+        mov ecx,8
+        .if ( [esi+1] < al || [esi+1] > ah )
+            stosb
+            dec ecx
+        .endif
+        rep movsb
+    .endif
     .return( string )
 
 SystemDateToStringA endp
