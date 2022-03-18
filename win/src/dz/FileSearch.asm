@@ -966,7 +966,7 @@ FileSearch::FileSearch proc uses esi edi ebx directory:string_t
     mov edi,eax
     mov ecx,( ( FileSearch + FileSearchVtbl + FFMAXHIT * 4 + 4 ) / 4 )
     xor eax,eax
-    rep stosb
+    rep stosd
 
     lea eax,[ebx+FileSearch]
     mov [ebx].lpVtbl,eax

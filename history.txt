@@ -2,6 +2,9 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
+Changes in 3.62 - 18 Mar 2022
+- Update date format for Windows XP
+
 Changes in 3.61 - 22 Feb 2022
 - added country-specific date format
 
