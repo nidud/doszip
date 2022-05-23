@@ -468,6 +468,7 @@ doszip_modal proc uses esi
 	  .case KEY_ALTC:   cmxorcmdline()
 	  .case KEY_ALTL:   cmmklist()
 	  .case KEY_ALTM:   cmsysteminfo()
+	  .case KEY_ALTO:   cmcompoption()
 	  .case KEY_ALTP:   cmloadpath()
 	  .case KEY_ALTW:   cmcwideview()
 	  .case KEY_ALTX:   cmquit()

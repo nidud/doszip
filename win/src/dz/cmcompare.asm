@@ -4,15 +4,133 @@
 include doszip.inc
 include io.inc
 include string.inc
+include crtl.inc
+include stdlib.inc
+include cfini.inc
 
 externdef cp_compare:byte
 
     .code
 
+CompareOptions proc uses esi edi ebx options:ptr compare_options
+
+    .if rsopen(IDD_CompareOptions)
+
+        mov esi,eax
+        mov ecx,options
+        mov eax,[ecx]
+        tosetbitflag([esi].S_DOBJ.dl_object, compare_count, _O_FLAGB, eax)
+        dlinit(esi)
+
+        .while rsevent(IDD_CompareOptions, esi)
+
+            togetbitflag([esi].S_DOBJ.dl_object, compare_count, _O_FLAGB)
+
+            .if ( (eax & compare_data) && !(eax & compare_size) )
+
+                ermsg("Compare Options", "Option File Content needs Size")
+
+            .elseif ( eax == 0 )
+
+                ermsg("Compare Options", "At least one Option needed")
+
+            .else
+                mov ebx,eax
+               .break
+            .endif
+        .endw
+        mov edi,eax
+        dlclose(esi)
+
+        .if edi
+
+            mov ecx,options
+            mov eax,[ecx]
+            and eax,compare_equal or compare_subdir
+            or  eax,ebx
+            mov [ecx],eax
+        .endif
+        mov eax,edi
+    .endif
+    ret
+
+CompareOptions endp
+
+cmcompoption proc
+
+    .new options:compare_options = compare_default
+
+    .if CFGetSection(".compsubdir")
+        .if INIGetEntryID(eax, 0)
+            mov options,__xtol(eax)
+        .endif
+    .endif
+
+    .if CompareOptions(&options)
+
+        .if CFAddSection(".compsubdir")
+
+            INIAddEntryX(eax, "0=%X", options)
+        .endif
+    .endif
+    mov eax,_C_NORMAL
+    ret
+
+cmcompoption endp
+
+
+ComapareFBLK proc uses esi edi ebx a:LPFBLK, b:LPFBLK, options:compare_options
+
+    mov esi,a
+    mov edi,b
+    mov ebx,1
+
+    .if ( options & compare_size ) ; Compare File Size
+
+        .if ( [esi].S_FBLK.fb_size != [edi].S_FBLK.fb_size )
+            xor ebx,ebx
+        .endif
+    .endif
+    .if ( options & compare_attrib ) ; Compare File Attributes
+
+        .if ( [esi].S_FBLK.fb_flag != [edi].S_FBLK.fb_flag )
+            xor ebx,ebx
+        .endif
+    .endif
+    .if ( options & compare_time ) ; Compare Last modification time
+
+        .if ( [esi].S_FBLK.fb_time != [edi].S_FBLK.fb_time )
+            xor ebx,ebx
+        .endif
+    .endif
+    .if ( options & compare_name ) ; Compare File name
+
+        .if ( _stricmp(&[esi].S_FBLK.fb_name, &[edi].S_FBLK.fb_name) )
+            xor ebx,ebx
+        .endif
+    .endif
+    mov eax,ebx
+    ret
+
+ComapareFBLK endp
+
+
 cmcompare proc uses esi edi ebx
 
   local fcb_A, fcb_B, fblk_A, fblk_B,
     count_A, count_B, loopc_A, loopc_B, equal_C
+
+    .new options:compare_options = compare_default
+    .if CFGetSection(".compsubdir")
+        .if INIGetEntryID(eax, 0)
+            mov options,__xtol(eax)
+        .endif
+    .endif
+
+    .if !(options & compare_default)
+
+        ermsg("Warning", "The Compare Options flag is zero\n(nothing to do)\n\nUse Alt-O to reset the flags")
+    .endif
 
     mov esi,panela
     mov edi,panelb
@@ -127,10 +245,12 @@ cmcompare proc uses esi edi ebx
                 mov eax,[ebx]
                 mov fblk_B,eax
                 mov ebx,[ebx]
+
                 .if !(byte ptr [ebx] & _A_SUBDIR)
 
                     push esi
                     push edi
+
                     mov esi,fcb_A
                     mov eax,loopc_A
                     shl eax,2
@@ -138,19 +258,12 @@ cmcompare proc uses esi edi ebx
                     mov esi,[esi]
                     mov fblk_A,esi
                     xor eax,eax
+
                     .if !(byte ptr [esi] & _A_SUBDIR)
-                        lea edi,[ebx+4]
-                        add esi,4
-                        mov ecx,S_FBLK.fb_name - 4
-                        repe cmpsb
-                        .ifz
-                            .if !_stricmp(edi, esi)
-                                inc eax
-                            .else
-                                xor eax,eax
-                            .endif
-                        .endif
+
+                        ComapareFBLK(esi, fblk_B, options)
                     .endif
+
                     pop edi
                     pop esi
 

@@ -180,8 +180,8 @@ comevent proc event
         xor eax,eax
         .endc
       .default
+        ;ermsg("Keyval", "%04X", event)
         .if comhndlevent()
-
             xor eax,eax
         .else
             mov eax,1

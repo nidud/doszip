@@ -11,9 +11,9 @@ include helpid.inc
 
 	.xlist
 
-DOSZIP_VERSION	equ 0362h
+DOSZIP_VERSION	equ 0363h
 DOSZIP_MINVERS	equ 0349h
-DOSZIP_VSTRING	equ <"3.62">
+DOSZIP_VSTRING	equ <"3.63">
 DOSZIP_VSTRPRE	equ <"      ">
 
 MAXHISTORY	equ 32
@@ -65,6 +65,31 @@ _MKL_EXCL_DRV	equ 0008h	; use drive in directory
 _MKL_EXCL_FILE	equ 0010h	; use file name in directory
 _MKL_MASK	equ 0020h	; add mask to directory\[*.*]
 _MKL_MACRO	equ 0100h	; use output macro
+
+.enum compare_options {
+
+    ; Compare Panels (Ctrl-C) and Directories (Shift-F5)
+
+    compare_name	= 0x01, ; Compare File names
+    compare_time	= 0x02, ; Compare Last modification time
+    compare_size	= 0x04, ; Compare File Size
+    compare_attrib	= 0x08, ; Compare File Attributes
+
+    ; Compare Directories
+
+    compare_create	= 0x10, ; Compare File creation time
+    compare_access	= 0x20, ; Compare Last access time
+    compare_data	= 0x40, ; Compare File content
+    compare_count	= 7,	; Dialog options
+    compare_default	= 0x0F,
+
+    ; Extended bit flags
+
+    compare_equal	= 0x80, ; Find equal/differ
+    compare_subdir	= 0x100,; Scan subdirectories
+    }
+
+CompareOptions	proto :ptr compare_options
 
 S_MKLST		STRUC
 mkl_flag	dd ?
@@ -525,6 +550,7 @@ cmhomedir		PROTO
 cmwindowlist		PROTO
 cmenviron		PROTO	; Shift-F6
 cmscreensize		PROTO
+cmcompoption		proto	; Alt-O
 
 conssetl		PROTO :DWORD
 consuser		PROTO

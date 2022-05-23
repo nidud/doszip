@@ -88,16 +88,7 @@ target          dd 0
 
 cp_formatID     db '[%04d:%04d]',0
 
-_COMP_NAME      equ 0x01 ; Compare File names
-_COMP_CREATE    equ 0x02 ; Compare File creation time
-_COMP_ACCESS    equ 0x04 ; Compare Last access time
-_COMP_WRITE     equ 0x08 ; Compare Last modification time
-_COMP_DATA      equ 0x10 ; Compare File content
-_COMP_ATTRIB    equ 0x20 ; Compare File Attributes
-_COMP_EQUAL     equ 0x40 ; Find equal/differ
-_COMP_SUBDIR    equ 0x80 ; Scan subdirectories
-
-flags           dd _COMP_NAME or _COMP_WRITE or _COMP_SUBDIR
+flags           dd compare_name or compare_time or compare_size or compare_subdir
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -270,26 +261,29 @@ local path[_MAX_PATH*2]:sbyte, result:dword, found[4]:byte
 
         .for ebx = wfblk, edi = ff_count, esi = ff_table : edi : edi--, esi += 4
 
-            mov edx,[esi]
-            mov eax,dword ptr [edx].S_FBLK.fb_size
-            .continue .if eax != [ebx].WIN32_FIND_DATA.nFileSizeLow
-            mov eax,dword ptr [edx].S_FBLK.fb_size[4]
-            .continue .if eax != [ebx].WIN32_FIND_DATA.nFileSizeHigh
+            .if flags & compare_size ; Compare File Size
 
-            .if flags & _COMP_ATTRIB    ; Compare File Attributes
+                mov edx,[esi]
+                mov eax,dword ptr [edx].S_FBLK.fb_size
+                .continue .if eax != [ebx].WIN32_FIND_DATA.nFileSizeLow
+                mov eax,dword ptr [edx].S_FBLK.fb_size[4]
+                .continue .if eax != [ebx].WIN32_FIND_DATA.nFileSizeHigh
+            .endif
+
+            .if flags & compare_attrib ; Compare File Attributes
 
                 mov eax,[edx].S_FBLK.fb_flag
                 .continue .if eax != [ebx].WIN32_FIND_DATA.dwFileAttributes
             .endif
 
-            .if flags & _COMP_WRITE ; Compare Last modification time
+            .if flags & compare_time ; Compare Last modification time
 
                 FileTimeToTime(&[ebx].WIN32_FIND_DATA.ftLastWriteTime)
                 mov edx,[esi]
                 .continue .if eax != [edx].S_FBLK.fb_time
             .endif
 
-            .if flags & _COMP_CREATE    ; Compare File creation time
+            .if flags & compare_create ; Compare File creation time
 
                 .if osopen(&[edx].S_FBLK.fb_name, 0, M_RDONLY, A_OPEN) != -1
 
@@ -305,7 +299,7 @@ local path[_MAX_PATH*2]:sbyte, result:dword, found[4]:byte
                 mov edx,[esi]
             .endif
 
-            .if flags & _COMP_ACCESS    ; Compare Last access time
+            .if flags & compare_access ; Compare Last access time
 
                 .if osopen(&[edx].S_FBLK.fb_name, 0, M_RDONLY, A_OPEN) != -1
 
@@ -321,13 +315,13 @@ local path[_MAX_PATH*2]:sbyte, result:dword, found[4]:byte
                 mov edx,[esi]
             .endif
 
-            .if flags & _COMP_NAME  ; Compare File names
+            .if flags & compare_name ; Compare File names
 
                 mov ecx,strfn(&[edx].S_FBLK.fb_name)
                 .continue .if _stricmp(&[ebx].WIN32_FIND_DATA.cFileName, ecx)
             .endif
 
-            .if flags & _COMP_DATA  ; Compare File content
+            .if flags & compare_data ; Compare File content
 
                 .continue .if CompareFileData(&[edx].S_FBLK.fb_name, &path)
                 mov edx,[esi]
@@ -701,25 +695,9 @@ event_path proc
     ret
 event_path endp
 
-event_advanced proc uses esi edi
+event_advanced proc
 
-    .if rsopen(IDD_CompareOptions)
-
-        mov esi,eax
-        tosetbitflag([esi].S_DOBJ.dl_object, 6, _O_FLAGB, flags)
-        dlinit(esi)
-        rsevent(IDD_CompareOptions, esi)
-        mov edi,eax
-        togetbitflag([esi].S_DOBJ.dl_object, 6, _O_FLAGB)
-        xchg eax,esi
-        dlclose(eax)
-
-        .if edi
-
-            and flags,11000000B
-            or  flags,esi
-        .endif
-    .endif
+    CompareOptions(&flags)
     mov eax,_C_NORMAL
     ret
 
@@ -1018,14 +996,14 @@ cmcompsub proc PUBLIC uses esi edi ebx
 
             mov ecx,flags
             mov al,_O_RADIO
-            .if cl & _COMP_EQUAL
+            .if ecx & compare_equal
                 or [ebx+OF_EQUAL],al
             .else
                 or [ebx+OF_DIFFER],al
             .endif
 
             and fsflag,not IO_SEARCHSUB
-            .if cl & _COMP_SUBDIR
+            .if ecx & compare_subdir
 
                 or byte ptr [ebx+OF_SUBD],_O_FLAGB
                 or fsflag,IO_SEARCHSUB
@@ -1038,14 +1016,14 @@ cmcompsub proc PUBLIC uses esi edi ebx
             ff_rsevent(IDD_DZCompareDirectories, event_find)
 
             and ah,not IO_SEARCHSUB
-            and flags,NOT (_COMP_EQUAL or _COMP_SUBDIR)
+            and flags,NOT (compare_equal or compare_subdir)
             .if byte ptr [ebx+OF_EQUAL] & _O_RADIO
 
-                or flags,_COMP_EQUAL
+                or flags,compare_equal
             .endif
             .if byte ptr [ebx+OF_SUBD] & _O_FLAGB
 
-                or flags,_COMP_SUBDIR
+                or flags,compare_subdir
                 or ah,IO_SEARCHSUB
             .endif
 
