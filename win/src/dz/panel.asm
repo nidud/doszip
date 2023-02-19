@@ -2092,7 +2092,7 @@ prect_clear proc private uses esi edi ebx dialog, rc:S_RECT, ptype
         or  ah,at_background[B_Panel]
         .repeat
             mov al,[edx]
-            .if al != 179
+            .if al != '³';179
 
                 mov al,' '
                 mov [edx],ax

@@ -10,6 +10,8 @@ include winbase.inc
 
 externdef _diskflag:DWORD
 
+__allocwpath proto :LPSTR
+
     .code
 
 _mkdir proc directory:LPSTR

@@ -9,6 +9,8 @@ include malloc.inc
 
     .code
 
+rcascii proto
+
 scgetws proc uses esi edi ebx ecx edx x, y, l
 
   local rect:SMALL_RECT
@@ -48,6 +50,7 @@ scgetws proc uses esi edi ebx ecx edx x, y, l
             mov ecx,l
             .repeat
                 lodsw
+                ;rcascii()
                 stosb
                 lodsw
                 stosb

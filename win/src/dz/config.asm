@@ -9,6 +9,8 @@ include malloc.inc
 include cfini.inc
 include crtl.inc
 
+__xtol proto :LPSTR
+
 PUBLIC  console
 PUBLIC  searchstring
 PUBLIC  replacestring

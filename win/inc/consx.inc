@@ -234,10 +234,7 @@ externdef	tdidle:PVOID
 
 externdef	at_background:BYTE
 externdef	at_foreground:BYTE
-externdef	tclrascii:BYTE
-
-;externdef	AsciiSymbols:BYTE
-;externdef	UnicodeSymbols:WORD
+define		tclrascii 0xB7
 
 TIMAXSCRLINE	equ 256		; max screen size
 
@@ -266,6 +263,7 @@ rcframe		PROTO __cdecl :DWORD, :PVOID, :DWORD, :DWORD
 rcmemsize	PROTO __cdecl :DWORD, :DWORD
 rcxyrow		PROTO __cdecl :DWORD, :DWORD, :DWORD
 rcinside	PROTO __cdecl :DWORD, :DWORD
+rcunicode	proto __cdecl
 
 dlopen		PROTO __cdecl :PTR S_DOBJ, :DWORD, :LPSTR
 dlclose		PROTO __cdecl :PTR S_DOBJ

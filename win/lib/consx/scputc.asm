@@ -12,19 +12,15 @@ scputc proc uses eax ecx edx x, y, l, char
 
   local NumberOfCharsWritten
 
-    movzx ecx,byte ptr char
-if 0
-    .if AsciiSymbols[ecx]
-        movzx eax,AsciiSymbols[ecx]
-        mov cx,UnicodeSymbols[eax*2]
-    .endif
-endif
+    mov eax,char
+    mov ecx,rcunicode()
+
     movzx eax,byte ptr x
     movzx edx,byte ptr y
     shl   edx,16
     or    edx,eax
 
-    FillConsoleOutputCharacter(
+    FillConsoleOutputCharacterW(
         hStdOutput,
         ecx,
         l,

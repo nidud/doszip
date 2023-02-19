@@ -20,10 +20,12 @@ scputws proc uses esi edi ecx edx x, y, l, wp:PVOID
     .ifs ecx < 0
         not ecx
     .endif
-    xor eax,eax
+
     .repeat
         lodsb
+        rcunicode()
         stosw
+        xor eax,eax
         lodsb
         stosw
     .untilcxz
@@ -46,7 +48,7 @@ scputws proc uses esi edi ecx edx x, y, l, wp:PVOID
     .endif
     mov rect.Right,ax
     mov rect.Bottom,dx
-    WriteConsoleOutput(hStdOutput, &lbuf, ecx, 0, &rect)
+    WriteConsoleOutputW(hStdOutput, &lbuf, ecx, 0, &rect)
     ret
 
 scputws endp

@@ -8,6 +8,8 @@ include crtl.inc
 include stdlib.inc
 include cfini.inc
 
+__xtol proto :LPSTR
+
 externdef cp_compare:byte
 
     .code

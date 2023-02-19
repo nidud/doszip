@@ -8,6 +8,8 @@ include direct.inc
 include errno.inc
 include winbase.inc
 
+__allocwpath proto :LPSTR
+
     .code
 
 _rmdir proc directory:LPSTR

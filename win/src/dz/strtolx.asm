@@ -7,6 +7,8 @@
 include stdlib.inc
 include crtl.inc
 
+__xtol proto :LPSTR
+
 	.code
 
 	OPTION	PROLOGUE:NONE, EPILOGUE:NONE

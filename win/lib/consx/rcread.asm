@@ -8,7 +8,46 @@ include consx.inc
 include malloc.inc
 
     .code
+if 0
+rcascii proc
 
+    and eax,0xFFFF
+    .switch pascal eax
+    .case 0x2500 : mov ax,'Ä'
+    .case 0x2502 : mov ax,'³'
+    .case 0x250C : mov ax,'Ú'
+    .case 0x2510 : mov ax,'¿'
+    .case 0x2514 : mov ax,'À'
+    .case 0x2518 : mov ax,'Ù'
+    .case 0x251C : mov ax,'Ã'
+    .case 0x2524 : mov ax,'´'
+    .case 0x252C : mov ax,'Â'
+    .case 0x2534 : mov ax,'Á'
+    .case 0x253C : mov ax,'Å'
+    .case 0x2550 : mov ax,'Í'
+    .case 0x2551 : mov ax,'º'
+    .case 0x2554 : mov ax,'É'
+    .case 0x2557 : mov ax,'»'
+    .case 0x255A : mov ax,'È'
+    .case 0x255D : mov ax,'¼'
+    .case 0x2563 : mov ax,'¹'
+    .case 0x2580 : mov ax,'ß'
+    .case 0x2584 : mov ax,'Ü'
+    .case 0x2588 : mov ax,'Û'
+    .case 0x2593 : mov ax,'²'
+    .case 0x2592 : mov ax,'±'
+    .case 0x2591 : mov ax,'°'
+    .case 0x00BB : mov ax,'¯' ; 226B
+    .case 0x2022 : mov ax,0xF9 ; bullet
+    .case 0x25BA : mov ax,0x10 ; triagrt
+    .case 0x25C4 : mov ax,0x11 ; triaglf
+    .case 0x25BC : mov ax,0x1F ; triagdn
+    .case 0x00B7 : mov ax,0xFA ; middle dot
+    .endsw
+    ret
+
+rcascii endp
+endif
     option cstack:on
 
 rcreadc proc uses ebx esi edi buf:PVOID, bsize, pRrect:PVOID
@@ -86,6 +125,7 @@ rcread  proc uses ebx esi edi rc, wc:PVOID
             mov ecx,col
             .repeat
                 lodsw
+                ;rcascii()
                 stosb
                 lodsw
                 stosb

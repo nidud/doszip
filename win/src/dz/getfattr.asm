@@ -2,6 +2,8 @@ include io.inc
 include direct.inc
 include winbase.inc
 
+__allocwpath proto :LPSTR
+
     .code
 
 getfattr proc uses ecx edx lpFilename:LPSTR

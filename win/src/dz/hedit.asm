@@ -20,6 +20,9 @@ include wsub.inc
 include errno.inc
 include crtl.inc
 
+__xtol proto :LPSTR
+__xtoi64 proto :LPSTR
+
 externdef   IDD_TVSeek:dword
 externdef   IDD_HELine:dword
 externdef   IDD_HEFormat:dword

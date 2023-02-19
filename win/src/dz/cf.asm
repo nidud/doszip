@@ -17,6 +17,7 @@ extern  __pCommandCom:LPSTR
 extern  comspec_type:dword
 
 __initcomspec proto
+__xtol proto :LPSTR
 
     .data
     __CFBase LPINI 0

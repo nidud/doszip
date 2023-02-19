@@ -11,6 +11,8 @@ include ltype.inc
 include dzlib.inc
 include crtl.inc
 
+__xtol proto :LPSTR
+
 .code
 
 tigetfile proc uses ebx ti:PTINFO

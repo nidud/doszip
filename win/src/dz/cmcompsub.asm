@@ -12,6 +12,8 @@ include stdlib.inc
 include crtl.inc
 include tview.inc
 
+__xtol proto :LPSTR
+
 ifdef __WIN95__
 MAXHIT equ 100000
 else

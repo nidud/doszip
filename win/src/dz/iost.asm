@@ -8,6 +8,8 @@ include consx.inc
 include dzlib.inc
 include confirm.inc
 
+_osopenA proto :LPSTR, :SIZE_T, :SIZE_T, :ptr, :SIZE_T, :SIZE_T
+
 public STDI
 public STDO
 public oupdate

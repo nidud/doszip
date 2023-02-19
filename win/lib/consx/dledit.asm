@@ -690,7 +690,7 @@ putline proc uses esi edi ebx
     mov rc.Top,ax
     mov rc.Bottom,ax
     mov bz.y,1
-    WriteConsoleOutput(hStdOutput, &ci, bz, 0, &rc)
+    WriteConsoleOutputW(hStdOutput, &ci, bz, 0, &rc)
     ret
 putline endp
 
