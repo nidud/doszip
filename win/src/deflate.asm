@@ -1282,11 +1282,11 @@ endif
     .endif
 
     init_block()
-    .if ( eof == 0 )
-        mov eax,1
-    .elseif bi_windup()
+    .if ( eof )
+        bi_windup()
         add [rbx].cmpr_lenbits,7 ; align on byte boundary
     .endif
+    mov eax,[rbx].cmpr_bytelen
     ret
 
 flush_block endp
@@ -1678,8 +1678,7 @@ deflate_fast proc uses rsi rdi
             .return( 0 )
         .endif
     .endw
-    inc eax
-    flush_block(eax)
+    flush_block(1)
     ret
 
 deflate_fast endp
@@ -1792,7 +1791,7 @@ deflate proc uses rsi rdi
                 movzx edx,byte ptr [rcx-1]
                 .if ct_tally(eax, edx)
 
-                    .if flush_block(0)
+                    .if !flush_block(0)
 
                        .return
                     .endif
@@ -1813,16 +1812,14 @@ deflate proc uses rsi rdi
         .endif
     .endw
 
-    .if ( eax != mavailable )
+    .if ( mavailable )
 
         mov ecx,[rbx].str_start
         add rcx,window
         movzx edx,BYTE PTR [rcx-1]
         ct_tally(0, edx)
-        xor eax,eax
     .endif
-    inc eax
-    flush_block(eax)
+    flush_block(1)
     ret
 
 deflate endp
