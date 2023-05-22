@@ -5668,7 +5668,7 @@ __initcon proc private
     .if GetConsoleScreenBufferInfo(_confh, &ci)
 
         mov eax,GetLargestConsoleWindowSize(_confh)
-        ;and eax,-2
+        and eax,-2
         .if ax > MAXCOLS
             mov ax,MAXCOLS
         .endif
@@ -5680,7 +5680,7 @@ __initcon proc private
         movzx eax,ci.srWindow.Right
         sub ax,ci.srWindow.Left
         inc eax
-        ;and eax,-2
+        and eax,-2
         .if eax > MAXCOLS
             mov eax,MAXCOLS
         .elseif eax < MINCOLS
@@ -5709,6 +5709,10 @@ __initcon proc private
             mov ci.srWindow.Right,dx
             mov ci.srWindow.Bottom,ax
             SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
+        .endif
+        _wherex()
+        .if ( dx >= _scrmin.Y )
+            SetConsoleCursorPosition(_confh, 0)
         .endif
         SetConsoleScreenBufferSize(_confh, _scrmin)
     .endif
