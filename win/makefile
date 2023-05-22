@@ -1,33 +1,27 @@
 #
-# Visual C version 6 used for debug
-# Open Watcom used to add the DZ.ICO file
+# Makefile for Doszip 32/64-bit using LINKW
 #
-watc = \watcom
 asmc = \asmc
-
-include = -Iinc -I$(asmc)\include
-
-CC   = $(asmc)\bin\asmc /coff /Cs /Zi /Gz /D__BMP__ $(include)
-RC   = $(asmc)\bin\iddc /coff
-LIB  = $(asmc)\bin\libw /q /b /n /c /fac
-LINK = $(asmc)\bin\linkw op stub=src\res\dz.bin file
-ICON = $(watc)\binnt\wrc -q src\res\dz.res $@
-
-all: libc.lib dz.exe clean
-
-libc.lib:
-    $(RC) /r src\res\*.idd
-    $(CC) /r src\dz\*.asm
-    $(CC) /r lib\*.asm
-    $(LIB) $@ *.obj
-    @del *.obj
+!ifdef x64
+flags  = -win64 -frame -Zp8
+libdir = x64
+!else
+flags  = -coff -Gz -Zp4
+libdir = x86
+!endif
 
 dz.exe:
-    $(CC) -nologo src\dz.asm
-    $(LINK) dz.obj
-    $(ICON)
-
-clean:
-    @del libc.lib
-    @del dz.obj
+        del *.obj
+        $(asmc)\bin\asmc $(flags) -Cs -D__BMP__ -Iinc -r src\*.asm
+        $(asmc)\bin\linkw @<<
+name    $@
+libpath $(asmc)\lib\$(libdir)
+option  map
+option  stub=src\res\dz.bin
+option  resource=src\res\dz.res
+option  stack=0x300000 com stack=0x200000
+file    { *.obj }
+<<
+        del *.obj
+        dz.exe
 

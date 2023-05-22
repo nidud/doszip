@@ -1,4 +1,5 @@
-.xlist
+ifndef __TVIEW_INC
+define __TVIEW_INC
 
 _TV_USEMLINE	equ 01h
 _TV_USESLINE	equ 02h
@@ -9,9 +10,9 @@ _TV_HIGHCOLOR	equ 20h
 _TV_BINVIEW	equ 40h
 _TV_CLASSVIEW	equ 80h
 
-tview		PROTO :DWORD, :DWORD
-load_tedit	PROTO :DWORD, :DWORD
-load_tview	PROTO :DWORD, :DWORD
-view_readme	PROTO :DWORD
+tview		proto __cdecl :LPSTR, :size_t
+load_tedit	proto __cdecl :LPSTR, :int_t
+load_tview	proto __cdecl :LPSTR, :int_t
+view_readme	proto __cdecl :DWORD
 
-.list
+endif

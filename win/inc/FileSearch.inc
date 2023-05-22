@@ -3,6 +3,8 @@
 ; Copyright (c) The Asmc Contributors. All rights reserved.
 ; Consult your license regarding permissions and restrictions.
 ;
+ifndef __FILESEARCH_INC
+define __FILESEARCH_INC
 
 FFMAXHIT equ 9999
 
@@ -10,8 +12,8 @@ FFMAXHIT equ 9999
 
     dialog      ptr_t ?
     basedir     string_t ?
-    cursor      S_CURSOR <>
-    ll          S_LOBJ <>
+    cursor      CURSOR <>
+    ll          LOBJ <>
     oldff       ptr_t ?
     oldhelp     ptr_t ?
 
@@ -28,3 +30,5 @@ FFMAXHIT equ 9999
     ClearList   proc
     Searchpath  proc :string_t
    .ends
+
+endif

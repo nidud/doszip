@@ -1,7 +1,7 @@
 ; HELPID.INC--
 ; Copyright (C) 2017 Asmc Developers
-
-.xlist
+ifndef __HELPID_INC
+define __HELPID_INC
 
 HELPID_02	equ 0692h	; <> Compressed File Support
 HELPID_03	equ 0815h	; <> Viewer Support
@@ -21,4 +21,4 @@ HELPID_16	equ 18E0h	; <> Hex Editor
 
 view_readme	proto :dword
 
-.list
+endif

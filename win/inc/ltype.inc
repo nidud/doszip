@@ -5,9 +5,7 @@
 ;
 ifndef __LTYPE_INC
 define __LTYPE_INC
-ifndef __LIBC_INC
- include libc.inc
-endif
+include libc.inc
 
 define _UPPER   0x01 ; upper case letter
 define _LOWER   0x02 ; lower case letter

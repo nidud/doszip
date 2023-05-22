@@ -1,0 +1,258 @@
+; KEYB.INC--
+;
+; Copyright (c) The Asmc Contributors. All rights reserved.
+; Consult your license regarding permissions and restrictions.
+;
+ifndef __KEYB_INC
+define __KEYB_INC
+
+define SHIFT_RIGHT		0x00000001
+define SHIFT_LEFT		0x00000002
+define SHIFT_CTRL		0x00000004
+define SHIFT_ALT		0x00000008
+define SHIFT_SCROLL		0x00000010
+define SHIFT_NUMLOCK		0x00000020
+define SHIFT_CAPSLOCK		0x00000040
+define SHIFT_INSERTSTATE	0x00000080
+define SHIFT_CTRLLEFT		0x00000100
+define SHIFT_ALTLEFT		0x00000200
+define SHIFT_ENHANCED		0x00000400
+define SHIFT_CONTROLEKEY	0x00000800
+define SHIFT_SCROLLKEY		0x00001000
+define SHIFT_NUMLOCKKEY		0x00002000
+define SHIFT_CAPSLOCKKEY	0x00004000
+define SHIFT_INSERTKEY		0x00008000
+define SHIFT_KEYSPRESSED	0x01000000
+define SHIFT_MOUSEKEYLEFT	0x00010000
+define SHIFT_MOUSEKEYRIGTH	0x00020000
+define SHIFT_MOUSEKEYLEFT2	0x00040000
+define SHIFT_MOUSEKEYLEFT3	0x00080000
+define SHIFT_MOUSEKEYLEFT4	0x00100000
+define SHIFT_MOUSEWHEEL		0x00200000
+define SHIFT_MOUSEDOUBLECLICK	0x00400000
+define SHIFT_MOUSEMOVED		0x00800000
+define SHIFT_MOUSEFLAGS		0x00FF0000
+define SHIFT_RELEASEKEY		0x80000000
+
+define RIGHT_ALT_PRESSED	0x0001
+define RIGHT_CTRL_PRESSED	0x0004
+define SHIFT_PRESSED		0x0010
+define ENHANCED_KEY		0x0100
+
+define DOUBLE_CLICK	0x0002
+define MOUSE_WHEELED	0x0004
+define MOUSE_HWHEELED	0x0008
+
+define KEY_ALT		0x08
+define KEY_CTRL		0x04
+define KEY_SHIFT	0x03
+
+define KEY_ESC		0x011B
+define KEY_BKSP		0x0E08
+define KEY_TAB		0x0F09
+define KEY_ENTER	0x1C0D
+define KEY_SPACE	0x3920
+define KEY_HOME		0x4700
+define KEY_UP		0x4800
+define KEY_PGUP		0x4900
+define KEY_LEFT		0x4B00
+define KEY_RIGHT	0x4D00
+define KEY_END		0x4F00
+define KEY_DOWN		0x5000
+define KEY_PGDN		0x5100
+define KEY_INS		0x5200
+define KEY_DEL		0x5300
+
+define KEY_F1		0x3B00
+define KEY_F2		0x3C00
+define KEY_F3		0x3D00
+define KEY_F4		0x3E00
+define KEY_F5		0x3F00
+define KEY_F6		0x4000
+define KEY_F7		0x4100
+define KEY_F8		0x4200
+define KEY_F9		0x4300
+define KEY_F10		0x4400
+define KEY_F11		0x8500
+define KEY_F12		0x8600
+
+define KEY_KPSTAR	0x372A
+define KEY_KPPLUS	0x4E2B
+define KEY_KPMIN	0x4A2D
+define KEY_KPENTER	0xE00D
+
+define KEY_CTRLF1	0x5E00
+define KEY_CTRLF2	0x5F00
+define KEY_CTRLF3	0x6000
+define KEY_CTRLF4	0x6100
+define KEY_CTRLF5	0x6200
+define KEY_CTRLF6	0x6300
+define KEY_CTRLF7	0x6400
+define KEY_CTRLF8	0x6500
+define KEY_CTRLF9	0x6600
+define KEY_CTRLF10	0x6700
+define KEY_CTRLF11	0xA800
+define KEY_CTRLF12	0xA900
+
+define KEY_CTRL1	0x0200
+define KEY_CTRL2	0x0300
+define KEY_CTRL3	0x0400
+define KEY_CTRL4	0x0500
+define KEY_CTRL5	0x0600
+define KEY_CTRL6	0x0700
+define KEY_CTRL7	0x0800
+define KEY_CTRL8	0x0900
+define KEY_CTRL9	0x0A00
+define KEY_CTRL0	0x0B00
+
+define KEY_CTRLA	0x1E01
+define KEY_CTRLB	0x3002
+define KEY_CTRLC	0x2E03
+define KEY_CTRLD	0x2004
+define KEY_CTRLE	0x1205
+define KEY_CTRLF	0x2106
+define KEY_CTRLG	0x2207
+define KEY_CTRLH	0x2308
+define KEY_CTRLI	0x1709
+define KEY_CTRLJ	0x240A
+define KEY_CTRLK	0x250B
+define KEY_CTRLL	0x260C
+define KEY_CTRLM	0x320D
+define KEY_CTRLN	0x310E
+define KEY_CTRLO	0x180F
+define KEY_CTRLP	0x1910
+define KEY_CTRLQ	0x1011
+define KEY_CTRLR	0x1312
+define KEY_CTRLS	0x1F13
+define KEY_CTRLT	0x1414
+define KEY_CTRLU	0x1615
+define KEY_CTRLV	0x2F16
+define KEY_CTRLW	0x1117
+define KEY_CTRLX	0x2D18
+define KEY_CTRLY	0x1519
+define KEY_CTRLZ	0x2C1A
+
+define KEY_CTRLP1	0x1A1B
+define KEY_CTRLP2	0x1B1D
+
+define KEY_CTRLINS	0x9200
+define KEY_CTRLDEL	0x9300
+define KEY_CTRLLEFT	0x7300
+define KEY_CTRLRIGHT	0x7400
+define KEY_CTRLUP	0x8D00
+define KEY_CTRLDN	0x9100
+define KEY_CTRLEND	0x7500
+define KEY_CTRLHOME	0x7700
+define KEY_CTRLPGUP	0x8400
+define KEY_CTRLPGDN	0x7600
+define KEY_CTRLTAB	0x9400
+define KEY_CTRLENTER	0x1C0A
+define KEY_CTRLBKSP	0x0E7F
+
+define KEY_ALTF1	0x6800
+define KEY_ALTF2	0x6900
+define KEY_ALTF3	0x6A00
+define KEY_ALTF4	0x6B00
+define KEY_ALTF5	0x6C00
+define KEY_ALTF6	0x6D00
+define KEY_ALTF7	0x6E00
+define KEY_ALTF8	0x6F00
+define KEY_ALTF9	0x7000
+define KEY_ALTF10	0x7100
+define KEY_ALTF11	0xB200
+define KEY_ALTF12	0xB300
+
+define KEY_ALT1		0x7800
+define KEY_ALT2		0x7900
+define KEY_ALT3		0x7A00
+define KEY_ALT4		0x7B00
+define KEY_ALT5		0x7C00
+define KEY_ALT6		0x7D00
+define KEY_ALT7		0x7E00
+define KEY_ALT8		0x7F00
+define KEY_ALT9		0x8000
+define KEY_ALT0		0x8100
+
+define KEY_ALTUP	0x9800
+define KEY_ALTDN	0xA000
+define KEY_ALTLEFT	0x9B00
+define KEY_ALTRIGHT	0x9D00
+define KEY_ALTC		0x2E00
+define KEY_ALTL		0x2600
+define KEY_ALTM		0x3200
+define KEY_ALTN		0x3100
+define KEY_ALTO		0x1800
+define KEY_ALTP		0x1900
+define KEY_ALTQ		0x1000
+define KEY_ALTR		0x1300
+define KEY_ALTS		0x1F00
+define KEY_ALTW		0x1100
+define KEY_ALTX		0x2D00
+define KEY_ALTZ		0x2C00
+
+define KEY_SHIFTF1	0x5400
+define KEY_SHIFTF2	0x5500
+define KEY_SHIFTF3	0x5600
+define KEY_SHIFTF4	0x5700
+define KEY_SHIFTF5	0x5800
+define KEY_SHIFTF6	0x5900
+define KEY_SHIFTF7	0x5A00
+define KEY_SHIFTF8	0x5B00
+define KEY_SHIFTF9	0x5C00
+define KEY_SHIFTF10	0x5D00
+define KEY_SHIFTF11	0x9E00
+define KEY_SHIFTF12	0x9F00
+
+define MOUSECMD		(-1)
+define KEY_MSLEFT	1
+define KEY_MSRIGTH	2
+define KEY_MOUSEPRESS	(KEY_MSLEFT or KEY_MSRIGTH)
+define KEY_MOUSEUP	0x00010000
+define KEY_MOUSEDN	0x00020000
+define MAXKEYSTACK	32
+
+define VK_LSHIFT	0xA0
+define VK_RSHIFT	0xA1
+define VK_LCONTROL	0xA2
+define VK_RCONTROL	0xA3
+
+define SCROLLLOCK_ON	0x0040
+define CAPSLOCK_ON	0x0080
+define NUMLOCK_ON	0x0020
+
+CALLBACKC(DPROC)
+
+
+externdef	keyshift:LPDWORD
+externdef	keybmouse_x:UINT
+externdef	keybmouse_y:UINT
+
+getkey		proto __cdecl
+mousep		proto __cdecl
+mousey		proto __cdecl
+mousex		proto __cdecl
+msloop		proto __cdecl
+mousewait	proto __cdecl :UINT, :UINT, :UINT
+
+PushEvent	proto __cdecl :UINT
+SetKeyState	proto __cdecl
+GetShiftState	proto __cdecl
+
+define MAXCLIPSIZE	0x100000
+define CF_TEXT		1
+
+externdef	clipbsize:UINT
+
+ClipboardCopy	proto __cdecl :LPSTR, :UINT
+ClipboardPaste	proto __cdecl
+ClipboardFree	proto __cdecl
+
+notsup		proto __cdecl
+scroll_delay	proto __cdecl
+
+externdef	tupdate:DPROC
+externdef	tgetevent:DPROC
+externdef	tdidle:DPROC
+
+endif
+

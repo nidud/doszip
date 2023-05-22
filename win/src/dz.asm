@@ -6,24 +6,16 @@ include stdio.inc
 include stdlib.inc
 include malloc.inc
 include string.inc
-include cfini.inc
-include crtl.inc
+include config.inc
 
-includelib libc.lib
-includelib kernel32.lib
-includelib user32.lib
-
-public cstart
-public mainCRTStartup
-
-doszip_init proto :dword
+doszip_init proto :LPSTR
 doszip_open proto
 doszip_modal proto
 doszip_close proto
 
     .data
 
-    DZTitle dd cptitle
+    DZTitle LPSTR cptitle
     cptitle db "Doszip Commander",0
 
     .code
@@ -56,7 +48,7 @@ GeneralFailure endp
 
 endif
 
-main proc c uses esi edi ebx argc:UINT, argv:ptr, environ:ptr
+main proc __Cdecl uses rsi rdi rbx argc:UINT, argv:ptr, environ:ptr
 
   local nologo:byte
 
@@ -66,16 +58,16 @@ main proc c uses esi edi ebx argc:UINT, argv:ptr, environ:ptr
 
     .while esi < argc
 
-        mov eax,argv
-        mov ebx,[eax+esi*4]
-        mov eax,[ebx]
+        mov rax,argv
+        mov rbx,[rax+rsi*size_t]
+        mov eax,[rbx]
 
         .switch al
 
         .case '?'
             _print(
-                "The Doszip Commander Version " DOSZIP_VSTRING ", "
-                "Copyright (C) 2019 Doszip Developers\n\n"
+                "The Doszip Commander Version " DOSZIP_VSTRING DOSZIP_VSTRPRE ", "
+                "Copyright (C) 2023 Doszip Developers\n\n"
                 "Command line switches\n"
                 " The following switches may be used in the command line:\n"
                 "\n"
@@ -97,7 +89,7 @@ main proc c uses esi edi ebx argc:UINT, argv:ptr, environ:ptr
 
         .case '-'
         .case '/'
-            inc ebx
+            inc rbx
             shr eax,8
             .switch al
                 ;
@@ -107,14 +99,13 @@ main proc c uses esi edi ebx argc:UINT, argv:ptr, environ:ptr
                 ;
             .case 'E'
                 .gotosw(1: '?') .if ( ah != ':' )
-                add ebx,2
-                SaveEnvironment(ebx)
+                add rbx,2
+                SaveEnvironment(rbx)
                 exit(0)
 
             .case 'N'
-                inc ebx
-                .if strtolx(ebx)
-
+                inc rbx
+                .if strtolx(rbx)
                     mov numfblock,eax
                 .endif
                 .endc
@@ -127,12 +118,12 @@ main proc c uses esi edi ebx argc:UINT, argv:ptr, environ:ptr
                 mov edi,1
                 .endc
             .case 'C'
-                inc ebx
-                .if filexist(ebx) == 2
+                inc rbx
+                .if filexist(rbx) == 2
 
                     free(_pgmpath)
-                    _strdup(ebx)
-                    mov _pgmpath,eax
+                    _strdup(rbx)
+                    mov _pgmpath,rax
                     .endc
                 .endif
             .default
@@ -140,30 +131,29 @@ main proc c uses esi edi ebx argc:UINT, argv:ptr, environ:ptr
             .endsw
             .endc
         .default
-            mov edi,ebx
+            mov rdi,rbx
         .endsw
-
         inc esi
     .endw
 
     SetConsoleTitle( DZTitle )
 
-    .if !doszip_init( edi )
+    .if !doszip_init( rdi )
 
         .if nologo == 0
-            _print( "The Doszip Commander Version " DOSZIP_VSTRING ", "
-                "Copyright (C) 2016 Doszip Developers\n\n" )
+            _print( "The Doszip Commander Version " DOSZIP_VSTRING DOSZIP_VSTRPRE ", "
+                "Copyright (C) 2023 Doszip Developers\n\n" )
         .endif
 
         doszip_open()
 ifdef __SIGNAL__
-        mov ebx,GeneralFailure
-        signal( SIGINT,   ebx ) ; interrupt
-        signal( SIGILL,   ebx ) ; illegal instruction - invalid function image
-        signal( SIGFPE,   ebx ) ; floating point exception
-        signal( SIGSEGV,  ebx ) ; segment violation
-        signal( SIGTERM,  ebx ) ; Software termination signal from kill
-        signal( SIGABRT,  ebx ) ; abnormal termination triggered by abort call
+        lea rbx,GeneralFailure
+        signal( SIGINT,   rbx ) ; interrupt
+        signal( SIGILL,   rbx ) ; illegal instruction - invalid function image
+        signal( SIGFPE,   rbx ) ; floating point exception
+        signal( SIGSEGV,  rbx ) ; segment violation
+        signal( SIGTERM,  rbx ) ; Software termination signal from kill
+        signal( SIGABRT,  rbx ) ; abnormal termination triggered by abort call
 
         doszip_modal()
         GeneralFailure(SIGTERM)
@@ -173,8 +163,7 @@ else
         tcloseall()
 
         .if CFGetSection("Exit")
-
-            CFExecute(eax)
+            CFExecute(rax)
         .endif
         xor eax,eax
 endif
@@ -183,20 +172,6 @@ endif
 
 main endp
 
-_initterm proto __cdecl :ptr, :ptr
+include oldapi.inc
 
-externdef __xi_a:ptr    ;; pointers to initialization sections
-externdef __xi_z:ptr
-
-cstart::
-
-mainCRTStartup proc
-
-  local _exception_registration[2]:dword
-
-    _initterm( &__xi_a, &__xi_z )
-    exit( main( __argc, __argv, _environ ) )
-
-mainCRTStartup endp
-
-    end cstart
+    end

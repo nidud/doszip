@@ -1,35 +1,32 @@
 ; DOSZIP.INC--
 ; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
 ;
+ifndef __DOSZIP_INC
+define __DOSZIP_INC
+
 include direct.inc
 include wsub.inc
 include filter.inc
-include tinfo.inc
+include conio.inc
 include time.inc
-include dzlib.inc
 include helpid.inc
 
-	.xlist
-
-DOSZIP_VERSION	equ 0363h
-DOSZIP_MINVERS	equ 0349h
-DOSZIP_VSTRING	equ <"3.63">
-DOSZIP_VSTRPRE	equ <"      ">
-
+DOSZIP_VERSION	equ 0x0364
+DOSZIP_MINVERS	equ 0x0349
+DOSZIP_VSTRING	equ <"3.64">
+ifdef _WIN64
+DOSZIP_VSTRPRE	equ <" Win64">
+else
+DOSZIP_VSTRPRE	equ <" Win32">
+endif
 MAXHISTORY	equ 32
 MAXDOSKEYS	equ 64
-
-DZMINROWS	equ 25
-DZMINCOLS	equ 80
-DZMAXROWS	equ 240
-DZMAXCOLS	equ 240
 
 DOSZIP_INIFILE	equ <"dz.ini">	; config file
 DOSZIP_TXTFILE	equ <"dz.txt">	; readme file
 
-externdef	DZTitle:DWORD
-externdef	DZ_INIFILE:BYTE
-externdef	DZ_TXTFILE:BYTE
+externdef	DZTitle:LPSTR
+externdef	DZ_INIFILE:char_t
 
 _C_PANELID	equ 0001h	; config.c_cflag
 _C_HORIZONTAL	equ 0002h
@@ -91,29 +88,30 @@ _MKL_MACRO	equ 0100h	; use output macro
 
 CompareOptions	proto :ptr compare_options
 
-S_MKLST		STRUC
-mkl_flag	dd ?
-mkl_offspath	dd ?		; length of local directory
-mkl_offset	dd ?		; search offset from findfile
-mkl_handle	dd ?
-mkl_count	dd ?		; total file count in list
-S_MKLST		ENDS
+MKLST		STRUC
+flag		dd ?
+offspath	dd ?		; length of local directory
+offs		dd ?		; search offset from findfile
+handle		dd ?
+count		dd ?		; total file count in list
+MKLST		ENDS
 
-S_MSOBJ		STRUC
-mo_rect		dd ?
-mo_proc		dd ?
-S_MSOBJ		ENDS
+MSOBJ		STRUC
+rc		TRECT <>
+cmd		DPROC ?
+MSOBJ		ENDS
+PMSOBJ		typedef ptr MSOBJ
 
-S_SBLK		STRUC
-sb_flag		dd ?
-sb_size		dd ?
-sb_line		dd ?
-sb_offs		dd ?
-sb_file		db 4 dup(?)
-S_SBLK		ENDS
+SBLK		STRUC
+base		dd ?
+size		dd ?
+line		dd ?
+offs		dd ?
+file		db 4 dup(?)
+SBLK		ENDS
 
-INFOSIZE	equ 38
-BLOCKSIZE	equ S_SBLK + INFOSIZE
+define INFOSIZE	 38
+define BLOCKSIZE (SBLK+INFOSIZE)
 
 _XY_DRVINFO	equ 8
 _XY_CONFIG	equ 7
@@ -125,30 +123,34 @@ _XY_FILE	equ 2
 _XY_INSIDE	equ 1
 _XY_OUTSIDE	equ 0
 
-wsmaxfba	equ <config.c_apath.ws_maxfb>
-wsmaxfbb	equ <config.c_bpath.ws_maxfb>
-flaga		equ <config.c_apath.ws_flag>
-flagb		equ <config.c_bpath.ws_flag>
+wsmaxfba	equ <config.c_apath.maxfb>
+wsmaxfbb	equ <config.c_bpath.maxfb>
+flaga		equ <config.c_apath.flag>
+flagb		equ <config.c_bpath.flag>
 
-S_XCEL		STRUC
-xl_flag		dw ?		; DOBJ.dl_flag
-xl_cols		db ?		; number of files in one line
-xl_rows		db ?		; number of lines in panel
-xl_rect		S_RECT <?>	; the current position of cell
-xl_bp		dd ?		; DOBJ.dl_wp
-xl_cpos		S_RECT <?>	; position of first cell in panel
-S_XCEL		ENDS
+XCEL		STRUC
+flag		dw ?		; DOBJ.dl_flag
+cols		db ?		; number of files in one line
+rows		db ?		; number of lines in panel
+rc		TRECT <>	; the current position of cell
+wp		PCHAR_INFO ?	; DOBJ.dl_wp
+cpos		TRECT <>	; position of first cell in panel
+XCEL		ENDS
+PXCEL		typedef ptr XCEL
 
-S_PANEL		STRUC
-pn_wsub		dd ?
-pn_fcb_count	dd ?
-pn_cel_count	dd ?
-pn_fcb_index	dd ?
-pn_cel_index	dd ?
-pn_xl		dd ?
-pn_dialog	dd ?
-pn_putfcb	dd ?
-S_PANEL		ENDS
+CALLBACK(FPUT, :PFBLK, :PCHAR_INFO, :UINT)
+
+PANEL		STRUC
+wsub		PWSUB ?
+fcb_count	dd ?
+cel_count	dd ?
+fcb_index	dd ?
+cel_index	dd ?
+xl		PXCEL ?
+dialog		PDOBJ ?
+putfcb		FPUT ?
+PANEL		ENDS
+PPANEL		typedef ptr PANEL
 
 S_CONFIG	STRUC		; Configuration file:	DZ.CFG
 c_version	dd ?		; hex: 0.1.3.8 --> 0138h
@@ -165,96 +167,47 @@ c_fcb_indexa	dd ?
 c_cel_indexa	dd ?
 c_fcb_indexb	dd ?
 c_cel_indexb	dd ?
-c_apath		S_WSUB <?>
-c_bpath		S_WSUB <?>
-c_filter	S_FILT <?>
-c_color		S_COLOR <?>
-c_list		S_MKLST <?>
+c_apath		WSUB <?>
+c_bpath		WSUB <?>
+c_filter	FILTER <?>
+c_color		COLOR <?>
+c_list		MKLST <?>
 S_CONFIG	ENDS
 
-S_DIRECTORY	STRUC
-path		dd ?
+DIRECTORY	STRUC
+path		LPSTR ?
 flag		dd ?
 fcb_index	dd ?
 cel_index	dd ?
-S_DIRECTORY	ENDS
+DIRECTORY	ENDS
+PDIRECTORY	typedef ptr DIRECTORY
 
-S_HISTORY	STRUC
-h_directory	S_DIRECTORY MAXHISTORY dup(<?>)
-h_doskey	dd MAXDOSKEYS dup(?)
-h_selectmask	db 32 dup(?)
-S_HISTORY	ENDS
+HISTORY		STRUC
+directory	DIRECTORY MAXHISTORY dup(<>)
+doskey		LPSTR MAXDOSKEYS dup(?)
+selectmask	char_t 32 dup(?)
+HISTORY		ENDS
+PHISTORY	typedef ptr HISTORY
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-externdef IDD_DZCompression:	DWORD
-externdef IDD_DZConfiguration:	DWORD
-externdef IDD_DZConfirmations:	DWORD
-externdef IDD_DZCopy:		DWORD
-externdef IDD_DZDefaultColor:	DWORD
-externdef IDD_DZExit:		DWORD
-externdef IDD_DZFileAttributes: DWORD
-externdef IDD_DZFindFile:	DWORD
-externdef IDD_DZHelp:		DWORD
-externdef IDD_DZHistory:	DWORD
-externdef IDD_DZMemory:		DWORD
-externdef IDD_DZMenuEdit:	DWORD
-externdef IDD_DZMenuFile:	DWORD
-externdef IDD_DZMenuHelp:	DWORD
-externdef IDD_DZMenuPanel:	DWORD
-externdef IDD_DZMenuSetup:	DWORD
-externdef IDD_DZMenusline:	DWORD
-externdef IDD_DZMenuTools:	DWORD
-externdef IDD_DZMKList:		DWORD
-externdef IDD_DZMove:		DWORD
-externdef IDD_DZPanelFilter:	DWORD
-externdef IDD_DZPanelOptions:	DWORD
-externdef IDD_DZSaveSetup:	DWORD
-externdef IDD_DZScreenOptions:	DWORD
-externdef IDD_DZSubInfo:	DWORD
-externdef IDD_DZSystemOptions:	DWORD
-externdef IDD_DZZipAttributes:	DWORD
-externdef IDD_ConsoleSize:	DWORD
-externdef IDD_CompareOptions:	DWORD
+externdef cp_emaxfb:		char_t
+externdef cp_ziplst:		char_t
+externdef cp_selectmask:	char_t
 
-externdef cp_copy:		BYTE
-externdef cp_compress:		BYTE
-externdef cp_decompress:	BYTE
-externdef cp_deselect:		BYTE
-externdef cp_compare:		BYTE
-externdef cp_copyselected:	BYTE
-externdef cp_delete:		BYTE
-externdef cp_directory:		BYTE
-externdef cp_mkdir:		BYTE
-externdef cp_mkzip:		BYTE
-externdef cp_move:		BYTE
-externdef cp_search:		BYTE
-externdef cp_select:		BYTE
-externdef cp_tools:		BYTE
-externdef cp_space:		BYTE
-externdef cp_subdir:		BYTE
-externdef cp_updir:		BYTE
-externdef cp_emaxfb:		BYTE
-externdef cp_ziplst:		BYTE
-externdef cp_selectmask:	BYTE
+externdef findfilemask:		char_t
+externdef findfilepath:		char_t
+externdef filelist_bat:		char_t
+externdef format_lst:		char_t
+externdef searchstring:		char_t
+externdef replacestring:	char_t
+externdef default_arc:		char_t
+externdef default_zip:		char_t
+externdef com_base:		char_t
 
-externdef at_background:	BYTE
-externdef at_foreground:	BYTE
-externdef findfilemask:		BYTE
-externdef findfilepath:		BYTE
-externdef filelist_bat:		BYTE
-externdef format_lst:		BYTE
-externdef searchstring:		BYTE
-externdef replacestring:	BYTE
-externdef default_arc:		BYTE
-externdef default_zip:		BYTE
-externdef com_base:		BYTE
-externdef findfilemask:		BYTE
-externdef findfilepath:		BYTE
-
-externdef cpanel:		DWORD
-externdef panela:		DWORD
-externdef panelb:		DWORD
+externdef cpanel:		PPANEL
+externdef panela:		PPANEL
+externdef panelb:		PPANEL
 externdef cflag:		DWORD
 externdef console:		DWORD
 externdef fsflag:		DWORD
@@ -264,34 +217,28 @@ externdef titabsize:		DWORD
 externdef ffflag:		DWORD
 externdef compresslevel:	DWORD
 
-externdef history:		DWORD
-externdef envpath:		DWORD	; %PATH%
-externdef envtemp:		DWORD	; %TEMP%
-externdef comspec:		DWORD	; %COMSPEC%
+externdef history:		PHISTORY
+externdef comspec:		LPSTR	; %COMSPEC%
 externdef mainswitch:		DWORD
 externdef dzexitcode:		DWORD
 externdef numfblock:		DWORD	; number of file pointers allocated
 externdef global_key:		DWORD
-externdef pConfigFile:		DWORD
 
-externdef prect_a:		S_XCEL
-externdef prect_b:		S_XCEL
-externdef spanela:		S_PANEL
-externdef spanelb:		S_PANEL
-externdef path_a:		S_WSUB
-externdef path_b:		S_WSUB
-externdef opfilter:		S_FILT
+externdef prect_a:		XCEL
+externdef prect_b:		XCEL
+externdef spanela:		PANEL
+externdef spanelb:		PANEL
+externdef path_a:		WSUB
+externdef path_b:		WSUB
+externdef opfilter:		FILTER
 externdef config:		S_CONFIG
-externdef mklist:		S_MKLST
+externdef mklist:		MKLST
 externdef com_info:		TEDIT
-externdef MOBJ_Statusline:	S_MSOBJ
+externdef MOBJ_Statusline:	MSOBJ
 
-externdef DLG_Commandline:	DWORD
-externdef DLG_Commandline:	DWORD
-externdef menus_idd:		DWORD
-externdef menus_obj:		DWORD
-externdef menus_iddtable:	DWORD
-externdef com_wsub:		DWORD
+externdef DLG_Commandline:	PDOBJ
+externdef DLG_Commandline:	PDOBJ
+externdef com_wsub:		PWSUB
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -302,12 +249,20 @@ ifdef __BMP__
 CaptureScreen		PROTO
 endif
 
-warcread		PROTO :DWORD
-warctest		PROTO :DWORD, :DWORD
-warcadd			PROTO :DWORD, :DWORD, :DWORD
-warccopy		PROTO :DWORD, :DWORD, :DWORD, :DWORD
-warcview		PROTO :DWORD, :DWORD
-warcdelete		PROTO :DWORD, :DWORD
+warcread		PROTO :PWSUB
+warctest		PROTO :PFBLK, :SINT
+warcadd			PROTO :LPSTR, :PWSUB, :PFBLK
+warccopy		PROTO :PWSUB, :PFBLK, :LPSTR, :SINT
+warcview		PROTO :PWSUB, :PFBLK
+warcdelete		PROTO :PWSUB, :PFBLK
+
+unzip_to_temp		proto :PFBLK, :LPSTR
+TVGetCurrentFile	proto :LPSTR
+loadiniproc		proto :LPSTR, :LPSTR, :int_t
+hedit			proto :LPSTR, :DWORD
+continuesearch		proto :ptr
+putscreenb		proto :int_t, :int_t, :ptr
+SaveChanges		proto :LPSTR
 
 setconfirmflag		PROTO
 config_read		PROTO
@@ -318,79 +273,71 @@ historyread		PROTO
 historywrite		PROTO
 historyremove		PROTO
 historysave		PROTO
-historymove		PROTO
 historytocpanel		PROTO
 doskeytocommand		PROTO
 doskeysave		PROTO
 
 LPPANEL TYPEDEF PTR S_PANEL
 
-fblk_select		PROTO :LPFBLK
-fblk_invert		PROTO :LPFBLK
-prect_hide		PROTO :LPPANEL
+fblk_select		PROTO :PFBLK
+fblk_invert		PROTO :PFBLK
+prect_hide		PROTO :PPANEL
 prect_open_ab		PROTO
-pcell_show		PROTO :LPPANEL
-pcell_update		PROTO :LPPANEL
-pcell_setxy		PROTO :LPPANEL, :UINT, :UINT
+pcell_show		PROTO :PPANEL
+pcell_update		PROTO :PPANEL
+pcell_setxy		PROTO :PPANEL, :UINT, :UINT
 
 cpanel_state		PROTO
 cpanel_findfirst	PROTO
 cpanel_gettarget	PROTO
 cpanel_setpath		PROTO :LPSTR
-cpanel_deselect		PROTO :LPFBLK
+cpanel_deselect		PROTO :PFBLK
 
-panel_state		PROTO :LPPANEL
-panel_close		PROTO :LPPANEL
-panel_hide		PROTO :LPPANEL
-panel_show		PROTO :LPPANEL
-panel_setactive		PROTO :LPPANEL
-panel_curobj		PROTO :LPPANEL
-panel_findnext		PROTO :LPPANEL
-panel_openmsg		PROTO :LPPANEL
-panel_read		PROTO :LPPANEL
-panel_reread		PROTO :LPPANEL
-panel_redraw		PROTO :LPPANEL
-panel_toggle		PROTO :LPPANEL
-panel_update		PROTO :LPPANEL
-panel_xormini		PROTO :LPPANEL
-panel_xorinfo		PROTO :LPPANEL
-panel_setid		PROTO :LPPANEL, :UINT
-panel_putitem		PROTO :LPPANEL, :UINT
-panel_xycmd		PROTO :LPPANEL, :UINT, :UINT
-panel_sethdd		PROTO :LPPANEL, :UINT
-panel_event		PROTO :LPPANEL, :UINT
+panel_state		PROTO fastcall :PPANEL
+panel_close		PROTO :PPANEL
+panel_hide		PROTO :PPANEL
+panel_show		PROTO fastcall :PPANEL
+panel_setactive		PROTO :PPANEL
+panel_curobj		PROTO fastcall :PPANEL
+panel_findnext		PROTO fastcall :PPANEL
+panel_openmsg		PROTO :PPANEL
+panel_read		PROTO :PPANEL
+panel_reread		PROTO :PPANEL
+panel_redraw		PROTO :PPANEL
+panel_toggle		PROTO :PPANEL
+panel_update		PROTO :PPANEL
+panel_xormini		PROTO :PPANEL
+panel_xorinfo		PROTO :PPANEL
+panel_setid		PROTO :PPANEL, :UINT
+panel_putitem		PROTO :PPANEL, :UINT
+panel_xycmd		PROTO :PPANEL, :UINT, :UINT
+panel_sethdd		PROTO :PPANEL, :UINT
+panel_event		PROTO :PPANEL, :UINT
 panel_stateab		PROTO
 panel_open_ab		PROTO
 panel_getb		PROTO
 panel_toggleact		PROTO
 
-redraw_panel		PROTO :LPPANEL
+redraw_panel		PROTO :PPANEL
 redraw_panels		PROTO
 reread_panels		PROTO
 
-mklistidd		PROTO
-mklistadd		PROTO
-mkziplst		PROTO
-mkziplst_open		PROTO
+mklistidd		proto
+mklistadd		proto :LPSTR
+mkziplst		proto
+mkziplst_open		proto :LPSTR
 
-open_idd		PROTO :DWORD, :DWORD
-modal_idd		PROTO :DWORD, :DWORD, :DWORD, :DWORD
-close_idd		PROTO :DWORD, :DWORD
-tools_idd		PROTO :DWORD, :DWORD, :DWORD
-statusline_xy		PROTO :DWORD, :DWORD, :DWORD, :DWORD
+tools_idd		PROTO :SINT, :LPSTR, :LPSTR
+statusline_xy		PROTO :SINT, :SINT, :SINT, :PMSOBJ
+menus_getevent		proto
 
-menus_getevent		PROTO
-menus_event		PROTO :DWORD, :DWORD
-menus_modalidd		PROTO :DWORD
-
-cominit			PROTO :DWORD
+cominit			PROTO :PWSUB
 cominitline		PROTO
 comhide			PROTO
 comshow			PROTO
 clrcmdl			PROTO
 comevent		PROTO :DWORD
-comhndlevent		PROTO
-command			PROTO :DWORD
+command			PROTO :string_t
 
 FindFile		PROTO :string_t
 cmfilter_load		PROTO
@@ -522,9 +469,6 @@ cmxorkeybar		PROTO
 cmxorcmdline		PROTO
 cmupdir			PROTO
 cmsubdir		PROTO
-cmcfblktocmd		PROTO
-cmpathatocmd		PROTO
-cmpathbtocmd		PROTO
 cmclrcmdl		PROTO
 cmpsizeup		PROTO
 cmpsizedn		PROTO
@@ -552,8 +496,32 @@ cmenviron		PROTO	; Shift-F6
 cmscreensize		PROTO
 cmcompoption		proto	; Alt-O
 
-conssetl		PROTO :DWORD
+cmsearchidd		proto :uint_t
+
+conssetl		PROTO :COORD
 consuser		PROTO
 editattrib		PROTO
 
-.list
+externdef   console_cu:CURSOR	; Init cursor (set on exit)
+
+define _COPY_SELECTED	0x01	; copy selected files
+define _COPY_IARCHIVE	0x02	; source is archive
+define _COPY_OARCHIVE	0x04	; target is archive
+define _COPY_IEXTFILE	0x08	; source is .??? archive -- 7ZA.EXE
+define _COPY_IZIPFILE	0x10	; source is .ZIP archive
+define _COPY_OZIPFILE	0x20	; target is .ZIP archive
+define _COPY_OEXTFILE	0x40	; target is .??? archive -- 7ZA.EXE
+define _COPY_RECURSIV	0x80	; recursive error
+
+externdef		copy_jump:dword
+externdef		copy_flag:byte
+externdef		copy_fast:byte
+
+init_copy		proto :PFBLK, :UINT
+copyfile		proto :qword, :UINT, :UINT
+fp_copyfile		proto :LPSTR, :PWIN32_FIND_DATA
+fp_copydirectory	proto :LPSTR
+cpyevent_filter		proto
+UpdateWindowSize	proto :COORD
+
+endif
