@@ -2756,7 +2756,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                         .if !eax
 
                             osmaperr()
-                            error_directory()
+                            error_directory(&pe.pe_path)
                            .endc
                         .endif
                     .else
