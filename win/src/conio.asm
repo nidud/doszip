@@ -5216,7 +5216,10 @@ conssetl proc line:COORD ; min or max
     .endif
     SetWindowPos(GetConsoleWindow(),0,x,y,0,0,SWP_NOSIZE or SWP_NOACTIVATE or SWP_NOZORDER)
 
-    SetConsoleCursorPosition(_confh, 0)
+    _wherex()
+    .if ( dx >= bz.Y )
+        SetConsoleCursorPosition(_confh, 0)
+    .endif
     SetConsoleWindowInfo(_confh, 1, &rc)
     SetConsoleScreenBufferSize(_confh, bz)
     SetConsoleWindowInfo(_confh, 1, &rc)

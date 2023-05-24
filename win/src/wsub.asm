@@ -334,8 +334,7 @@ wsopen proc uses rsi rdi wsub:PWSUB
     .endif
 
     free([rsi].fcb)
-    mov edi,[rsi].maxfb
-    shl edi,2
+    imul edi,[rsi].maxfb,size_t
     mov [rsi].fcb,malloc(edi)
     .if rax
         memset(rax, 0, edi)
@@ -450,6 +449,7 @@ wsfree proc uses rsi rdi rbx wsub:PWSUB
         .while edi
 
             free([rsi])
+            xor eax,eax
             mov [rsi],rax
             add rsi,size_t
             dec rdi
@@ -485,15 +485,22 @@ wsextend proc uses rsi rdi rbx wsub:PWSUB
 
     .if malloc( &[rdi*size_t] )
 
-    mov rbx,rax
-    mov ecx,[rsi].maxfb
+        mov rbx,rax
+        lea ecx,[rdi*size_t]
+        mov edx,edi
+        mov rdi,rax
+        xor eax,eax
+        rep stosb
 
-    memcpy(rbx, [rsi].fcb, &[rcx*size_t])
-    free([rsi].fcb)
+        mov edi,edx
+        mov ecx,[rsi].maxfb
 
-    mov [rsi].fcb,rbx
-    mov [rsi].maxfb,edi
-    mov eax,edi
+        memcpy(rbx, [rsi].fcb, &[rcx*size_t])
+        free([rsi].fcb)
+
+        mov [rsi].fcb,rbx
+        mov [rsi].maxfb,edi
+        mov eax,edi
     .endif
     ret
 
@@ -1041,12 +1048,11 @@ init_list proc uses rsi rdi rbx
 
     mov rbx,o_list
     mov [rbx].LOBJ.numcel,0
-    mov eax,[rbx].LOBJ.index
-    lea eax,[rax*size_t]
+    imul eax,[rbx].LOBJ.index,size_t
     add rax,[rbx].LOBJ.list
     mov rdi,dialog
-    mov bx,[rdi+4]      ; dialog x,y
-    add bx,[rdi+TOBJ+4] ; object x,y
+    mov ebx,[rdi].DOBJ.rc
+    add ebx,[rdi].DOBJ.rc[TOBJ]
     mov rdi,[rdi].DOBJ.object
     mov rsi,rax
 
@@ -1147,7 +1153,7 @@ case_files proc uses rsi rdi rbx
     mov rbx,o_list
     mov eax,[rbx].LOBJ.index
     add eax,[rbx].LOBJ.celoff
-    shl eax,2
+    imul eax,eax,size_t
     add rax,[rbx].LOBJ.list
     mov rdi,[rax]
     mov eax,[rdi]
@@ -1195,7 +1201,7 @@ case_files proc uses rsi rdi rbx
             .endif
         .else
             mov rcx,dialog
-            mov [rcx].DOBJ.index,al
+            mov [rcx].DOBJ.index,0
             lea rax,[rdi].FBLK.name
             strfcat([rbx].WSUB.path, 0, rax)
             event_path()
@@ -1251,8 +1257,8 @@ wdlgopen proc uses rsi rdi rbx path:LPSTR, mask:LPSTR, save:UINT
 
             .if a_open & _WSAVE
 
-                mov dl,[rbx+5]
-                mov cl,[rbx+4]
+                mov dl,[rbx].DOBJ.rc.y
+                mov cl,[rbx].DOBJ.rc.x
                 add cl,21
                 scputs(ecx, edx, 0, 0, "Save")
             .endif
