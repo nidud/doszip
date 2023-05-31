@@ -275,7 +275,10 @@ UpdateWindowSize endp
 
 apimode proc
 
-    mov eax,_scrmin
+    mov eax,_scrrow
+    inc eax
+    shl eax,16
+    mov ax,word ptr _scrcol
     .if cflag & _C_EGALINE
         mov eax,_scrmax
     .endif

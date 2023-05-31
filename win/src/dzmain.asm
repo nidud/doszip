@@ -288,7 +288,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
     mov wsmaxfbb,eax
     mov wsmaxfba,eax
 
-    ConsolePush()
+;    ConsolePush()
     mov tdidle,&ConsoleIdle
 ifdef __CI__
     CodeInfo()

@@ -5001,8 +5001,6 @@ ReadEvent proc private uses rbx rdi rsi rcx
             .case WINDOW_BUFFER_SIZE_EVENT
                 UpdateWindowSize(Input.Event.WindowBufferSizeEvent.dwSize)
                .endc
-            .case MENU_EVENT
-               .endc
             .case FOCUS_EVENT
                 mov _focus,Input.Event.FocusEvent.bSetFocus
                .endc
@@ -5187,30 +5185,27 @@ conssetl proc line:COORD ; min or max
 
     mov rc.Top,0
     mov rc.Left,0
-    mov eax,line
-    .if ( eax == _scrmin )
-        movzx eax,_scrmin.X
-        movzx edx,_scrmin.Y
-    .else
-        movzx eax,_scrmax.X
-        movzx edx,_scrmax.Y
-    .endif
+    mov ax,line.X
+    mov dx,line.Y
     mov bz.X,ax
     mov bz.Y,dx
-    dec eax
-    dec edx
+    dec ax
+    dec dx
     mov rc.Right,ax
     mov rc.Bottom,dx
-    .if ( ci.srWindow.Top    == 0  &&
-          ci.srWindow.Left   == 0  &&
-          ci.srWindow.Right  == ax &&
-          ci.srWindow.Bottom == dx )
+
+    mov dx,ci.srWindow.Bottom
+    sub dx,ci.srWindow.Top
+    mov ax,ci.srWindow.Right
+    sub ax,ci.srWindow.Left
+    .if ( ax == rc.Right && dx == rc.Bottom )
         .return( 0 )
     .endif
+
     mov x,0
     mov y,0
-    mov eax,line
-    .if ( eax == _scrmin )
+    mov ax,line.X
+    .if ( ax < _scrmax.X )
         mov x,_scrrc.left
         mov y,_scrrc.top
     .endif
@@ -5654,7 +5649,8 @@ tgetline endp
 
 __initcon proc private
 
-  local ci:CONSOLE_SCREEN_BUFFER_INFO
+   .new ci:CONSOLE_SCREEN_BUFFER_INFO
+   .new size:COORD
 
     mov tgetevent,&getevent
 
@@ -5690,7 +5686,7 @@ __initcon proc private
             mov eax,MINCOLS
         .endif
         mov _scrcol,eax
-        mov _scrmin.X,ax
+        mov size.X,ax
 
         movzx eax,ci.srWindow.Bottom
         sub ax,ci.srWindow.Top
@@ -5701,23 +5697,22 @@ __initcon proc private
         .endif
         mov _scrrow,eax
         inc eax
-        mov _scrmin.Y,ax
+        mov size.Y,ax
         dec eax
-        movzx edx,_scrmin.X
+        movzx edx,size.X
         dec edx
-        .if dx != ci.srWindow.Right || ax != ci.srWindow.Bottom
-
-            mov ci.srWindow.Top,0
-            mov ci.srWindow.Left,0
-            mov ci.srWindow.Right,dx
-            mov ci.srWindow.Bottom,ax
-            SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
-        .endif
+        mov ci.srWindow.Top,0
+        mov ci.srWindow.Left,0
+        mov ci.srWindow.Right,dx
+        mov ci.srWindow.Bottom,ax
+        SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
         _wherex()
-        .if ( dx >= _scrmin.Y )
+        .if ( dx >= size.Y )
             SetConsoleCursorPosition(_confh, 0)
         .endif
-        SetConsoleScreenBufferSize(_confh, _scrmin)
+        SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
+        SetConsoleScreenBufferSize(_confh, size)
+        SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
     .endif
     ret
 

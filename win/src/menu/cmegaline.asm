@@ -15,9 +15,9 @@ cmegaline proc uses rsi rdi rbx
 
     doszip_hide()
 
-    lea rbx,_scrmin
+    lea rbx,cmin
     .if !( cflag & _C_EGALINE )
-        lea rbx,_scrmax
+        lea rbx,cmax
     .endif
 
     .if CFGetSection(".consolesize")
@@ -47,8 +47,6 @@ cmegaline proc uses rsi rdi rbx
     conssetl([rbx])
     apiega()
 
-    mov _scrmin,cmin
-    mov _scrmax,cmax
     mov _scrrc,rc
     doszip_show()
     ret
