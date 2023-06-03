@@ -180,7 +180,7 @@ GetMessageId proc id
 
 GetMessageId endp
 
-tifindfile proc uses rsi rdi rbx fname:LPSTR
+tifindfile proc uses rsi rbx fname:LPSTR
 
     .if tigetfile(tinfo)
 
@@ -193,7 +193,7 @@ tifindfile proc uses rsi rdi rbx fname:LPSTR
                 .break
             .endif
             xor eax,eax
-            cmp rsi,rdi
+            cmp rsi,rbx
             mov rsi,[rsi].TINFO.next
         .untilz
     .endif

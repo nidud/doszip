@@ -96,6 +96,8 @@ include doszip.inc
         1Eh,30h,2Eh,20h,12h,21h,22h,23h,17h,24h,25h,26h,32h,
         31h,18h,19h,10h,13h,1Fh,14h,16h,2Fh,11h,2Dh,15h,2Ch
 
+     _scbuffersize db 2
+
     .code
 
 tdummy proc private
@@ -4999,7 +5001,11 @@ ReadEvent proc private uses rbx rdi rsi rcx
                 .endif
                .endc
             .case WINDOW_BUFFER_SIZE_EVENT
-                UpdateWindowSize(Input.Event.WindowBufferSizeEvent.dwSize)
+                .if _scbuffersize
+                    dec _scbuffersize
+                .else
+                    UpdateWindowSize(Input.Event.WindowBufferSizeEvent.dwSize)
+                .endif
                .endc
             .case FOCUS_EVENT
                 mov _focus,Input.Event.FocusEvent.bSetFocus
@@ -5215,6 +5221,7 @@ conssetl proc line:COORD ; min or max
     .if ( dx >= bz.Y )
         SetConsoleCursorPosition(_confh, 0)
     .endif
+    inc _scbuffersize
     SetConsoleWindowInfo(_confh, 1, &rc)
     SetConsoleScreenBufferSize(_confh, bz)
     SetConsoleWindowInfo(_confh, 1, &rc)
@@ -5710,6 +5717,7 @@ __initcon proc private
         .if ( dx >= size.Y )
             SetConsoleCursorPosition(_confh, 0)
         .endif
+        inc _scbuffersize
         SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
         SetConsoleScreenBufferSize(_confh, size)
         SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
