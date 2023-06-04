@@ -1122,7 +1122,7 @@ event_file proc uses rbx
     .if ( a_open & _WSAVE )
         .if !strrchr(rbx, '*')
             .if !strrchr(rbx, '?')
-                .return(_C_NORMAL)
+                .return(_C_RETURN)
             .endif
         .endif
         .if ( a_open & _WLOCK )
