@@ -161,14 +161,21 @@ wsreadwf ENDP
 
 wsread PROC _CType PUBLIC USES bx wsub:DWORD
 	invoke	wsfree,wsub
-	sub	ax,ax
 ifdef __ROT__
 	les	bx,wsub
 	les	bx,es:[bx].S_WSUB.ws_path
-	cmp	WORD PTR es:[bx][2],'\'
-	jne	@F
+	mov	cx,es:[bx+2]
 	mov	ax,_A_ROOTDIR
+	test	cl,cl
+	jz	@F
+	cmp	cx,'\'
+	je	@F
+	cmp	cx,'/'
+	je	@F
+	xor	ax,ax
       @@:
+else
+	xor	ax,ax
 endif
 	invoke	fbupdir,ax
 	jz	wsreadsub_end

@@ -62,12 +62,12 @@ DZABOUT_RC label WORD
 	M_WZIP	' The Doszip Commander Version ',78
 	db	VERSSTR
 	db	' Dos16'
-	M_WZIP	' Copyright (C) 97-2022 Doszip Developers',11
+	M_WZIP	' Copyright (C) 97-2023 Doszip Developers',11
 	M_WZIP	' ',11
 	M_WZIP	'Ä',39
 	M_WZIP	' License:     GNU General Public License',11
 %	M_WZIP	' Build Date:  &@Date  Time: &@Time',11
-	M_WZIP	' OK   ',79
+	M_WZIP	' OK   ',81
 	db	'Ü'
 	M_WZIP	' ',42
 	M_WZIP	'ß',8

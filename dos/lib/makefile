@@ -1,6 +1,6 @@
 cl.lib:
     iddc -ml -r src\*.idd
-    asmc -I..\inc -r src\*.asm
+    asmc -I..\inc -D__DZ__ -r src\*.asm
     libw -q -b -n -c $@ *.obj
     del *.obj
     asmc -Fo c0l.obj -D__l__ crt.asm

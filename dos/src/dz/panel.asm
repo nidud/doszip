@@ -2105,7 +2105,7 @@ ifdef __ROT__
 
 panel_enter_rootdir PROC PRIVATE
 	mov [di].S_PATH.wp_arch,0
-	.if !(cx & _A_UPDIR)
+	.if !( cx & _A_UPDIR )
 	    invoke strcpy,addr [di].S_PATH.wp_arch,[bp].S_PEVENT.pe_name
 	.endif
 	or [di].S_PATH.wp_flag,_W_ROOTDIR
@@ -2227,9 +2227,12 @@ endif
 	    call panel_savepath
 	    pop bx
 	.endif
+
 ifdef __ZIP__
 	.if cx & _A_ARCHIVE
+
 	    call panel_enter_archive
+
 	.elseif [di].S_PATH.wp_path[1] == ':'
 else
 	.if [di].S_PATH.wp_path[1] == ':'
@@ -2239,7 +2242,9 @@ endif
 	.else
 	    call panel_enter_network
 	.endif
-	.if !([bp.S_PEVENT.pe_flag] & _A_ROOTDIR)
+
+	.if !( [bp].S_PEVENT.pe_flag & _A_ROOTDIR )
+
 	    sub ax,ax
 	    mov [si].S_PANEL.pn_cel_index,ax
 	    mov [si].S_PANEL.pn_fcb_index,ax
