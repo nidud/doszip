@@ -1,3 +1,3 @@
-VERSION equ 0264h
+VERSION equ 0265h
 MINVERS equ 0253h
-VERSSTR equ <'2.64'>
+VERSSTR equ <'2.65'>

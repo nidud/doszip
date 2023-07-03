@@ -1,10 +1,10 @@
 DOSZIP.TXT--
-Copyright 2022 Doszip Developers.
+Copyright 2023 Doszip Developers.
 
 DOSZIP COMMANDER
-Version 2.64
+Version 2.65
 
-Welcome to Doszip Commander Version 2.64!
+Welcome to Doszip Commander Version 2.65!
 =========================================
 
 

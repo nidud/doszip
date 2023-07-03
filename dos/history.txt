@@ -1,4 +1,7 @@
 
+Changes in 2.65 - 3 Jul 2023
+- fixed empty disk error
+
 Changes in 2.64 - 2 Jul 2023
 - fixed home directory
 
