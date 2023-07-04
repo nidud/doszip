@@ -1119,7 +1119,7 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
 
     .if _disk_exist(eax)
 
-        mov edi,eax
+        mov rdi,rax
         mov rax,[rbx].WSUB.path
         mov eax,[rax]
         .if al && ah == ':'
@@ -2763,7 +2763,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
 
                         mov rax,[rdi].arch
                         mov byte ptr [rax],0
-                        .if !(ecx & _FB_UPDIR)
+                        .if !( pe.pe_flag & _FB_UPDIR )
 
                             strcpy([rdi].arch, pe.pe_name)
                         .endif
