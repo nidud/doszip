@@ -34,7 +34,7 @@ config          label S_CONFIG
 version         dd DOSZIP_VERSION
 cflag           dd _C_DEFAULT
 console         dd CON_DEFAULT
-fsflag          dd IO_SEARCHSUB
+fsflag          dd IO_SEARCHSUB or _T_PROMPTONREP or IO_SEARCHCASE
 tvflag          dd _TV_HEXOFFSET or _TV_USEMLINE
 tiflags         dd _T_TEDEFAULT
 titabsize       dd 8
@@ -1168,6 +1168,9 @@ config_save proc uses rsi rdi rbx
 
         xor edi,edi
         INIAddEntryX(rbx, "%d=%X", edi, DOSZIP_VERSION)
+
+        or  fsflag,_T_PROMPTONREP
+        and fsflag,not IO_SEARCHHEX
 
         inc edi
         lea rsi,config_table_x

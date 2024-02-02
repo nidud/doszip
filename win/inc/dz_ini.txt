@@ -262,7 +262,7 @@ cmd=style_bat
 0=W X4 assert assertb assertw assertd
 
 [.asm_include]
-0=B X2 include incbin includelib
+0=B X2 include incbin includelib define undef
 1=if ife if1 if2 ifdif ifdifi ifidn ifidni ifb ifdef ifndef ifnb else elseif
 2=elseife elseif1 elseif2 elseifdif elseifdifi elseifidn elseifidni elseifb
 3=elseifnb elseifdef elseifndef endif
@@ -270,13 +270,13 @@ cmd=style_bat
 [.asm_dotname1]
 0=W XF mmx xmm x64 x64p no87 cref lfcond list listall listif nocref nolist nolistif
 1=sfcond tfcond xcref xlist listmacro listmacroall nolistmacro xall lall sall
-2=alpha .dosseg seq code stack data fardata const
+2=alpha .dosseg seq code stack data fardata const template
 3=break continue .exit .startup model radix .return .new
 4=safeseh err err1 err2 erre errnz errdif errdifi erridn
 5=erridni errb errnb errdef errndef .repeat .while endw until untilcxz
 
 [.asm_dotname2]
-0=W X2 .if .else .elseif .endif
+0=W X2 .if .else .elseif .elseifs .elseifd .elseifsd .endif
 
 [.asm_directive]
 0=W XF .page .subtitle .subttl .title dosseg comment
@@ -356,8 +356,8 @@ cmd=style_bat
 66=vzeroupper vcvtpd2dq vcvttpd2dq vcvtpd2ps vmovddup vmovmskpd vmovmskps vfmadd231ps
 67=vpmaskmovd vpmaskmovq vpsrlvq vpbroadcastb vpblendd vpmaskmovq vextracti128
 68=vpermpd vpermq vpermd vpermps vpsllvd vpsllvq vpsravd vpsrlvq vpsrlvd vperm2i128
-69=vinserti128 vbroadcasti128 vpbroadcastw mod
-70=movl pushl popl lesl ldsl
+69=vinserti128 vbroadcasti128 vpbroadcastw
+70=movl pushl popl lesl ldsl ldr
 
 [.asm_call]
 0=W X6 call jmp ja jae jb jbe jc je jg jge jl jle jna jnae jnb jnbe jnc jne
@@ -369,7 +369,7 @@ cmd=style_bat
 1=ymm0 ymm1 ymm2 ymm3 ymm4 ymm5 ymm6 ymm7 cr0 cr2 cr3 cr4 dr0 dr1 dr2 dr3 dr6 dr7
 2=tr3 tr4 tr5 tr6 tr7 xmm8 xmm9 xmm10 xmm11 xmm12 xmm13 xmm14 xmm15 ymm8 ymm9
 3=ymm10 ymm11 ymm12 ymm13 ymm14 ymm15 cr8 byte sbyte word sword dword sdword
-4=real4 fword qword sqword real8 tbyte real10 oword ymmword near far near16
+4=real2 real4 fword qword sqword real8 tbyte real10 oword ymmword near far near16
 5=near32 far16 far32 mmword xmmword .type .high high32 highword imagerel .length
 6=lengthof .low low32 lowword lroffset .mask offset opattr sectionrel seg short
 7=.size sizeof .this typeof .width eq ne ge gt le lt mod ptr dup addr flat vararg
@@ -424,9 +424,10 @@ cmd=style_bat
 1=whilez whilena whilenb whileng whilenl whileno whilenp whilens whilenz whilew whiled
 2=whilesb whilesw whilesd untila untilb untilg untill untilo untilp untils untilz untilna
 3=untilnb untilng untilnl untilno untilnp untilns untilnz untilw untild untilsb untilsw
-4=untilsd untilaxz untilbxz untildxz endf
+4=untilsd untilaxz untilbxz untildxz endf pragma
 5=_CType _CDecl SIZE_T TCHAR LPSTR LPWSTR LPTSTR SINT UINT ULONG PVOID HANDLE
-6=LPWORD LPDWORD LPQWORD
+6=LPWORD LPDWORD LPQWORD string_t wstring_t float double short_t ushort_t
+7=char_t wchar_t int_t int64_t int128_t uchar_t uint_t uint64_t uint128_t
 
 [.C_A_16]
 0=A 16

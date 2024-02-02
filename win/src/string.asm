@@ -151,33 +151,33 @@ hextob proc string:LPSTR
 
     .while 1
 
-    mov ax,[rcx]
-    inc rcx
-    .continue .if al == ' '
+        mov ax,[rcx]
+        inc rcx
+        .continue .if al == ' '
 
-    inc rcx
-    .break .if !al
+        inc rcx
+        .break .if !al
 
-    sub al,'0'
-    .if al > 9
-        sub al,7
-    .endif
+        sub al,'0'
+        .if al > 9
+            sub al,7
+        .endif
 
-    shl al,4
-    .if !ah
+        shl al,4
+        .if !ah
+            mov [rdx],al
+            inc rdx
+           .break
+        .endif
+
+        sub ah,'0'
+        .if ah > 9
+            sub ah,7
+        .endif
+
+        or  al,ah
         mov [rdx],al
         inc rdx
-       .break
-    .endif
-
-    sub ah,'0'
-    .if ah > 9
-        sub ah,7
-    .endif
-
-    or  al,ah
-    mov [rdx],al
-    inc rdx
     .endw
 
     mov byte ptr [rdx],0

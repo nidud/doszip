@@ -331,7 +331,7 @@ copyfile proc uses rsi rdi file_size:qword, t:dword, attrib:UINT
     ;----------------
     ; open the files
     ;----------------
-    .ifs wscopyopen(__srcfile, __outfile) > 0
+    .ifsd wscopyopen(__srcfile, __outfile) > 0
         ;---------------
         ; copy the file
         ;---------------

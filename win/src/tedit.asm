@@ -5146,9 +5146,9 @@ tireplace proc private uses rsi rdi rbx ti:PTINFO
     mov rsi,ti
     mov eax,_T_PROMPTONREP
     or  [rsi].TINFO.flags,eax
-    iddreplace()
 
-    .ifnz
+    .if iddreplace()
+
         mov fsflag,edx
         mov sflag,edx
         .if eax == ID_CHANGEALL || !( edx & _T_PROMPTONREP )

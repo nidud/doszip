@@ -2,6 +2,9 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
+Changes in 3.67 - 02 Feb 2024
+- fixed bug in Replace - ignored Cancel
+
 Changes in 3.64 - 22 May 2023
 - converted resources to Unicode
 - added support for full screen (Alt-Enter) in Win10
