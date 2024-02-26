@@ -1027,6 +1027,7 @@ panel_xycmd proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
                     inc ebx
                     mov edi,eax
                     rcxyrow(eax,xpos,ypos)
+                    and eax,eax
                     mov edx,edi
                     mov eax,_XY_INSIDE
                     .ifnz
@@ -1365,7 +1366,8 @@ cpanel_deselect proc uses rsi rdi rbx fp:PFBLK
             malloc(eax)
             mov edx,ebx
 
-            .ifnz
+            .if rax
+
                 mov rdx,memcpy(rax, fp, edx)
                 inc [rsi].PANEL.fcb_count
                 inc [rsi].PANEL.cel_count
@@ -2539,9 +2541,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             xor eax,eax
             .endc
         .endif
-        pcell_select(rsi)
-
-        .endc .ifz
+        .endc .if !pcell_select(rsi)
         .endc .if !(cflag & _C_INSMOVDN)
 
       .case KEY_DOWN

@@ -1331,13 +1331,12 @@ wedit proc fcb:PFBLK, count:int_t
 
     .while fbffirst(fcb, count)
 
-    and [rax].FBLK.flag,not _FB_SELECTED
-    .if !( ecx & _FB_ARCHIVE or _A_SUBDIR )
+        and [rax].FBLK.flag,not _FB_SELECTED
+        .if !( ecx & _FB_ARCHIVE or _A_SUBDIR )
 
-        add rax,FBLK.name
-        topen(rax, 0)
-       .break .ifz
-    .endif
+            add rax,FBLK.name
+           .break .if !topen(rax, 0)
+        .endif
     .endw
     panel_redraw(cpanel)
     xor eax,eax

@@ -45,8 +45,7 @@ cmegaline proc uses rsi rdi rbx
         .endif
     .endif
     conssetl([rbx])
-    apiega()
-
+    xor cflag,_C_EGALINE
     mov _scrrc,rc
     doszip_show()
     ret
