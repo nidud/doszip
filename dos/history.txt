@@ -1,3 +1,5 @@
+Changes in 2.66 - 6 Mar 2024
+- fixed search bug in root directory
 
 Changes in 2.65 - 3 Jul 2023
 - fixed empty disk error

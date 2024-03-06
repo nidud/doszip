@@ -140,57 +140,85 @@ scan_copy:
 	ret
 
 scan_directory PROC _CType PUBLIC USES ds si di flag:WORD, path:PTR BYTE
-local locsp_d[62]:BYTE
+
+  local locsp_d[62]:BYTE
+
 	mov dx,offset scan_curpath
 	call scan_init
-	.if BYTE PTR flag & 1
+
+	.if ( byte ptr flag & 1 )
+
 	    pushm path
 	    call fp_directory
 	    mov [bp-4],ax
 	    .if ax
+
 		call restore_DTA
-		jmp @F
+		jmp toend
 	    .endif
 	.endif
-	invoke strlen,path
-	add ax,offset scan_curpath
-	mov [bp-2],ax
-	invoke strfcat,[bp-12],path,addr cp_stdmask
-	mov cx,ATTRIB_ALL
-	call scan_findfirst
-	.if ax != -1
-	   mov [bp-18],ax
-	   call scan_findnext
-	   .if !ax
-		.repeat
-		    call scan_findnext
-		    .break .if ax
-		    .continue .if !(BYTE PTR scan_fblock & _A_SUBDIR)
-		    mov	 ax,[bp-2]
-		    inc	 ax
-		    push ds
-		    push ax
-		    push [bp-6]
-		    mov	 ax,[bp-8]
-		    add	 ax,S_WFBLK.wf_name
-		    push ax
-		    call strcpy
-		    invoke scan_directory,flag,[bp-12]
-		    mov [bp-4],ax
-		.until ax
-	   .endif
-	   call scan_close
+
+	invoke	strlen,path
+	add	ax,offset scan_curpath
+	mov	[bp-2],ax
+	invoke	strfcat,[bp-12],path,addr cp_stdmask
+	mov	cx,ATTRIB_ALL
+	call	scan_findfirst
+	cmp	ax,-1
+	je	not_found
+	mov	[bp-18],ax
+
+	mov ax,word ptr scan_fblock.wf_name
+	.if ( ax == '.' || ( ax == '..' && scan_fblock.wf_name[2] == 0 ) )
+
+	    call scan_findnext
+	    test ax,ax
+	    jnz done
 	.endif
-	xor ax,ax
-	mov bx,[bp-2]
-	mov [bx],al
-      @@:
-	mov ax,[bp-4]
-	.if !(BYTE PTR flag & 1)
+	mov ax,word ptr scan_fblock.wf_name
+	.if ( ax == '.' || ( ax == '..' && scan_fblock.wf_name[2] == 0 ) )
+
+	    call scan_findnext
+	    test ax,ax
+	    jnz done
+	.endif
+
+	.while 1
+
+	    .if ( byte ptr scan_fblock & _A_SUBDIR )
+
+		mov	ax,[bp-2]
+		inc	ax
+		push	ds
+		push	ax
+		push	[bp-6]
+		mov	ax,[bp-8]
+		add	ax,S_WFBLK.wf_name
+		push	ax
+		call	strcpy
+		invoke	scan_directory,flag,[bp-12]
+		mov	[bp-4],ax
+	       .break .if ax
+	    .endif
+	    call scan_findnext
+	   .break .if ax
+	.endw
+done:
+	call	scan_close
+not_found:
+	xor	ax,ax
+	mov	bx,[bp-2]
+	mov	[bx],al
+toend:
+	mov	ax,[bp-4]
+
+	.if !( byte ptr flag & 1 )
+
 	    pushm path
 	    call fp_directory
 	.endif
 	ret
+
 scan_directory ENDP
 
 scan_files PROC _CType PUBLIC USES ds si di fpath:PTR BYTE

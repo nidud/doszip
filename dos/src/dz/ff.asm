@@ -313,8 +313,7 @@ local result:WORD
 ff_fileblock ENDP
 
 ff_directory PROC _CType PRIVATE directory:DWORD
-	invoke progress_set,0,directory,0
-	.if ZERO?
+	.if !progress_set(directory,0,0)
 	    invoke scan_files,directory
 	.endif
 	ret
