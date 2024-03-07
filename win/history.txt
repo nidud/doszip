@@ -2,6 +2,11 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
+Changes in 3.68 - 07 Mar 2024
+- added more support for Unicode IO
+- fixed read error -- entries skipped in root directory
+- fixed read error in 7-zip plugin -- multiple files
+
 Changes in 3.67 - 02 Feb 2024
 - fixed bug in Replace - ignored Cancel
 

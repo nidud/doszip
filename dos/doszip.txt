@@ -1,10 +1,10 @@
 DOSZIP.TXT--
-Copyright 2023 Doszip Developers.
+Copyright 2024 Doszip Developers.
 
 DOSZIP COMMANDER
-Version 2.65
+Version 2.66
 
-Welcome to Doszip Commander Version 2.65!
+Welcome to Doszip Commander Version 2.66!
 =========================================
 
 
@@ -613,5 +613,5 @@ Welcome to Doszip Commander Version 2.65!
    These people contributed to Doszip (additions, bugfixes, bug reports):
 
    Hjort Nidudsson, Japheth, Michael Kennedy, Robert Riebisch, Rugxulo,
-   Yury
+   Yury, Fritz Mueller
 

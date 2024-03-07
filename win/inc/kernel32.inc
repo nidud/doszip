@@ -15,7 +15,8 @@ _MAX_FNAME  equ 256
 _MAX_EXT    equ 256
 define      MAX_PATH 260
 
-BOOL        typedef dword
+BOOL        typedef sdword
+LPBOOL      typedef ptr BOOL
 PVOID       typedef ptr
 PVOID64     typedef ptr
 CHAR        typedef sbyte
@@ -733,7 +734,11 @@ endif
 
 GetLastError proto WINAPI
 
+define CP_ACP   0
+define CP_UTF8  65001
+
 MultiByteToWideChar proto WINAPI :UINT, :DWORD, :LPCCH, :SINT, :LPWSTR, :SINT
+WideCharToMultiByte proto WINAPI :UINT, :DWORD, :LPCWCH, :SINT, :LPSTR, :SINT, :LPCCH, :LPBOOL
 
 MoveFileA proto WINAPI :LPCSTR, :LPCSTR
 MoveFileW proto WINAPI :LPCWSTR, :LPCWSTR

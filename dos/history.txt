@@ -1,3 +1,7 @@
+HISTORY.TXT--
+Change Log File for DOSZIP - Dos16
+==================================
+
 Changes in 2.66 - 6 Mar 2024
 - fixed search bug in root directory
 

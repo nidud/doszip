@@ -5320,7 +5320,7 @@ tmodal proc uses rsi rdi rbx
         mov edi,tevent()
         mov rax,tinfo
         cmp rax,rsi
-        mov rsi,0
+        mov esi,0
 
         .ifz
             tiftime(rax)

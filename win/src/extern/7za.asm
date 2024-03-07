@@ -338,12 +338,7 @@ testentryname PROC PRIVATE USES rsi rdi rbx wsub:PWSUB, name:LPSTR
     .endw
 
     mov esi,1
-    .if ( [rbx].WSUB.count <= esi )
-
-        .return( edi )
-    .endif
-
-    .while ( [rbx].WSUB.count <= esi )
+    .while ( [rbx].WSUB.count > esi )
 
         mov rax,[rbx].WSUB.fcb
         mov rax,[rax+rsi*size_t]

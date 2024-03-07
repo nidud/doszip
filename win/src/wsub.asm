@@ -189,9 +189,40 @@ fbcolor endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-wsfindnext proc private uses rsi rdi ff:PWIN32_FIND_DATA, handle:HANDLE
+
+wscopyffwf proc private uses rsi rdi ff:PWIN32_FIND_DATAA, wf:PWIN32_FIND_DATAW
+
+    ldr rdi,ff
+    ldr rsi,wf
+    mov ecx,WIN32_FIND_DATAA.cFileName / 4
+    rep movsd
+
+    WideCharToMultiByte(0, 0, rsi, -1, 0, 0, NULL, NULL)
+    .if ( !eax || eax > MAX_PATH )
+
+        .return( 0 )
+    .endif
+    mov ecx,eax
+    WideCharToMultiByte(0, 0, rsi, ecx, rdi, ecx, NULL, NULL)
+
+    add rdi,MAX_PATH
+    add rsi,MAX_PATH*2
+    WideCharToMultiByte(0, 0, rsi, -1, 0, 0, NULL, NULL)
+    .if ( eax && eax <= 14 )
+
+        mov ecx,eax
+        WideCharToMultiByte(0, 0, rsi, ecx, rdi, ecx, NULL, NULL)
+    .endif
+    mov eax,1
+    ret
+
+wscopyffwf endp
+
+
+wsfindnext proc private ff:PWIN32_FIND_DATA, handle:HANDLE
 
     .new wf:WIN32_FIND_DATAW
+
     .while FindNextFileW(handle, &wf)
 
         mov eax,wf.dwFileAttributes
@@ -200,22 +231,9 @@ wsfindnext proc private uses rsi rdi ff:PWIN32_FIND_DATA, handle:HANDLE
         not cl
         and eax,ecx
         .ifz
-            mov rdi,ff
-            lea rsi,wf
-            mov ecx,WIN32_FIND_DATA.cFileName / 4
-            rep movsd
-            lea rcx,[rdi+260]
-            lea rdx,[rsi+520]
-            .repeat
-                lodsw
-                stosb
-            .until !al
-            mov rdi,rcx
-            mov rsi,rdx
-            .repeat
-                lodsw
-                stosb
-            .until !al
+            .ifd ( !wscopyffwf(ff, &wf) )
+                .continue
+            .endif
             .return( 0 )
         .endif
     .endw
@@ -241,18 +259,17 @@ scan_directory proc uses rsi rdi rbx flag:UINT, directory:LPSTR
         .if wsfindfirst(strfcat(scan_curpath, directory, &cp_stdmask), rdi, ATTRIB_ALL) != -1
 
             mov rsi,rax
-            .if !wsfindnext(rdi, rsi)
+            .repeat
+                mov eax,dword ptr [rdi].WIN32_FIND_DATA.cFileName
+                and eax,0x00FFFFFF
+                .if ( !( ax == '.' || eax == '..' ) &&
+                    ( [rdi].WIN32_FIND_DATA.dwFileAttributes & _A_SUBDIR ) )
 
-                .while !wsfindnext(rdi, rsi)
-
-                    .if ( [rdi].WIN32_FIND_DATA.dwFileAttributes & _A_SUBDIR )
-
-                        strcpy(&[rbx+1], &[rdi].WIN32_FIND_DATA.cFileName)
-                        mov result,scan_directory(flag, scan_curpath)
-                        .break .if eax
-                    .endif
-                .endw
-            .endif
+                    strcpy(&[rbx+1], &[rdi].WIN32_FIND_DATA.cFileName)
+                    mov result,scan_directory(flag, scan_curpath)
+                   .break .if eax
+                .endif
+            .until wsfindnext(rdi, rsi)
             wscloseff(rsi)
             mov byte ptr [rbx],0
         .endif
@@ -546,13 +563,12 @@ wsfblk proc wsub:PWSUB, index:UINT
 
 wsfblk endp
 
-wsfindfirst proc uses rsi rdi rbx fmask:LPSTR, fblk:PWIN32_FIND_DATA, attrib:UINT
+wsfindfirst proc uses rbx fmask:LPSTR, ff:PWIN32_FIND_DATA, attrib:UINT
 
-   .new h:HANDLE
+   .new wf:WIN32_FIND_DATAW
     ;
     ; @v3.31 - single file fails in FindFirstFileW
     ;
-    xor ebx,ebx
     ldr rax,fmask
     mov ax,[rax]
 
@@ -561,58 +577,43 @@ ifdef _WIN95
 else
     .if ah == ':'
 endif
-        inc ebx
-        mov rcx,alloca(WMAXPATH + sizeof(WIN32_FIND_DATAW))
-        mov rdi,rax
-        mov rsi,fmask
-        mov eax,'\'
-        stosw
-        stosw
-        mov al,'?'
-        stosw
-        mov al,'\'
-        stosw
-        .repeat
-            lodsb
-            stosw
-        .until !al
-        lea rsi,[rcx+WMAXPATH]
-        mov [rsi].WIN32_FIND_DATAW.cFileName,ax
-        mov [rsi].WIN32_FIND_DATAW.cAlternateFileName,ax
-        FindFirstFileW(rcx, rsi)
+        .ifd ( !MultiByteToWideChar(CP_UTF8, 0, fmask, -1, 0, 0) )
+
+            dec rax
+        .else
+
+            mov ebx,eax
+            add eax,eax
+            alloca(eax)
+            mov ecx,ebx
+            mov rbx,rax
+            MultiByteToWideChar(CP_UTF8, 0, fmask, ecx, rbx, ecx)
+
+            .ifd ( FindFirstFileW(rbx, &wf) != -1 )
+
+                mov rbx,rax
+                .ifd ( !wscopyffwf(ff, &wf) )
+
+                    FindClose( rbx )
+                    mov rbx,-1
+                .endif
+                mov rax,rbx
+            .endif
+        .endif
     .else
-        FindFirstFileA(fmask, fblk)
+        FindFirstFileA(fmask, ff)
     .endif
 
-    .if rax != -1
+    .if ( eax != -1 )
 
-        mov h,rax
-        .if ebx
-
-            mov rdi,fblk
-            mov ecx,WIN32_FIND_DATA.cFileName / 4
-            rep movsd
-            lea rcx,[rdi+260]
-            lea rdx,[rsi+520]
-            .repeat
-                lodsw
-                stosb
-            .until !al
-            mov rdi,rcx
-            mov rsi,rdx
-            .repeat
-                lodsw
-                stosb
-            .until !al
-        .endif
-
+        mov rbx,rax
         lea rdx,_attrib
         lea rcx,[rdx+4]
         memmove(rcx, rdx, 4 * (MAXFINDHANDLES - 1))
-        mov rcx,fblk
+        mov rcx,ff
         mov eax,attrib
         mov _attrib,eax
-        mov rax,h
+        mov rax,rbx
     .else
         osmaperr()
     .endif
@@ -675,6 +676,9 @@ wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
                 FileTimeToTime(rax)
                 mov edx,[rdi].WIN32_FIND_DATA.dwFileAttributes
                 and edx,_A_FATTRIB
+                .if ( edx == _A_NORMAL )
+                    xor edx,edx
+                .endif
                 lea rcx,[rdi].WIN32_FIND_DATA.cFileName
                 .if ( !( [rbx].WSUB.flag & _W_LONGNAME) &&
                       console & CON_IOSFN && [rdi].WIN32_FIND_DATA.cAlternateFileName )
