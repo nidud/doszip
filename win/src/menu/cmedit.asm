@@ -54,17 +54,27 @@ load_tedit endp
 
 zipadd proc private uses rsi rdi rbx archive:LPSTR, path:LPSTR, file:LPSTR
 
-    strpath(strcpy(__srcpath, strcpy(__srcfile, file)))
-    strcpy(__outpath, path)
-    strcpy(__outfile, archive)
+    ldr rsi,archive
+    ldr rdi,path
+    ldr rbx,file
 
-    .if osopen(file, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+    strpath(strcpy(__srcpath, strcpy(__srcfile, rbx)))
+    strcpy(__outpath, rdi)
+    strcpy(__outfile, rsi)
+
+    .ifd ( osopen(rbx, _A_NORMAL, M_RDONLY, A_OPEN) != -1 )
+
         mov esi,eax
         .if _filelength(eax)
+
             mov edi,eax
             _close(esi)
-            mov ebx,clock()
-            getfattr(file)
+
+            clock()
+            mov rcx,rbx
+            mov ebx,eax
+            getfattr(rcx)
+
 ifdef _WIN64
             wzipadd(rdi, ebx, eax)
 else
@@ -81,11 +91,14 @@ endif
 zipadd endp
 
 
-editzip proc private uses rsi rdi
+editzip proc private uses rsi rdi rbx file:LPSTR
 
+    ldr rbx,file
     mov edi,ecx
     mov rcx,rdx
+
     .if unzip_to_temp(rcx, rbx)
+
         mov esi,_diskflag
         setfattr(rax, 0)
         mov _diskflag,0
@@ -107,22 +120,18 @@ editzip proc private uses rsi rdi
 editzip endp
 
 
-cmedit proc uses rbx
+cmedit proc
 
-  local fname[_MAX_PATH*2]:byte
+    .new fname[_MAX_PATH*2]:char_t
 
-    lea rbx,fname
-
-    .switch TVGetCurrentFile(rbx)
-      .case 1
+    .ifd ( TVGetCurrentFile(&fname) == 1 )
         .if ecx == eax
             mov ecx,4
         .endif
-        load_tedit(rbx, ecx)
-        .endc
-      .case 2
-        editzip()
-    .endsw
+        load_tedit(&fname, ecx)
+    .elseif ( eax == 2 )
+        editzip(&fname)
+    .endif
     ret
 
 cmedit endp
@@ -131,16 +140,16 @@ cmedit endp
 cmwindowlist proc
 
     .if tdlgopen() > 2
+
         mov tinfo,rax
-    .else
-        .if eax == 1
-            mov tinfo,rdx
-            tclose()
-        .elseif eax == 2
-            tiflush(rdx)
-        .endif
-        ret
+        cmtmodal()
+    .elseif eax == 1
+        mov tinfo,rdx
+        tclose()
+    .elseif eax == 2
+        tiflush(rdx)
     .endif
+    ret
 
 cmwindowlist endp
 

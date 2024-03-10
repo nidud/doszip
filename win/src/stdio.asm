@@ -347,6 +347,9 @@ _output proc uses rsi rdi rbx fp:LPFILE, format:LPSTR, arglist:ptr
                     jmp COMMON_INT
                 .case 'p'
                     mov edi,size_t * 2
+ifdef _WIN64
+                    or  esi,FL_I64
+endif
                 .case 'X'
                     mov hexoff,'A'-'9'-1
                     jmp COMMON_HEX

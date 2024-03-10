@@ -40,7 +40,7 @@ include config.inc
 ;
 tistate proc ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
     xor eax,eax
     .if rdx
 
@@ -65,7 +65,7 @@ tistate endp
 
 tialloc proc private uses rsi ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
 
     mov eax,[rsi].bsize
     add eax,TIMAXLINE*2+_MAX_PATH*2+STYLESIZE
@@ -93,9 +93,11 @@ tialloc endp
 
 tifree proc private uses rsi ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
+
     mov eax,[rsi].flags
     .if eax & _T_MALLOC
+
         xor eax,_T_MALLOC
         mov [rsi].flags,eax
         free([rsi].base)
@@ -106,7 +108,8 @@ tifree endp
 
 tirealloc proc private uses rsi rdi rbx ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
+
     mov rdi,[rsi].base
     mov ebx,[rsi].bsize
     add [rsi].bsize,TIMAXFILE
@@ -131,7 +134,8 @@ tirealloc endp
 
 timemzero proc private uses rdi ti:PTINFO
 
-    mov rax,ti
+    ldr rax,ti
+
     mov ecx,[rax].TINFO.bsize
     mov rdx,[rax].TINFO.base
     mov rdi,rdx
@@ -151,8 +155,9 @@ timemzero endp
 
 tigetline proc private uses rsi rdi rbx ti:PTINFO, line_id:UINT
 
-    mov eax,line_id         ; ARG: line id
-    mov rdx,ti
+    ldr eax,line_id         ; ARG: line id
+    ldr rdx,ti
+
     mov rdi,[rdx].base     ; file is string[MAXFILESIZE]
     mov rbx,rdx
 
@@ -252,8 +257,9 @@ tigetline endp
 
 tigetnextl proc private uses rsi rdi rbx ti:PTINFO
 
+    ldr rdx,ti
+
     xor eax,eax
-    mov rdx,ti
     mov [rdx].curline,eax
     mov edi,[rdx].flbcnt
     add rdi,[rdx].flptr    ; next = current + size + 0D 0A
@@ -333,7 +339,7 @@ tigetnextl endp
 
 ticurlp proc private uses rsi rdi ti:PTINFO
 
-    mov rdx,ti              ; current line =
+    ldr rdx,ti              ; current line =
     mov eax,[rdx].loffs     ; line offset -- first line on screen
     add eax,[rdx].yoffs     ; + y offset -- cursory()
 
@@ -383,7 +389,8 @@ ticurcp proc private uses rbx ti:PTINFO
     ;
     ; current pointer = current line + line offset
     ;
-    .if ticurlp(ti)
+    ldr rcx,ti
+    .if ticurlp(rcx)
 
         mov ebx,[rdx].boffs
         add ebx,[rdx].xoffs
@@ -393,12 +400,13 @@ ticurcp proc private uses rbx ti:PTINFO
 
 ticurcp endp
 
-tiexpandline proc private uses rsi rdi rbx rdx ti:PTINFO, line:LPSTR
+tiexpandline proc private uses rsi rdi rbx ti:PTINFO, line:LPSTR
 
    .new p:LPSTR
 
-    mov rdx,ti
-    mov rax,line
+    ldr rax,line
+    ldr rdx,ti
+
     mov ebx,[rdx].tabsize
 
     .if [rdx].flags & _T_USETABS
@@ -440,84 +448,84 @@ tiexpandline endp
 
 tioptimalfill proc private uses rsi rdi rbx ti:PTINFO, line_offset:LPSTR
 
-    mov rsi,line_offset
+    ldr rbx,ti
+    ldr rsi,line_offset
+
     mov ecx,strlen(rsi)
-    mov rdx,ti
+    mov rdx,rbx
     mov eax,[rdx].flags
     and eax,_T_OPTIMALFILL or _T_USETABS
     cmp eax,_T_OPTIMALFILL or _T_USETABS
     mov rax,rsi
 
-    .repeat
+    .return .ifnz
+    .return .if ecx < 5
 
-        .break .ifnz
-        .break .if ecx < 5
+    xor eax,eax
+    .while 1
 
-        xor eax,eax
+        mov rbx,rsi
+        lodsb
 
-        .while 1
-
-            mov rbx,rsi
-            lodsb
-
-            .switch al
-            .case 0
-            .case 10
-            .case 13
-                .break
-            .case 39
-            .case '"'
-                mov bl,al
-                .repeat
-                    lodsb
-                    .break(1) .if !al
-                .until al == bl
-                .continue(0)
-            .endsw
-
-            lea rcx,_ltype
-            .continue(0) .if !( byte ptr [rcx+rax+1] & _SPACE )
+        .switch al
+        .case 0
+        .case 10
+        .case 13
+            .break
+        .case 39
+        .case '"'
+            mov bl,al
             .repeat
                 lodsb
-                .break(1) .if al == 10
-                .break(1) .if al == 13
-            .until !( byte ptr [rcx+rax+1] & _SPACE )
+               .break(1) .if !al
+            .until al == bl
+            .continue(0)
+        .endsw
 
-            dec rsi
-            .while 1
+        lea rcx,_ltype
+        .continue(0) .if !( byte ptr [rcx+rax+1] & _SPACE )
 
+        .repeat
+            lodsb
+           .break(1) .if al == 10
+           .break(1) .if al == 13
+        .until !( byte ptr [rcx+rax+1] & _SPACE )
+
+        dec rsi
+        .while 1
+
+            mov rdi,rbx
+            sub rdi,line_offset
+            mov rcx,rdi
+            add rdi,8
+            and rdi,-8
+            sub rdi,rcx
+            lea rcx,[rsi+1]
+            sub rcx,rbx
+            .break .if ecx < 3
+            .break .if ecx <= edi
+            mov byte ptr [rbx],9
+            inc rbx
+            mov ecx,edi
+            dec ecx
+            .ifnz
                 mov rdi,rbx
-                sub rdi,line_offset
-                mov rcx,rdi
-                add rdi,8
-                and rdi,-8
-                sub rdi,rcx
-                lea rcx,[rsi+1]
-                sub rcx,rbx
-                .break .if ecx < 3
-                .break .if ecx <= edi
-                mov byte ptr [rbx],9
-                inc rbx
-                mov ecx,edi
-                dec ecx
-                .ifnz
-                    mov rdi,rbx
-                    add rbx,rcx
-                    mov al,TITABCHAR
-                    rep stosb
-                .endif
-            .endw
-            .if ecx
-                dec ecx
-                .ifnz
-                    mov al,' '
-                    mov rdi,rbx
-                    rep stosb
-                .endif
+                add rbx,rcx
+                mov al,TITABCHAR
+                rep stosb
             .endif
         .endw
-        mov rax,line_offset
-    .until 1
+
+        .if ecx
+            dec ecx
+            .ifnz
+                mov al,' '
+                mov rdi,rbx
+                rep stosb
+            .endif
+        .endif
+    .endw
+    mov rax,line_offset
     ret
 
 tioptimalfill endp
@@ -706,7 +714,7 @@ tiflush proc uses rsi rdi rbx ti:PTINFO
 
     ldr rsi,ti
     lea rdi,path
-    .if getfattr(strcpy(rdi, [rsi].TINFO.file)) == -1
+    .ifd getfattr(strcpy(rdi, [rsi].TINFO.file)) == -1
         .if tigetfilename(rsi)
             strcpy(rdi, rax)
         .else
@@ -934,7 +942,7 @@ TIDoSection proc uses rsi rdi rbx cfile:LPSTR, sname:LPSTR, buffer:LPSTR, endbuf
 
   local file[_MAX_PATH]:sbyte, entry[_MAX_PATH]:sbyte, section:LPSTR, index
 
-    mov rsi,sname
+    ldr rsi,sname
     lea rdi,entry
 
     .if byte ptr [rsi] == '['
@@ -1083,7 +1091,7 @@ tiread proc private uses rsi rdi rbx ti:PTINFO
 
   local line_count, tabs_used:byte, p:ptr
 
-    mov rsi,ti      ; v2.49 - auto detect CR/LF
+    ldr rsi,ti      ; v2.49 - auto detect CR/LF
     mov tabs_used,0
 
     tiftime(rsi)
@@ -1355,7 +1363,7 @@ tiopen endp
 
 ticlose proc private uses rsi rdi rbx ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
     xor edi,edi
 
     .if ( [rsi].flags & _T_MALLOC )
@@ -1388,7 +1396,7 @@ ticlose proc private uses rsi rdi rbx ti:PTINFO
     .endif
 
     free(rsi)
-    .return(rdi)
+   .return(rdi)
 
 ticlose endp
 
@@ -1398,7 +1406,7 @@ ticlose endp
 
 tihide proc ti:PTINFO
 
-    mov rcx,ti
+    ldr rcx,ti
     .if rcx
 
         mov [rcx].TINFO.crc,0
@@ -1429,7 +1437,7 @@ timenus proc private uses rsi rdi rbx ti:PTINFO
    .new x:int_t
    .new y:int_t
 
-    mov rsi,ti
+    ldr rsi,ti
 
     .if tistate(rsi)
 
@@ -2364,7 +2372,7 @@ tistyle endp
 
 tiselected proc private ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
     mov eax,[rdx].clip_el
     sub eax,[rdx].clip_sl
     mov ecx,eax
@@ -2383,7 +2391,7 @@ tiputl proc private uses rsi rdi rbx wc:PCHAR_INFO, line:uint_t, ti:PTINFO
         clst:uint_t,   ; clip start
         clen:uint_t    ; clip end
 
-    mov rdx,ti
+    ldr rdx,ti
     mov eax,[rdx].clrc
     .if [rdx].flags & _T_USESTYLE
         mov eax,[rdx].stylec
@@ -2511,7 +2519,7 @@ tiputs proc uses rsi rdi rbx ti:PTINFO
         rc:SMALL_RECT,
         cursor:CURSOR
 
-    mov rsi,ti
+    ldr rsi,ti
     mov eax,[rsi].xpos
     add eax,[rsi].xoffs
     mov ecx,[rsi].ypos
@@ -2620,7 +2628,7 @@ tiputs endp
 
 ticlipset proc private ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
     mov eax,[rdx].xoffs
     add eax,[rdx].boffs
     mov [rdx].clip_so,eax
@@ -2637,7 +2645,7 @@ tialignx proc private uses rbx ti:PTINFO, x:UINT
     ;
     ; align xoff and boff to EAX
     ;
-    mov rdx,ti
+    ldr rdx,ti
     mov ebx,[rdx].xoffs
     add ebx,[rdx].boffs
 
@@ -2665,7 +2673,7 @@ tialignx endp
 
 ticliptostart proc private uses rdi ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
     mov edi,[rdx].loffs
     mov eax,[rdx].yoffs
     mov ecx,edi
@@ -2690,23 +2698,25 @@ ticliptostart endp
 
 tigeto proc private uses rsi rdi ti:PTINFO, line:UINT, offs:UINT
 
+    ldr rcx,ti
+    ldr edx,line
+    ldr esi,offs
     xor edi,edi
-    .if tigetline(ti, line)   ; expanded line
 
+    .if tigetline(rcx, edx)  ; expanded line
+
+        mov ecx,esi
         mov rsi,rax
         mov rdi,[rdx].flptr  ; line from file buffer
-        mov ecx,offs
 
         .while ecx
 
-            mov al,[rsi]
-            add rsi,1
+            lodsb
             .break .if !al
-
             .if al != TITABCHAR ; skip expanded tabs
-                add rdi,1
+                inc rdi
             .endif
-            sub ecx,1
+            dec ecx
         .endw
     .endif
     mov rax,rdi
@@ -2718,7 +2728,7 @@ tigeto endp
 
 ticlipdel proc private uses rsi rbx ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
 
     .if tiselected(rsi)
 
@@ -2756,8 +2766,10 @@ ticlipdel endp
 
 ticopyselection proc private uses rsi rdi ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
+
     .if tigeto(rsi, [rsi].clip_sl, [rsi].clip_so)
+
         mov rdi,rax
         .if tigeto(rsi, [rsi].clip_el, [rsi].clip_eo)
             sub rax,rdi     ; = byte size of selected text
@@ -2771,9 +2783,9 @@ ticopyselection endp
 
 ticlipcut proc private uses rsi ti:PTINFO, delete:UINT
 
-    mov rsi,ti
-    .if tiselected(rsi)
-        .if !ticopyselection(rsi)
+    ldr rsi,ti
+    .ifd tiselected(rsi)
+        .ifd !ticopyselection(rsi)
             .return
         .endif
     .endif
@@ -2789,7 +2801,7 @@ ticlipcut endp
 tiselectall proc private ti:PTINFO
 
     xor eax,eax
-    mov rdx,ti
+    ldr rdx,ti
     mov [rdx].clip_sl,eax
     mov [rdx].clip_so,eax
     mov [rdx].clip_el,eax
@@ -2808,7 +2820,8 @@ tiselectall endp
 
 tiincy proc private uses rdi rbx ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
+
     mov ebx,[rdx].rows
     mov eax,[rdx].loffs
     mov edi,eax
@@ -2837,7 +2850,7 @@ tialigny proc uses rbx ti:PTINFO, y:UINT
     ;
     ; align yoff and loff to EAX
     ;
-    mov rdx,ti
+    ldr rdx,ti
     mov ebx,[rdx].yoffs
     add ebx,[rdx].loffs
 
@@ -2861,7 +2874,7 @@ tialigny endp
 
 tihome proc private ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
     xor eax,eax
     mov [rdx].boffs,eax
     mov [rdx].xoffs,eax
@@ -2871,7 +2884,7 @@ tihome endp
 
 titoend proc private uses rsi rdi ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
     .if ticurlp(rdx)
 
         .if stripend(rax)
@@ -2916,7 +2929,7 @@ tileft endp
 
 tiup proc private ti:PTINFO
 
-    mov rdx,ti
+    ldr rdx,ti
     xor eax,eax
     .if eax != [rdx].yoffs
         dec [rdx].yoffs
@@ -2964,7 +2977,7 @@ tio_open endp
 
 tio_putc proc private uses rbx o:PTIOST, c:UINT
 
-    mov rbx,o
+    ldr rbx,o
     mov ecx,[rbx].index
     mov eax,_TI_CMFAILED
     .if ( ecx < TIMAXLINE )
@@ -2990,7 +3003,7 @@ tio_copy2 proc fastcall private uses rsi rdi rbx o:PTIOST, ti:PTINFO
         lodsb
         .if ( al != TITABCHAR )
 
-            .return .if tio_putc(rbx, eax)
+            .return .ifd tio_putc(rbx, eax)
         .endif
         dec edi
     .untilz
@@ -3133,13 +3146,13 @@ tio_flush endp
 
 tio_tail proc private uses rsi o:PTIOST, ti:PTINFO, tail:LPSTR
 
-    mov rsi,tail
+    ldr rsi,tail
     lodsb
     .while al
 
         .if ( al != TITABCHAR )
 
-            .return .if tio_putc(o, eax)
+            .return .ifd tio_putc(o, eax)
         .endif
         lodsb
     .endw
@@ -3155,8 +3168,10 @@ tiputc proc private uses rsi rdi rbx ti:PTINFO, char:UINT
 
    .new o:TIOST
 
-    mov rsi,ti
-    movzx eax,byte ptr char
+    ldr rsi,ti
+    ldr eax,char
+
+    movzx eax,al
     mov o.c,eax
     lea rcx,_ltype
 
@@ -3297,7 +3312,7 @@ tidelete proc private uses rsi rdi rbx ti:PTINFO
   local o:TIOST
   local flag:UINT
 
-    mov rsi,ti
+    ldr rsi,ti
     lea rbx,o
     mov o.c,0
 
@@ -3423,7 +3438,7 @@ tibacksp proc private uses rsi rdi rbx ti:PTINFO
   local o:TIOST
   local x,i
 
-    mov rsi,ti
+    ldr rsi,ti
     mov eax,[rsi].xoffs
     add eax,[rsi].boffs
     .ifz
@@ -3876,7 +3891,7 @@ ticlippaste proc private uses rsi rdi rbx ti:PTINFO
    .new boff:uint_t
    .new c:int_t
 
-    mov rsi,ti
+    ldr rsi,ti
     mov eax,[rsi].flags
 
     .if eax & _T_OVERWRITE
@@ -3988,16 +4003,17 @@ ticlippaste endp
 
 tievent proc private uses rsi rdi rbx ti:PTINFO, event:UINT
 
+    ldr rsi,ti
+    ldr ebx,event
 
-    .if !tiselected(ti)
+    .if !tiselected(rsi)
 
-        ticlipset(rdx)
+        ticlipset(rsi)
     .endif
 
     mov rax,keyshift
     mov ecx,[rax]
-    mov eax,event
-    mov rsi,rdx
+    mov eax,ebx
 
     .switch
 
@@ -4200,7 +4216,7 @@ tievent endp
 
 tishow proc uses rsi rdi rbx ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
     .if rsi
 
         lea rdi,[rsi].dobj
@@ -4256,7 +4272,7 @@ tishow endp
 
 titogglemenus proc private uses rsi ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
     .if tistate(rsi)
 
         tihide(rsi)
@@ -4912,7 +4928,7 @@ tisearchsetoff proc private ti:PTINFO
         mov tisearch_off,eax
         mov tisearch_line,eax
     .else
-        mov rdx,ti
+        ldr rdx,ti
         mov eax,[rdx].TINFO.boffs
         add eax,[rdx].TINFO.xoffs
         mov tisearch_off,eax
@@ -5053,7 +5069,7 @@ ID_NO   equ 3
 iddreplaceprompt proc private uses rbx ti:PTINFO
 
     mov eax,1
-    mov rbx,ti
+    ldr rbx,ti
 
     .if [rbx].TINFO.flags & _T_PROMPTONREP
 
@@ -5143,7 +5159,7 @@ iddreplace endp
 
 tireplace proc private uses rsi rdi rbx ti:PTINFO
 
-    mov rsi,ti
+    ldr rsi,ti
     mov eax,_T_PROMPTONREP
     or  [rsi].TINFO.flags,eax
 
@@ -5192,7 +5208,9 @@ tihandler proc private uses rsi
       .case KEY_F9:     tloadfiles()
       .case KEY_F11:    titogglemenus(rdx)
 
-      .case KEY_ESC:    tihideall(rdx) : jmp return
+      .case KEY_ESC
+        tihideall(rdx) 
+        jmp return
       .case KEY_CTRLF2: tisaveas(rdx)
       .case KEY_CTRLF9: tioption(rdx)
       .case KEY_CTRLA:  tiselectall(rdx)

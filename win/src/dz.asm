@@ -32,18 +32,28 @@ ifdef __SIGNAL__
 
 GeneralFailure proc signo
 
-    doszip_close()
-    tcloseall()
-    .if CFGetSection("Exit")
-        CFExecute(rax)
-    .endif
-
     mov ecx,signo
     mov eax,1
     .if ecx == SIGTERM || ecx == SIGABRT
 
+        doszip_close()
+        tcloseall()
+        .if CFGetSection("Exit")
+            CFExecute(rax)
+        .endif
         exit(0)
     .endif
+
+    _print("EXCEPTION: ")
+
+    mov eax,signo
+    .switch pascal eax
+    .case SIGINT:  _print("Interrupt\n")
+    .case SIGILL:  _print("Illegal instruction - invalid function ime\n")
+    .case SIGFPE:  _print("Floating point exception\n")
+    .case SIGSEGV: _print("Segment violation\n")
+    .case SIGABRT: _print("Abnormal termination triggered by abort call\n")
+    .endsw
 
     assume rbx:ptr CONTEXT
 ifdef _WIN64
@@ -51,6 +61,9 @@ ifdef _WIN64
             "\n"
             "This message is created due to unrecoverable error\n"
             "and may contain data necessary to locate it.\n"
+            "\n"
+            "Code:\t%08X\n"
+            "Flags:  %08X\n"
             "\n"
             "\tRAX: %p R8:  %p\n"
             "\tRBX: %p R9:  %p\n"
@@ -92,10 +105,14 @@ endif
 
 ifdef _WIN64
     mov rdx,[rbx]._Rip
-    mov rcx,[rdx]
-    mov r10,[rdx-8]
-    mov r11,[rdx+8]
+    .if ( rdx )
+        mov rcx,[rdx]
+        mov r10,[rdx-8]
+        mov r11,[rdx+8]
+    .endif
     _print( rdi,
+        [rsi].EXCEPTION_RECORD.ExceptionCode,
+        [rsi].EXCEPTION_RECORD.ExceptionFlags,
         [rbx]._Rax, [rbx]._R8,
         [rbx]._Rbx, [rbx]._R9,
         [rbx]._Rcx, [rbx]._R10,
