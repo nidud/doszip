@@ -9,13 +9,13 @@ include string.inc
 include config.inc
 ifdef _WIN64
 include signal.inc
-define __SIGNAL__
+include minwinbase.inc
 endif
 
-doszip_init proto :LPSTR
-doszip_open proto
-doszip_modal proto
-doszip_close proto
+doszip_init     proto :LPSTR
+doszip_open     proto
+doszip_modal    proto
+doszip_close    proto
 
     .data
 
@@ -28,13 +28,68 @@ doszip_close proto
     dd 564A4A50h
     db __LIBC__ / 100 + '0','.',__LIBC__ mod 100 / 10 + '0',__LIBC__ mod 10 + '0'
 
-ifdef __SIGNAL__
+ifdef _WIN64
 
-GeneralFailure proc signo
+_exception_handler proc \
+    ExceptionRecord   : PEXCEPTION_RECORD,
+    EstablisherFrame  : PEXCEPTION_REGISTRATION_RECORD,
+    ContextRecord     : PCONTEXT,
+    DispatcherContext : LPDWORD
 
-    mov ecx,signo
-    mov eax,1
-    .if ecx == SIGTERM || ecx == SIGABRT
+    .new flags[17]:sbyte
+    .new signo:int_t = SIGTERM
+    .new string:string_t = "Segment violation"
+
+     mov eax,[rcx].EXCEPTION_RECORD.ExceptionFlags
+    .switch
+    .case eax & EXCEPTION_UNWINDING
+    .case eax & EXCEPTION_EXIT_UNWIND
+       .endc
+    .case eax & EXCEPTION_STACK_INVALID
+    .case eax & EXCEPTION_NONCONTINUABLE
+        mov signo,SIGSEGV
+       .endc
+    .case eax & EXCEPTION_NESTED_CALL
+        exit(1)
+
+    .default
+        mov eax,[rcx].EXCEPTION_RECORD.ExceptionCode
+        .switch eax
+        .case EXCEPTION_ACCESS_VIOLATION
+        .case EXCEPTION_ARRAY_BOUNDS_EXCEEDED
+        .case EXCEPTION_DATATYPE_MISALIGNMENT
+        .case EXCEPTION_STACK_OVERFLOW
+        .case EXCEPTION_IN_PAGE_ERROR
+        .case EXCEPTION_INVALID_DISPOSITION
+        .case EXCEPTION_NONCONTINUABLE_EXCEPTION
+            mov signo,SIGSEGV
+           .endc
+        .case EXCEPTION_SINGLE_STEP
+        .case EXCEPTION_BREAKPOINT
+            mov signo,SIGINT
+            mov string,&@CStr("Interrupt")
+           .endc
+        .case EXCEPTION_FLT_DENORMAL_OPERAND
+        .case EXCEPTION_FLT_DIVIDE_BY_ZERO
+        .case EXCEPTION_FLT_INEXACT_RESULT
+        .case EXCEPTION_FLT_INVALID_OPERATION
+        .case EXCEPTION_FLT_OVERFLOW
+        .case EXCEPTION_FLT_STACK_CHECK
+        .case EXCEPTION_FLT_UNDERFLOW
+            mov signo,SIGFPE
+            mov string,&@CStr("Floating point exception")
+           .endc
+        .case EXCEPTION_ILLEGAL_INSTRUCTION
+        .case EXCEPTION_INT_DIVIDE_BY_ZERO
+        .case EXCEPTION_INT_OVERFLOW
+        .case EXCEPTION_PRIV_INSTRUCTION
+            mov signo,SIGILL
+            mov string,&@CStr("Illegal instruction")
+           .endc
+        .endsw
+    .endsw
+
+    .if ( signo == SIGTERM )
 
         doszip_close()
         tcloseall()
@@ -44,103 +99,76 @@ GeneralFailure proc signo
         exit(0)
     .endif
 
-    _print("EXCEPTION: ")
+    .for ( r11      = r8,
+           r10      = rcx,
+           r8d      = 0,
+           rdx      = &flags,
+           rax      = '00000000',
+           [rdx]    = rax,
+           [rdx+8]  = rax,
+           [rdx+16] = r8b,
+           eax      = [r11].CONTEXT.EFlags,
+           ecx      = 16 : ecx : ecx-- )
 
-    mov eax,signo
-    .switch pascal eax
-    .case SIGINT:  _print("Interrupt\n")
-    .case SIGILL:  _print("Illegal instruction - invalid function ime\n")
-    .case SIGFPE:  _print("Floating point exception\n")
-    .case SIGSEGV: _print("Segment violation\n")
-    .case SIGABRT: _print("Abnormal termination triggered by abort call\n")
-    .endsw
-
-    assume rbx:ptr CONTEXT
-ifdef _WIN64
-    lea rdi,@CStr(
-            "\n"
-            "This message is created due to unrecoverable error\n"
-            "and may contain data necessary to locate it.\n"
-            "\n"
-            "Code:\t%08X\n"
-            "Flags:  %08X\n"
-            "\n"
-            "\tRAX: %p R8:  %p\n"
-            "\tRBX: %p R9:  %p\n"
-            "\tRCX: %p R10: %p\n"
-            "\tRDX: %p R11: %p\n"
-            "\tRSI: %p R12: %p\n"
-            "\tRDI: %p R13: %p\n"
-            "\tRBP: %p R14: %p\n"
-            "\tRSP: %p R15: %p\n"
-            "\tRIP: %p %p\n"
-            "\t     %p %p\n\n"
-            "\tEFL: 0000000000000000\n"
-            "\t     r n oditsz a p c\n\n" )
-else
-    lea edi,@CStr(
-            "\n"
-            "This message is created due to unrecoverable error\n"
-            "and may contain data necessary to locate it.\n"
-            "\n"
-            "\tEAX: %p EDX: %p\n"
-            "\tEBX: %p ECX: %p\n"
-            "\tESI: %p EDI: %p\n"
-            "\tESP: %p EBP: %p\n"
-            "\tEIP: %p %p%p\n"
-            "\t     %p %p\n\n"
-            "\tEFL: 0000000000000000\n"
-            "\t     r n oditsz a p c\n\n" )
-endif
-
-    mov rcx,__pxcptinfoptrs()
-    mov rbx,[rcx].EXCEPTION_POINTERS.ContextRecord
-    mov rsi,[rcx].EXCEPTION_POINTERS.ExceptionRecord
-    mov eax,[rbx].EFlags
-    mov ecx,16
-    .repeat
         shr eax,1
-        adc byte ptr [rdi+rcx+sizeof(@CStr(0))-43],0
-    .untilcxz
+        adc [rdx+rcx-1],r8b
+    .endf
 
-ifdef _WIN64
-    mov rdx,[rbx]._Rip
-    .if ( rdx )
-        mov rcx,[rdx]
-        mov r10,[rdx-8]
-        mov r11,[rdx+8]
+    mov rdx,[r11].CONTEXT._Rip
+    mov rcx,[rdx]
+    bswap rcx
+    xor r8,r8
+    .if ( r9 )
+        mov r8,[r9]
+        mov r9,[r8]
+        bswap r9
     .endif
-    _print( rdi,
-        [rsi].EXCEPTION_RECORD.ExceptionCode,
-        [rsi].EXCEPTION_RECORD.ExceptionFlags,
-        [rbx]._Rax, [rbx]._R8,
-        [rbx]._Rbx, [rbx]._R9,
-        [rbx]._Rcx, [rbx]._R10,
-        [rbx]._Rdx, [rbx]._R11,
-        [rbx]._Rsi, [rbx]._R12,
-        [rbx]._Rdi, [rbx]._R13,
-        [rbx]._Rbp, [rbx]._R14,
-        [rbx]._Rsp, [rbx]._R15,
-        rdx, rcx, r10, r11 )
+
+    _print(
+            "This message is created due to unrecoverable error\n"
+            "and may contain data necessary to locate it.\n"
+            "\n"
+            "\tException:   %s\n"
+            "\tCode: \t     %08X\n"
+            "\tFlags:\t     %08X\n"
+            "\tProcessor:\n"
+            "\t\tRAX: %p R8:  %p\n"
+            "\t\tRBX: %p R9:  %p\n"
+            "\t\tRCX: %p R10: %p\n"
+            "\t\tRDX: %p R11: %p\n"
+            "\t\tRSI: %p R12: %p\n"
+            "\t\tRDI: %p R13: %p\n"
+            "\t\tRBP: %p R14: %p\n"
+            "\t\tRSP: %p R15: %p\n"
+            "\t\tRIP: %p *--: %p\n"
+            "\t   Dispatch: %p *--: %p\n"
+            "\t     EFlags: %s\n"
+            "\t\t     r n oditsz a p c\n",
+            string,
+            [r10].EXCEPTION_RECORD.ExceptionCode,
+            [r10].EXCEPTION_RECORD.ExceptionFlags,
+            [r11].CONTEXT._Rax, [r11].CONTEXT._R8,
+            [r11].CONTEXT._Rbx, [r11].CONTEXT._R9,
+            [r11].CONTEXT._Rcx, [r11].CONTEXT._R10,
+            [r11].CONTEXT._Rdx, [r11].CONTEXT._R11,
+            [r11].CONTEXT._Rsi, [r11].CONTEXT._R12,
+            [r11].CONTEXT._Rdi, [r11].CONTEXT._R13,
+            [r11].CONTEXT._Rbp, [r11].CONTEXT._R14,
+            [r11].CONTEXT._Rsp, [r11].CONTEXT._R15,
+            rdx, rcx, r8, r9, &flags)
+
+    osread( 0, &string, 1 )
+    exit( 1 )
+
+_exception_handler endp
+
+main proc frame:_exception_handler argc:int_t, argv:array_t
+
 else
-    mov edx,[ebx]._Eip
-    _print( edi,
-        [ebx]._Eax, [ebx]._Edx,
-        [ebx]._Ebx, [ebx]._Ecx,
-        [ebx]._Esi, [ebx]._Edi,
-        [ebx]._Esp, [ebx]._Ebp,
-        edx, [edx+4], [edx], [edx-4], [edx+8] )
-endif
-    assume rbx:nothing
-    _read(0, &signo, 1)
-    exit(1)
-    ret
 
-GeneralFailure endp
+main proc argc:int_t, argv:array_t
 
 endif
-
-main proc __Cdecl uses rsi rdi rbx argc:UINT, argv:ptr, environ:ptr
 
   local nologo:byte
 
@@ -238,18 +266,6 @@ main proc __Cdecl uses rsi rdi rbx argc:UINT, argv:ptr, environ:ptr
         .endif
 
         doszip_open()
-ifdef __SIGNAL__
-        lea rbx,GeneralFailure
-        signal( SIGINT,   rbx ) ; interrupt
-        signal( SIGILL,   rbx ) ; illegal instruction - invalid function image
-        signal( SIGFPE,   rbx ) ; floating point exception
-        signal( SIGSEGV,  rbx ) ; segment violation
-        signal( SIGTERM,  rbx ) ; Software termination signal from kill
-        signal( SIGABRT,  rbx ) ; abnormal termination triggered by abort call
-
-        doszip_modal()
-        GeneralFailure(SIGTERM)
-else
         doszip_modal()
         doszip_close()
         tcloseall()
@@ -258,7 +274,6 @@ else
             CFExecute(rax)
         .endif
         xor eax,eax
-endif
     .endif
     ret
 

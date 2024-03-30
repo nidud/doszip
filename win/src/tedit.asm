@@ -483,13 +483,13 @@ tioptimalfill proc private uses rsi rdi rbx ti:PTINFO, line_offset:LPSTR
         .endsw
 
         lea rcx,_ltype
-        .continue(0) .if !( byte ptr [rcx+rax+1] & _SPACE )
+        .continue(0) .if !( byte ptr [rcx+rax] & _SPACE )
 
         .repeat
             lodsb
            .break(1) .if al == 10
            .break(1) .if al == 13
-        .until !( byte ptr [rcx+rax+1] & _SPACE )
+        .until !( byte ptr [rcx+rax] & _SPACE )
 
         dec rsi
         .while 1
@@ -848,7 +848,7 @@ TIReadLabel proc uses rsi rdi rbx section:LPSTR, buffer:LPSTR, endbuf:LPSTR, att
 
             .continue .if al == '_'
 
-        .until !( byte ptr [rcx+rax+1] & _UPPER or _LOWER or _DIGIT )
+        .until !( byte ptr [rcx+rax] & _UPPER or _LOWER or _DIGIT )
 
         .repeat
             lodsb
@@ -1779,7 +1779,7 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
                 .for rdx = out_buffer, rdi = buffer, rcx = &_ltype,
                     al = [rdi] : eax && rdi < endbuf : rdi++, al = [rdi], rdx += 4
 
-                    .if ( eax != 9 && byte ptr [rcx+rax+1] & _CONTROL )
+                    .if ( eax != 9 && byte ptr [rcx+rax] & _CONTROL )
                         mov [rdx+2],bl
                     .endif
                 .endf
@@ -1816,7 +1816,7 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
                     .endc .if !eax
 
                     lea rbx,_ltype
-                    .if byte ptr [rbx+rax+1] & _DIGIT
+                    .if byte ptr [rbx+rax] & _DIGIT
 
                         lea rdx,[rdi-1]
                         .if rdx > line_ptr
@@ -1825,7 +1825,7 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
 
                             .continue .if !ecx
                             .continue .if ecx == '_'
-                            .continue .if byte ptr [rbx+rcx+1] & ( _UPPER or _LOWER or _DIGIT )
+                            .continue .if byte ptr [rbx+rcx] & ( _UPPER or _LOWER or _DIGIT )
                         .endif
                         mov rsi,rdi
                         .if al == '0'
@@ -1839,7 +1839,7 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
                         .while 1
                             lodsb
                             .break .if !eax
-                            .continue .if byte ptr [rbx+rax+1] & _HEX
+                            .continue .if byte ptr [rbx+rax] & _HEX
                             or  al,0x20
                             .continue .if al == 'u' ; ..UL
                             .continue .if al == 'i' ; ..I64
@@ -1848,7 +1848,7 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
                             .break .if al == 'h'    ; ..H
                             dec rsi
                             mov al,[rsi-1]
-                            .break .if !( byte ptr [rbx+rax+1] & _UPPER or _LOWER )
+                            .break .if !( byte ptr [rbx+rax] & _UPPER or _LOWER )
                             inc ecx
                            .break
                         .endw
@@ -1991,14 +1991,14 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
                         .break .if xtable[rax] & _X_QUOTE && edx != "'"
 
                         lea rcx,_ltype
-                        mov bh,byte ptr [rcx+rdx+1]
+                        mov bh,byte ptr [rcx+rdx]
                         and bh,_UPPER or _LOWER
 
                         lea rax,[rdi-1]
                         .if rax > line_ptr && bh
 
                             movzx eax,byte ptr [rax-1]
-                            .break .if !(byte ptr [rcx+rax+1] & _SPACE)
+                            .break .if !(byte ptr [rcx+rax] & _SPACE)
                         .endif
 
                         .while 1
@@ -2024,7 +2024,7 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
                                     movzx eax,byte ptr [rcx]
                                     lea rcx,_ltype
                                     .break .if eax == '_'
-                                    .break .if byte ptr [rcx+rax+1] & _UPPER or _LOWER
+                                    .break .if byte ptr [rcx+rax] & _UPPER or _LOWER
                                 .endif
 
                                 mov al,bl
@@ -2144,12 +2144,12 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
 
                                     movzx eax,byte ptr [rdx-1]
                                     .break .if eax == '_'
-                                    .break .if byte ptr [rbx+rax+1] & ( _UPPER or _LOWER or _DIGIT )
+                                    .break .if byte ptr [rbx+rax] & ( _UPPER or _LOWER or _DIGIT )
                                 .endif
 
                                 movzx eax,byte ptr [rcx]
                                 .break .if al == '_'
-                                .break .if byte ptr [rbx+rax+1] & ( _UPPER or _LOWER or _DIGIT )
+                                .break .if byte ptr [rbx+rax] & ( _UPPER or _LOWER or _DIGIT )
 
                                 sub rcx,rdi
                                 lea rax,[rdi-1]
@@ -3175,7 +3175,7 @@ tiputc proc private uses rsi rdi rbx ti:PTINFO, char:UINT
     mov o.c,eax
     lea rcx,_ltype
 
-    .if ( byte ptr [rcx+rax+1] & _CONTROL )
+    .if ( byte ptr [rcx+rax] & _CONTROL )
 
         .if ( eax != 9 && eax != 10 )
             .if eax == 13
@@ -3346,7 +3346,7 @@ tidelete proc private uses rsi rdi rbx ti:PTINFO
 
             .break .if !ebx
 
-            or al,[rdi+rbx+1]
+            or al,[rdi+rbx]
         .endf
 
         sub rcx,o.line_ptr
@@ -3608,13 +3608,13 @@ handle_event proc watcall private uses rsi rbx key:UINT, ti:PTINFO
 
             movzx eax,byte ptr [rcx]
 
-            .while ( [rbx+rax+1] & _LABEL or _DIGIT )
+            .while ( [rbx+rax] & _LABEL or _DIGIT )
 
                 inc rcx
                 mov al,[rcx]
             .endw
 
-            .while ( eax && !( [rbx+rax+1] & _LABEL or _DIGIT ) )
+            .while ( eax && !( [rbx+rax] & _LABEL or _DIGIT ) )
 
                 inc rcx
                 mov al,[rcx]
@@ -3673,20 +3673,20 @@ handle_event proc watcall private uses rsi rbx key:UINT, ti:PTINFO
             lea rbx,_ltype
             lea rsi,[rcx+rax-1]
             movzx eax,byte ptr [rsi]
-            .while ( rcx < rsi && !( [rbx+rax+1] & _LABEL or _DIGIT ) )
+            .while ( rcx < rsi && !( [rbx+rax] & _LABEL or _DIGIT ) )
 
                 dec rsi
                 mov al,[rsi]
             .endw
-            .while ( rcx < rsi && [rbx+rax+1] & _LABEL or _DIGIT )
+            .while ( rcx < rsi && [rbx+rax] & _LABEL or _DIGIT )
 
                 dec rsi
                 mov al,[rsi]
             .endw
-            .if !( [rbx+rax+1] & _LABEL or _DIGIT )
+            .if !( [rbx+rax] & _LABEL or _DIGIT )
 
                 mov al,[rsi+1]
-                .if ( [rbx+rax+1] & _LABEL or _DIGIT )
+                .if ( [rbx+rax] & _LABEL or _DIGIT )
 
                     inc rsi
                 .endif
@@ -3932,7 +3932,7 @@ ticlippaste proc private uses rsi rdi rbx ti:PTINFO
                 .endif
                 mov eax,c
                 lea rcx,_ltype
-            .until !( byte ptr [rcx+rax+1] & _SPACE )
+            .until !( byte ptr [rcx+rax] & _SPACE )
 
             .if ( esi >= 128 )
 
@@ -5209,7 +5209,7 @@ tihandler proc private uses rsi
       .case KEY_F11:    titogglemenus(rdx)
 
       .case KEY_ESC
-        tihideall(rdx) 
+        tihideall(rdx)
         jmp return
       .case KEY_CTRLF2: tisaveas(rdx)
       .case KEY_CTRLF9: tioption(rdx)

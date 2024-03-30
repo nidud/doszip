@@ -1174,7 +1174,7 @@ endif
             movzx eax,al
             mov ebx,eax
             lea rcx,_ltype
-           .endc .if !( byte ptr [rcx+rax+1] & _HEX )
+           .endc .if !( byte ptr [rcx+rax] & _HEX )
             mov eax,cline
             shl eax,4
             add eax,index

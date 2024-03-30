@@ -128,7 +128,7 @@ _gotoxy proc x:int_t, y:int_t
 
 _gotoxy endp
 
-_cursoron proc uses rax
+_cursoron proc
 
   local cu:CONSOLE_CURSOR_INFO
 
@@ -2406,7 +2406,7 @@ event_add proc uses rbx
     movzx eax,bl
     lea rcx,_ltype
 
-    .if ( byte ptr [rcx+rax+1] & _CONTROL )
+    .if ( byte ptr [rcx+rax] & _CONTROL )
 
         .if ( !eax || !( [rdx].flags & _TE_USECONTROL ) )
 
@@ -2483,14 +2483,14 @@ ti_event proc uses rsi rbx
         .repeat
             mov al,[rcx]
             inc rcx
-        .until !( byte ptr [rbx+rax+1] & _LABEL or _DIGIT )
+        .until !( byte ptr [rbx+rax] & _LABEL or _DIGIT )
         .endc .if !al
 
         .repeat         ; to start of word
             mov al,[rcx]
             inc rcx
            .endc .if !al
-        .until ( byte ptr [rbx+rax+1] & _LABEL or _DIGIT )
+        .until ( byte ptr [rbx+rax] & _LABEL or _DIGIT )
 
         dec rcx
         sub rcx,rdx
@@ -2526,21 +2526,21 @@ ti_event proc uses rsi rbx
         movzx eax,byte ptr [rdx]
         lea rbx,_ltype
 
-        .while ( rcx < rdx && !( byte ptr [rbx+rax+1] & _LABEL or _DIGIT ) )
+        .while ( rcx < rdx && !( byte ptr [rbx+rax] & _LABEL or _DIGIT ) )
 
             dec rdx
             mov al,[rdx]
         .endw
-        .while ( rcx < rdx && ( byte ptr [rbx+rax+1] & _LABEL or _DIGIT ) )
+        .while ( rcx < rdx && ( byte ptr [rbx+rax] & _LABEL or _DIGIT ) )
 
             dec rdx
             mov al,[rdx]
         .endw
 
-        .if !( byte ptr [rbx+rax+1] & _LABEL or _DIGIT )
+        .if !( byte ptr [rbx+rax] & _LABEL or _DIGIT )
 
             mov al,[rdx+1]
-            .if ( byte ptr [rbx+rax+1] & _LABEL or _DIGIT )
+            .if ( byte ptr [rbx+rax] & _LABEL or _DIGIT )
 
                 inc rdx
             .endif
@@ -3558,7 +3558,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                             .if [rsi].DOBJ.index == cl
 
                                 dec [rdx].LOBJ.index
-                                mov eax,esi
+                                mov rax,rsi
                                 call [rdx].LOBJ.lproc
                                .return
                             .endif
@@ -3654,7 +3654,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
             .endif
 
             inc [rdx].LOBJ.index
-            mov eax,esi
+            mov rax,rsi
             call [rdx].LOBJ.lproc
             mov result,eax
            .return
@@ -3677,7 +3677,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                 mov  [rdx].LOBJ.index,eax
                 mov  [rdx].LOBJ.celoff,eax
                 mov  ebx,[rdx].LOBJ.dlgoff
-                mov  eax,esi
+                mov  rax,rsi
                 call [rdx].LOBJ.lproc
                 mov eax,ebx
             .endif
@@ -3730,7 +3730,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                 add eax,[rdx].LOBJ.dlgoff
 
                 mov [rsi].DOBJ.index,al
-                mov eax,esi
+                mov rax,rsi
                 call [rdx].LOBJ.lproc
                 mov result,eax
             .endif
@@ -3776,7 +3776,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                         .gotosw(KEY_HOME)
                     .endif
                     sub [rdx].LOBJ.index,eax
-                    mov eax,esi
+                    mov rax,rsi
                     call [rdx].LOBJ.lproc
                     mov result,eax
                    .return
@@ -3828,7 +3828,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
 
             mov eax,[rdx].LOBJ.dcount
             add [rdx].LOBJ.index,eax
-            mov eax,esi
+            mov rax,rsi
             call [rdx].LOBJ.lproc
             mov result,eax
            .return
@@ -4974,6 +4974,7 @@ parseshift endp
 ReadEvent proc private uses rbx rdi rsi rcx
 
   local Count:dword, Input:INPUT_RECORD
+  local buffer[256]:char_t
 
     xor edi,edi
     lea rbx,Input

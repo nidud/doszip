@@ -1180,7 +1180,7 @@ case_files proc uses rsi rdi rbx
         mov rbx,o_wsub
         .if ( eax & _FB_UPDIR )
 
-            .if strfn([rbx].WSUB.path)
+            .if strfn([rbx].WSUB.path) > [rbx].WSUB.path
 
                 mov rsi,rax
                 xor eax,eax

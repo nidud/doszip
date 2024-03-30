@@ -175,7 +175,7 @@ INIAddEntry proc private uses rsi rdi rbx cf:LPINI, string:LPSTR
 
     movzx eax,byte ptr [rsi]
     lea rbx,_ltype
-    .while ( byte ptr [rbx+rax+1] & _SPACE )
+    .while ( byte ptr [rbx+rax] & _SPACE )
 
         inc rsi
         mov al,[rsi]
@@ -197,7 +197,7 @@ INIAddEntry proc private uses rsi rdi rbx cf:LPINI, string:LPSTR
         lea rdi,[rax+1]
 
         movzx eax,byte ptr [rdi]
-        .while ( byte ptr [rbx+rax+1] & _SPACE )
+        .while ( byte ptr [rbx+rax] & _SPACE )
 
             inc rdi
             mov al,[rdi]
