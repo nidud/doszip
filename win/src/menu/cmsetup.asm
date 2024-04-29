@@ -221,10 +221,11 @@ endif
 event_standard proc
 
     mov rax,tdialog
-    mov ax,[rax+4]
-    add ax,0x0B0C
+    mov eax,[rax].DOBJ.rc
+    add eax,0x0B0C
     mov rcx,IDD_DZDefaultColor
-    mov [rcx+6],ax
+    mov [rcx].RIDD.rc.x,al
+    mov [rcx].RIDD.rc.y,ah
 
     .if rsmodal(rcx)
 

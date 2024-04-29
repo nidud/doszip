@@ -274,7 +274,6 @@ ROBJ		ends
 PROBJ		typedef ptr ROBJ
 
 RIDD		struct 1
-size		dw ?
 flag		dw ?
 count		db ?
 index		db ?

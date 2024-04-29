@@ -4598,131 +4598,121 @@ rsopen proc uses rsi rdi rbx idd:PIDD
 
    .new dlg:PDOBJ
    .new flags:int_t
+   .new size:int_t
+   .new count:int_t
+   .new rsize:int_t
+   .new dsize:int_t
    .new rc:TRECT
 
-    ldr rsi,idd
-    mov rc,[rsi].RIDD.rc
-if 0
-    xor eax,eax
-    mov al,[rsi].RIDD.rc.x
-    add al,[rsi].RIDD.rc.col
-    .if al >= byte ptr _scrcol
-        sub al,byte ptr _scrcol
-        sub [rsi].RIDD.rc.x,al
-    .endif
+    ldr rbx,idd
+    mov rc,[rbx].RIDD.rc
 
-    mov al,[rsi].RIDD.rc.y
-    add al,[rsi].RIDD.rc.row
-    mov ah,byte ptr _scrrow
-    inc ah
-    .if al >= ah
-        sub al,ah
-        sub [rsi].RIDD.rc.y,al
-    .endif
-endif
-    movzx eax,[rsi].RIDD.rc.col  ; rc_rows * rc_cols
-    mul [rsi].RIDD.rc.row
+    movzx eax,[rbx].RIDD.rc.col  ; rc_rows * rc_cols
+    mul [rbx].RIDD.rc.row
     shl eax,2       ; DWORD size
     mov edi,eax
 
-    .if ( [rsi].RIDD.flag & _D_SHADE )
+    .if ( [rbx].RIDD.flag & _D_SHADE )
 
-        movzx eax,[rsi].RIDD.rc.col
-        movzx edx,[rsi].RIDD.rc.row
+        movzx eax,[rbx].RIDD.rc.col
+        movzx edx,[rbx].RIDD.rc.row
         lea eax,[rax+rdx*2-2]
         shl eax,2
         add edi,eax
     .endif
+    mov rsize,edi
 
-    .repeat
+    movzx   eax,[rbx].RIDD.count
+    mov     count,eax
+    inc     eax
+    imul    eax,eax,TOBJ
+    mov     dsize,eax
 
-        movzx   eax,[rsi].RIDD.size
-        mov     dlg,malloc(eax)
-        mov     ebx,edi
-        mov     rdi,rax
-        mov     rdx,rax
-        movzx   ecx,[rsi].RIDD.size
-        .break .if !rax
+    .for ( ecx = 0, eax = 0, rsi = &[rbx+RIDD] : ecx < count : ecx++, rsi+=ROBJ )
 
-        xor     eax,eax
-        rep     stosb
-        mov     rcx,rdx
-        mov     rdi,rdx
-        lodsw           ; skip size
-        ; -- copy dialog
-        lodsw           ; .flag
-        or      eax,_D_SETRC
-        mov     flags,eax
-        stosw           ; .flag
-        movsw           ; .count + .index
-        movsd           ; .rect
-        movzx   eax,byte ptr [rsi-6]
-        inc     eax
-        imul    eax,eax,TOBJ    ; * size of objects
-        add     rax,rcx         ; + adress
-        mov     [rdi],rax
-        add     rdi,size_t
-        xchg    rdx,rax
-        add     rax,TOBJ        ; + dialog
-        mov     [rdi],rax
-        add     rdi,size_t
+        movzx edx,[rsi].ROBJ.count
+        add eax,edx
+    .endf
+    shl eax,4
+    add eax,rsize
+    add eax,dsize
+    mov size,eax
 
-        ; -- copy objects
+    .if ( malloc(eax) == NULL )
 
-        add     rdx,rbx     ; end of wp = start of object alloc
-        movzx   ebx,byte ptr [rsi-6]
+        .return
+    .endif
 
-        .while ebx
+    mov dlg,rax
+    mov rdi,rax
+    mov ecx,size
+    xor eax,eax
+    rep stosb
 
-            movsd           ; copy 8 byte
-            movsd           ; get alloc size of object
-            movzx   eax,byte ptr [rsi-6]
-            shl     eax,4
+    mov rdi,dlg
+    mov eax,dword ptr [rbx]
+    mov flags,eax
+    or  eax,_D_SETRC
+    mov [rdi],eax
+    mov [rdi].DOBJ.rc,[rbx].RIDD.rc
+    mov eax,dsize
+    add rax,rdi
+    mov [rdi].DOBJ.wp,rax
+    mov edx,rsize
+    add edx,dsize
+    add rdx,rdi
 
-            .if eax
-                xchg    rax,rdx ; offset of mem (.data)
-                mov     [rdi],rax
-                add     rdi,size_t
-                add     rdx,rax
-                xor     eax,eax
-            .else
-                mov     [rdi],rax
-                add     rdi,size_t
+    add rbx,RIDD
+    add rdi,DOBJ
+
+    .if ( count )
+
+        mov [rdi-DOBJ].DOBJ.object,rdi
+
+        .for ( ecx = 0 : ecx < count : ecx++, rbx+=ROBJ, rdi+=TOBJ )
+
+            mov [rdi],size_t ptr [rbx]
+ifndef _WIN64
+            mov [rdi].TOBJ.rc,[rbx].ROBJ.rc
+endif
+            movzx eax,[rdi].TOBJ.count
+            .if ( eax )
+
+                mov [rdi].TOBJ.data,rdx
+                shl eax,4
+                add rdx,rax
             .endif
-            add rdi,size_t
-            dec ebx
-        .endw
+        .endf
+    .endif
+    rcunzip(rc, rdi, rbx)
+    .if ( flags & _D_RESAT )
 
-        rcunzip(rc, rdi, rsi)
-        .if ( flags & _D_RESAT )
-
-            rcunzipat(rc, rdi)
-        .endif
-    .until 1
+        rcunzipat(rc, rdi)
+    .endif
     mov rax,dlg
     ret
 
 rsopen endp
 
-rsevent proc robj:PIDD, dobj:PDOBJ
+rsevent proc uses rbx robj:PIDD, dobj:PDOBJ
 
-    dlevent(dobj)
+    ldr rbx,dobj
 
-    mov rcx,dobj
-    mov edx,[rcx+4]
+    dlevent(rbx)
+    mov edx,[rbx].DOBJ.rc
     mov rcx,robj
-    mov [rcx+6],edx
+    mov [rcx].RIDD.rc,edx
     ret
 
 rsevent endp
 
 rsmodal proc uses rbx robj:PIDD
 
-    ldr rcx,robj
-    .if rsopen(rcx)
+    ldr rbx,robj
+    .if rsopen(rbx)
 
-        mov rbx,rax
-        rsevent(robj, rax)
+        xchg rbx,rax
+        rsevent(rax, rbx)
         xchg rbx,rax
         dlclose(rax)
         mov eax,ebx
@@ -4741,7 +4731,7 @@ rsreload proc uses rsi rdi rbx robj:PIDD, dobj:PDOBJ
         mov     esi,dlhide(rbx)
         movzx   edi,[rbx].DOBJ.count
         inc     edi
-        lea     edi,[rdi*8+2]
+        lea     edi,[rdi*8]
         add     rdi,robj
 
         rcunzip([rbx].DOBJ.rc, [rbx].DOBJ.wp, rdi)

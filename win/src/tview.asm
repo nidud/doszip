@@ -237,14 +237,14 @@ CopySection endp
 
 cmmcopy proc uses rsi rdi rbx
 
-  local lb[128]:byte
+  local lb[256]:byte
 
     mov rdx,IDD_TVQuickMenu
     mov eax,keybmouse_x
     mov esi,eax
-    mov [rdx+6],al
+    mov [rdx].RIDD.rc.x,al
     mov ebx,keybmouse_y
-    mov [rdx+7],bl
+    mov [rdx].RIDD.rc.y,bl
 
     .if rsmodal(rdx)
 

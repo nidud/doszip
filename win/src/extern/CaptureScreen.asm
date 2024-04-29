@@ -125,12 +125,13 @@ cmsavebmp proc uses rsi rdi rbx
         mov cscr.flag,_D_MYBUF
         mov cscr.count,0
         mov cscr.index,0
+if 0
         movzx eax,cscr.rc.row
         mul cscr.rc.col
         shl eax,2
         add eax,DOBJ
         mov cscr.size,ax
-
+endif
         .if iowrite(&STDO, &cscr, sizeof(cscr))
 
             .if rcalloc(cscr.rc, 0)

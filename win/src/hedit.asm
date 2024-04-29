@@ -299,7 +299,6 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
 
     mov dialog,rax
     dlshow(rax)
-
     mov rdi,rsopen(IDD_HEMenusline)
     mov rbx,rsopen(IDD_HEStatusline)
     mov ecx,_scrrow

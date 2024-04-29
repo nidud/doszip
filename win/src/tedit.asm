@@ -4031,9 +4031,9 @@ tievent proc private uses rsi rdi rbx ti:PTINFO, event:UINT
 
             mov rbx,IDD_TEQuickMenu
             mov eax,keybmouse_x
-            mov [rbx+6],al
+            mov [rbx].RIDD.rc.x,al
             mov eax,keybmouse_y
-            mov [rbx+7],al
+            mov [rbx].RIDD.rc.y,al
 
             .if rsmodal(rbx)
 
@@ -4641,9 +4641,9 @@ tdlgopen proc uses rsi rdi rbx
             event_list()
 
             mov ebx,dllevent(rdi, &ll)
-            mov dx,[rdi+4]
+            mov edx,[rdi].DOBJ.rc
             mov rcx,IDD_TEWindows
-            mov [rcx+6],dx
+            mov [rcx].RIDD.rc,edx
             dlclose(rdi)
 
             xor eax,eax
