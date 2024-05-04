@@ -6,6 +6,7 @@ Changes in 3.72 - 4 May 2024
 - added Replace to File Search
 - added limited support for ZIP64 (files with <= 34K dictionaries)
 - added directory st for syntax configutation
+- converted file names to UTF8
 
 Changes in 3.69 - 10 Mar 2024
 - fixed stack error in edit (64-bit)
