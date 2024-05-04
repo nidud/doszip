@@ -147,7 +147,7 @@ comevent proc event
     mov eax,event
     .switch eax
       .case KEY_UP
-        .if cpanel_state()
+        .ifd cpanel_state()
 
             xor eax,eax
         .else
@@ -156,7 +156,7 @@ comevent proc event
         .endif
         .endc
       .case KEY_DOWN
-        .if cpanel_state()
+        .ifd cpanel_state()
 
             xor eax,eax
         .else
@@ -177,7 +177,7 @@ comevent proc event
         xor eax,eax
         .endc
       .default
-        .if comhndlevent(eax)
+        .ifd comhndlevent(eax)
             xor eax,eax
         .else
             mov eax,1
@@ -224,7 +224,7 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
         add rdx,1
     .endw
 
-    .return .if !strtrim(strnzcpy(rdi, rdx, 8000h-1))
+    .return .ifd !strtrim(strnzcpy(rdi, rdx, 8000h-1))
 
     expenviron(rdi)
 
@@ -338,9 +338,9 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
             add rsi,1
         .endw
 
-        .if SetCurrentDirectory(rsi)
+        .ifd SetCurrentDirectory(rsi)
 
-            .if GetCurrentDirectory(_MAX_PATH, rsi)
+            .ifd GetCurrentDirectory(_MAX_PATH, rsi)
 
                 cpanel_setpath(rsi)
                 mov _diskflag,3
@@ -402,7 +402,7 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
       .case _EXEC_EXE
         .if comspec_type == 0
 
-            .if osopen(rbx, 0, M_RDONLY, A_OPEN) != -1
+            .ifd osopen(rbx, 0, M_RDONLY, A_OPEN) != -1
 
                 mov esi,eax
                 mov size,osread(esi, temp, 32)
@@ -463,7 +463,7 @@ execute_command:
         removefile(rdi)
         GetEnvironmentTEMP()
         GetEnvironmentPATH()
-        .if !GetCurrentDirectory(WMAXPATH, rdi)
+        .ifd !GetCurrentDirectory(WMAXPATH, rdi)
 
             xor edi,edi
         .endif

@@ -53,7 +53,7 @@ savefile proc uses rsi rdi rbx file:LPSTR, buffer:ptr, fsize:dword
   local flags:dword
     lea rdi,path
 
-    .if getfattr(strcpy(rdi, file)) == -1
+    .ifd getfattr(strcpy(rdi, file)) == -1
 
         .return( 0 )
     .endif
@@ -64,7 +64,7 @@ savefile proc uses rsi rdi rbx file:LPSTR, buffer:ptr, fsize:dword
         ermsg(0, "The file is Read-Only")
     .endif
 
-    .ifs ogetouth(setfext(rdi, ".$$$"), M_WRONLY) <= 0
+    .ifsd ogetouth(setfext(rdi, ".$$$"), M_WRONLY) <= 0
 
         .return( 0 )
     .endif
@@ -657,7 +657,7 @@ endif
                 .endif
             .endif
             .if ebx
-                .if memcmp(rsi, rdi, ebx)
+                .ifd memcmp(rsi, rdi, ebx)
                     memcpy(rsi, rdi, ebx)
                     mov modified,1
                 .endif
@@ -675,7 +675,7 @@ endif
         .switch eax
         .case MOUSECMD
 
-            .endc .if mousep() == 2
+            .endc .ifd mousep() == 2
             .endc .if !eax
             mousey()
             inc eax
@@ -710,7 +710,7 @@ endif
             view_readme(HELPID_16)
            .endc
         .case KEY_F2
-            .if savefile(file, fbuff, fsize)
+            .ifd savefile(file, fbuff, fsize)
                 mov modified,0
                 mov esi,1
             .endif
@@ -722,7 +722,7 @@ endif
             or  STDI.flag,eax
             xor eax,eax
             .if fsize >= 16
-                .if cmsearchidd(STDI.flag)
+                .ifd cmsearchidd(STDI.flag)
                     mov STDI.flag,edx
                     and edx,IO_SEARCHCUR or IO_SEARCHSET
                     mov n,edx
@@ -774,7 +774,7 @@ endif
            .endc
 
         .case KEY_F8
-            .if wgetfile(&lbuff, "*.cl", _WSAVE)
+            .ifd wgetfile(&lbuff, "*.cl", _WSAVE)
                 _close(eax)
                 .if INIAlloc()
 
@@ -797,7 +797,7 @@ endif
             .endc
 
         .case KEY_F9
-            .if wgetfile(&lbuff, "*.cl", _WOPEN)
+            .ifd wgetfile(&lbuff, "*.cl", _WOPEN)
 
                 _close(eax)
                 .if INIRead(0, &lbuff)
@@ -824,7 +824,7 @@ endif
         .case KEY_ESC
         .case KEY_ALTX
             .if modified
-                .if SaveChanges(file)
+                .ifd SaveChanges(file)
                     savefile(file, fbuff, fsize)
                 .endif
             .endif
@@ -1137,7 +1137,7 @@ endif
                     xor edx,edx
                 .endif
             .else
-                .if rsmodal(IDD_HEFormat) == 1
+                .ifd rsmodal(IDD_HEFormat) == 1
                     mov edx,T_SIGNED
                 .elseif edx == 3
                     mov edx,T_HEX

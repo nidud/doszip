@@ -29,6 +29,7 @@ FFMAXHIT equ 9999
     List        proc
     ClearList   proc
     Searchpath  proc :string_t
+    Replace     proc :int_t, :int_t
    .ends
 
 endif

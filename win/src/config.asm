@@ -203,9 +203,9 @@ INIAddEntry proc private uses rsi rdi rbx cf:LPINI, string:LPSTR
             mov al,[rdi]
         .endw
 
-        .return .if !strtrim(rsi)
+        .return .ifd !strtrim(rsi)
         mov rbx,rax
-        .return .if !strtrim(rdi)
+        .return .ifd !strtrim(rdi)
         lea rbx,[rbx+rax+2]
 
         .if INIGetEntry(cf, rsi)
@@ -256,7 +256,7 @@ INIRead proc uses rsi rdi rbx ini:LPINI, file:LPSTR
 
   local i_fh, i_bp:LPSTR, i_i, i_c, o_bp:LPSTR, o_i, o_c
 
-    .if osopen(file, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+    .ifd osopen(file, _A_NORMAL, M_RDONLY, A_OPEN) != -1
 
         mov i_fh,eax
         mov i_bp,alloca(_PAGESIZE_*2)
@@ -277,7 +277,7 @@ INIRead proc uses rsi rdi rbx ini:LPINI, file:LPSTR
             mov eax,i_i
             .if eax == i_c
 
-                .break .if !osread(i_fh, i_bp, _PAGESIZE_)
+                .break .ifd !osread(i_fh, i_bp, _PAGESIZE_)
 
                 mov i_c,eax
                 xor eax,eax
@@ -332,13 +332,13 @@ INIRead endp
 
 INIWrite proc uses rsi rdi rbx ini:LPINI, file:LPSTR
 
-    .if osopen(file, _A_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
+    .ifd osopen(file, _A_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
 
         mov STDO.file,eax
         lea rcx,_osfile
         or byte ptr [rcx+rax],FH_TEXT
 
-        .if ioinit(&STDO, OO_MEM64K)
+        .ifd ioinit(&STDO, OO_MEM64K)
 
             mov rsi,ini
             .while rsi
@@ -537,7 +537,7 @@ INIGetSection proc uses rsi rdi ini:LPINI, section:LPSTR
         .if [rax].S_INI.flags & INI_SECTION
 
             mov rsi,rax
-            .if !strcmp([rsi].entry, section)
+            .ifd !strcmp([rsi].entry, section)
 
                 mov rdx,rdi
                 mov rax,rsi
@@ -635,7 +635,7 @@ __CFGetComspec proc private uses rsi rdi rbx ini:LPINI, value:UINT
 
             .if INIGetEntryID(rsi, 0)
 
-                .if !_access(expenviron(strcpy(rbx, rax)), 0)
+                .ifd !_access(expenviron(strcpy(rbx, rax)), 0)
 
                     free(__pCommandCom)
                     mov __pCommandCom,_strdup(rbx)
@@ -874,7 +874,7 @@ CFExpandMac proc uses rsi rdi rbx string:LPSTR, file:LPSTR
 
     .if bl != '\' && bh != ':'
 
-        .return .if !GetCurrentDirectory(WMAXPATH, shortpath)
+        .return .ifd !GetCurrentDirectory(WMAXPATH, shortpath)
 
         strfcat(longpath, shortpath, file)
     .endif
@@ -1010,7 +1010,7 @@ config_create proc uses rsi rdi
     xor edi,edi
     mov config.c_cel_indexa,5
 
-    .if osopen(__srcfile, 0, M_WRONLY, A_CREATETRUNC) != -1
+    .ifd osopen(__srcfile, 0, M_WRONLY, A_CREATETRUNC) != -1
 
         mov esi,eax
         lea rcx,_osfile
@@ -1046,7 +1046,7 @@ endif
 
         .if INIGetEntryID(rbx, 0)
 
-            .if __xtol(rax) <= DOSZIP_VERSION && eax >= DOSZIP_MINVERS
+            .ifd __xtol(rax) <= DOSZIP_VERSION && eax >= DOSZIP_MINVERS
 
                 mov edi,1
                 lea rsi,config_table_x
@@ -1366,7 +1366,7 @@ historysave proc uses rsi
                 mov rax,[rax]
                 .if rax
 
-                    .if !strcmp(rsi, rax)
+                    .ifd !strcmp(rsi, rax)
 
                         .return
                     .endif
@@ -1437,7 +1437,7 @@ cmpathleft proc ; Alt-Left - Previous Directory
 
     historysave()
     historymove(1)
-    .if !DirectoryToCurrentPanel(history)
+    .ifd !DirectoryToCurrentPanel(history)
         historymove(0)
     .endif
     ret
@@ -1449,7 +1449,7 @@ cmpathright proc ; Alt-Right - Next Directory
 
     historysave()
     historymove(0)
-    .if !DirectoryToCurrentPanel(history)
+    .ifd !DirectoryToCurrentPanel(history)
         historymove(1)
     .endif
     ret
@@ -1458,7 +1458,7 @@ cmpathright endp
 
 doskeysave proc uses rbx
 
-    .if strtrim(&com_base)
+    .ifd strtrim(&com_base)
 
         mov rax,history
         .if ( rax == NULL )
@@ -1472,11 +1472,10 @@ doskeysave proc uses rbx
         mov rax,[rbx]
         .if rax
 
-            .if strcmp(&com_base, rax)
+            .ifd strcmp(&com_base, rax)
 
                 free([rbx + LPSTR * (MAXDOSKEYS - 1)])
                 memmove(&[rbx+LPSTR], rbx, LPSTR * (MAXDOSKEYS - 1))
-
             .else
                 .return( 1 )
             .endif
@@ -1515,7 +1514,7 @@ CommandlineVisible endp
 
 cmdoskeyup proc
 
-    .if CommandlineVisible()
+    .ifd CommandlineVisible()
 
         mov eax,1
         .if doskey_isnext == al
@@ -1539,7 +1538,7 @@ cmdoskeyup endp
 
 cmdoskeydown proc
 
-    .if CommandlineVisible()
+    .ifd CommandlineVisible()
 
         xor eax,eax
         .if doskey_isnext == al
@@ -1598,7 +1597,7 @@ cmhistory proc uses rdi rbx
 
   local ll:LOBJ
 
-    .if CommandlineVisible()
+    .ifd CommandlineVisible()
 
         .if rsopen(IDD_DZHistory)
 

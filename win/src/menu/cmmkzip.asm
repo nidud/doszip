@@ -18,11 +18,11 @@ cmmkzip proc uses rsi rdi
     lea rdi,path
     .if cpanel_state()
 
-	.if tgetline("Create archive", strcpy(rdi, &default_zip), 40, 256 or 8000h)
+	.ifd tgetline("Create archive", strcpy(rdi, &default_zip), 40, 256 or 8000h)
 
 	    .if byte ptr [rdi]
 
-		.ifs ogetouth(rdi, M_WRONLY) > 0
+		.ifsd ogetouth(rdi, M_WRONLY) > 0
 
 		    mov esi,eax
 		    strcpy(&default_zip, rdi)

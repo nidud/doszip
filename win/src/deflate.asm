@@ -218,7 +218,7 @@ bl_desc         tree_desc <0,0,extra_blbits,0,BL_CODES,MAX_BL_BITS,0>
 
 putshort proc c:int_t
 
-    .if iowrite( &STDO, &c, 2 )
+    .ifd iowrite( &STDO, &c, 2 )
 
         mov eax,1
     .endif
@@ -441,7 +441,7 @@ pqdownheap proc uses rsi rdi tree:PCTDATA, k:int_t
 
         .if ( edi < [rbx].heap_len )
 
-            .if smaller(tree, [rbx+rdi*4+4].heap, [rbx+rdi*4].heap)
+            .ifd smaller(tree, [rbx+rdi*4+4].heap, [rbx+rdi*4].heap)
 
                 inc edi
             .endif
@@ -449,7 +449,7 @@ pqdownheap proc uses rsi rdi tree:PCTDATA, k:int_t
 
         ; Exit if v is smaller than both sons
 
-        .break .if smaller(tree, v, [rbx+rdi*4].heap)
+        .break .ifd smaller(tree, v, [rbx+rdi*4].heap)
 
         ; Exchange v with the smallest son
 
@@ -991,7 +991,7 @@ bi_windup proc uses rsi rbx
     inc eax
     .if ecx
 
-        .if oputc(edx)
+        .ifd oputc(edx)
 
             .if ( esi > 8 )
 
@@ -1006,16 +1006,16 @@ bi_windup endp
 
 copy_block proc buf:LPSTR, len:UINT, header:int_t
 
-    .if bi_windup()
+    .ifd bi_windup()
 
         .if header
 
-            .if !putshort(len)
+            .ifd !putshort(len)
                 .return
             .endif
             mov ecx,len
             not ecx
-            .if !putshort(ecx)
+            .ifd !putshort(ecx)
                 .return
             .endif
         .endif
@@ -1664,7 +1664,7 @@ deflate_fast proc uses rsi rdi
 
         .if ( edi )
 
-            .if !flush_block(0)
+            .ifd !flush_block(0)
 
                 .return
             .endif
@@ -1774,7 +1774,7 @@ deflate proc uses rsi rdi
 
             .if ( edi )
 
-                .if !flush_block(0)
+                .ifd !flush_block(0)
 
                     .return
                 .endif
@@ -1789,9 +1789,9 @@ deflate proc uses rsi rdi
                 mov rcx,window
                 mov cx,word ptr [rbx].str_start
                 movzx edx,byte ptr [rcx-1]
-                .if ct_tally(eax, edx)
+                .ifd ct_tally(eax, edx)
 
-                    .if !flush_block(0)
+                    .ifd !flush_block(0)
 
                        .return
                     .endif

@@ -40,7 +40,7 @@ di_directory proc private uses rsi directory:LPSTR
         mov [rdx],ah
     .endif
 
-    .if !progress_set(0, rsi, 0)
+    .ifd !progress_set(0, rsi, 0)
 
         inc di_subdcount
         scan_files(rsi)
@@ -152,7 +152,7 @@ di_SelectedFiles proc private uses rsi rdi s1:LPSTR
             .if ( ecx & _A_SUBDIR )
 
                 mov rdx,[rdx].PANEL.wsub
-               .break .if di_ReadDirectory(strfcat(s1, [rdx].WSUB.path, &[rax].FBLK.name))
+               .break .ifd di_ReadDirectory(strfcat(s1, [rdx].WSUB.path, &[rax].FBLK.name))
             .else
                 mov edx,dword ptr [rax].FBLK.size[4]
                 mov eax,dword ptr [rax].FBLK.size
@@ -191,7 +191,7 @@ di_cmSubInfo proc private uses rsi rdi rbx panel:PPANEL
             .if panel_findnext(rsi)
                 di_SelectedFiles(rdi)
             .else
-                .if !di_ReadDirectory(strcpy(rdi, [rbx].WSUB.path))
+                .ifd !di_ReadDirectory(strcpy(rdi, [rbx].WSUB.path))
                     di_SubInfo(rdi, "Directory Information")
                 .endif
             .endif
@@ -230,7 +230,7 @@ cmsubsize proc
             mov rdx,cpanel
             mov rdx,[rdx].PANEL.wsub
             mov rcx,rax
-            .if !di_ReadDirectory(strfcat(&path, [rdx].WSUB.path, rcx))
+            .ifd !di_ReadDirectory(strfcat(&path, [rdx].WSUB.path, rcx))
                 di_SubInfo(&path, "Directory Information")
             .endif
         .endif

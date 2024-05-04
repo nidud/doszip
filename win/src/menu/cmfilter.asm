@@ -75,7 +75,7 @@ cmfilter_date proc private uses rdi rbx
         mov [rdi].DOBJ.index,2
     .endif
 
-    .if cmcalendar()
+    .ifd cmcalendar()
 
         mov   ebx,eax
         movzx eax,[rdi].DOBJ.index

@@ -8,9 +8,9 @@ include errno.inc
 
 cmsavesetup proc
 
-    .if rsmodal(IDD_DZSaveSetup)
+    .ifd rsmodal(IDD_DZSaveSetup)
 
-        .if !config_save()
+        .ifd !config_save()
 
             eropen(__srcfile)
             inc eax

@@ -124,7 +124,7 @@ ParseOutput proc uses rsi rdi rbx
     mov rax,[rdx].TINFO.file
     lea rdi,FName
 
-    .if osopen(setfext(strcpy(rdi, strfn(rax)), ".err"), 0, M_RDONLY, A_OPEN) != -1
+    .ifd osopen(setfext(strcpy(rdi, strfn(rax)), ".err"), 0, M_RDONLY, A_OPEN) != -1
 
         mov esi,eax
         inc _filelength(esi)
@@ -187,7 +187,7 @@ tifindfile proc uses rsi rbx fname:LPSTR
         mov rsi,rax
         mov rbx,rdx
         .repeat
-            .if !_stricmp(fname, [rsi].TINFO.file)
+            .ifd !_stricmp(fname, [rsi].TINFO.file)
 
                 mov rax,rsi
                 .break
@@ -255,7 +255,7 @@ cmspawnini proc uses rsi rbx IniSection:ptr
 
     mov rbx,tinfo
     xor esi,esi
-    .if dlscreen(&screen, 0007h) ; edx
+    .ifd dlscreen(&screen, 0007h) ; edx
 
         .if [rbx].TINFO.flags & _T_MODIFIED
 
@@ -267,7 +267,7 @@ cmspawnini proc uses rsi rbx IniSection:ptr
             mov rbx,rax
             dlshow(&screen)
 
-            .if !CreateConsole(rbx, _P_WAIT)
+            .ifd !CreateConsole(rbx, _P_WAIT)
 
                 mov eax,errno
                 lea rcx,_sys_errlist
@@ -290,9 +290,9 @@ tiexecuteini proc uses rbx
     mov rbx,rax
     clear_error()
 
-    .if cmspawnini(rbx)
+    .ifd cmspawnini(rbx)
 
-        .if ParseOutput()
+        .ifd ParseOutput()
 
             tinexterror()
         .endif
@@ -356,9 +356,9 @@ TIAltFx proc id
     add al,'0'
     mov cp_AltX,al
 
-    .if cmspawnini(&cp_AltFX)
+    .ifd cmspawnini(&cp_AltFX)
 
-        .if ParseOutput()
+        .ifd ParseOutput()
 
             tinexterror()
         .endif
@@ -373,9 +373,9 @@ TIShiftFx proc id
     add al,'0'
     mov cp_ShiftX,al
 
-    .if cmspawnini(&cp_ShiftFX)
+    .ifd cmspawnini(&cp_ShiftFX)
 
-        .if ParseOutput()
+        .ifd ParseOutput()
 
             tinexterror()
         .endif
@@ -411,7 +411,7 @@ transfer_edit proc private uses rsi rbx
 
     transfer_initsection()
 
-    .if tgetline("Edit Transfer Command", rsi, 60, 256)
+    .ifd tgetline("Edit Transfer Command", rsi, 60, 256)
 
         .if CFAddSection(rbx)
 
@@ -425,7 +425,7 @@ transfer_edit endp
 
 event_transfer proc private uses rdi
 
-    .while dlxcellevent() == KEY_F4
+    .whiled dlxcellevent() == KEY_F4
 
         mov rdi,tdialog
         transfer_edit()

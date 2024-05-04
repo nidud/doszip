@@ -197,21 +197,21 @@ wscopyffwf proc private uses rsi rdi ff:PWIN32_FIND_DATAA, wf:PWIN32_FIND_DATAW
     mov ecx,WIN32_FIND_DATAA.cFileName / 4
     rep movsd
 
-    WideCharToMultiByte(0, 0, rsi, -1, 0, 0, NULL, NULL)
+    WideCharToMultiByte(CP_UTF8, 0, rsi, -1, 0, 0, NULL, NULL)
     .if ( !eax || eax > MAX_PATH )
 
         .return( 0 )
     .endif
     mov ecx,eax
-    WideCharToMultiByte(0, 0, rsi, ecx, rdi, ecx, NULL, NULL)
+    WideCharToMultiByte(CP_UTF8, 0, rsi, ecx, rdi, ecx, NULL, NULL)
 
     add rdi,MAX_PATH
     add rsi,MAX_PATH*2
-    WideCharToMultiByte(0, 0, rsi, -1, 0, 0, NULL, NULL)
+    WideCharToMultiByte(CP_UTF8, 0, rsi, -1, 0, 0, NULL, NULL)
     .if ( eax && eax <= 14 )
 
         mov ecx,eax
-        WideCharToMultiByte(0, 0, rsi, ecx, rdi, ecx, NULL, NULL)
+        WideCharToMultiByte(CP_UTF8, 0, rsi, ecx, rdi, ecx, NULL, NULL)
     .endif
     mov eax,1
     ret
@@ -1910,6 +1910,11 @@ endif
                     ioflush(&STDO)
                     dec esi
                    .endc
+                .case 9
+                    mov esi,ER_ZIP
+                    .if ( zip_local.fsize > 0x8000 )
+                        .endc .ifd !rsmodal(IDD_Deflate64)
+                    .endif
                 .case 8
                     zip_inflate()
                     mov esi,eax

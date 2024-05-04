@@ -487,7 +487,7 @@ cpanel_state endp
 
 panel_stateab proc
 
-    .if panel_state(panela)
+    .ifd panel_state(panela)
         panel_state(panelb)
     .endif
     ret
@@ -528,7 +528,7 @@ panel_findnext endp
 
 cpanel_findfirst proc
 
-    .if panel_state(cpanel)
+    .ifd panel_state(cpanel)
         .if !panel_findnext(rax)
             panel_curobj(cpanel)
         .endif
@@ -543,7 +543,7 @@ cpanel_findfirst endp
 
 cpanel_gettarget proc
 
-    .if panel_stateab()
+    .ifd panel_stateab()
 
         mov rax,path_a.path
         mov rcx,cpanel
@@ -698,7 +698,7 @@ panel_putinfo proc private uses rsi rdi rbx panel:PPANEL
    .new x:int_t, y:int_t, col:int_t, len:int_t
    .new path[WMAXPATH]:char_t
 
-    .if panel_state(panel)
+    .ifd panel_state(panel)
 
         mov rdi,rax
         mov rbx,[rdi].PANEL.dialog
@@ -789,7 +789,7 @@ panel_setactive proc uses rsi rdi panel:PPANEL
 
         .if rsi != rdi
 
-            .if panel_state(rsi)
+            .ifd panel_state(rsi)
 
                 prect_hide(rdi)
                 mov rax,[rdi].PANEL.wsub
@@ -866,7 +866,7 @@ panel_toggle endp
 
 panel_toggleact proc
 
-    .if panel_stateab()
+    .ifd panel_stateab()
 
         historysave()
         panel_setactive(panel_getb())
@@ -948,7 +948,7 @@ pcell_getrect endp
 
 panel_xycmd proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
 
-    .if panel_state(panel)
+    .ifd panel_state(panel)
 
         mov rsi,rax
         xor eax,eax
@@ -1046,7 +1046,7 @@ panel_xycmd endp
 redraw_panels proc uses rbx
 
     mov ebx,prect_hide(panelb)
-    .if prect_hide(panela)
+    .ifd prect_hide(panela)
 
         redraw_panel(panela)
     .endif
@@ -1118,7 +1118,7 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
     _disk_read()
     mov disk,_getdrive()
 
-    .if _disk_exist(eax)
+    .ifd _disk_exist(eax)
 
         mov rdi,rax
         mov rax,[rbx].WSUB.path
@@ -1127,7 +1127,7 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
 
             and al,not 20h
             mov cp_disk,al
-            .if GetVolumeID(&cp_disk, &VolumeID)
+            .ifd GetVolumeID(&cp_disk, &VolumeID)
 
                 add rdi,DISK.name[3]
                 mov byte ptr [rdi-1],' '
@@ -1145,7 +1145,7 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
     .while esi < MAXDRIVES
 
         inc esi
-        .continue .if !_disk_exist(esi)
+        .continue .ifd !_disk_exist(esi)
         lea rcx,[rax].DISK.name
         .break .if !fballoc(rcx, [rax].DISK.time, [rax].DISK.size, [rax].DISK.flag)
         mov [rbx+rdi*size_t],rax
@@ -1244,7 +1244,7 @@ panel_open proc private uses rsi rdi panel:PPANEL
     mov rdi,[rsi].PANEL.wsub
     mov wsub,rdi
 
-    .if wsopen(rdi)
+    .ifd wsopen(rdi)
 
         mov [rsi].PANEL.cel_count,0
 
@@ -1257,7 +1257,7 @@ panel_open proc private uses rsi rdi panel:PPANEL
             cominit(wsub)
 
             .if ( flags & _W_ARCHIVE )
-                .if !_stricmp(&path, [rdi].WSUB.path)
+                .ifd !_stricmp(&path, [rdi].WSUB.path)
                     mov [rdi].WSUB.flag,flags
                 .endif
             .endif
@@ -1278,7 +1278,7 @@ panel_open endp
 
 panel_open_ab proc
 
-    .if panel_open(cpanel)
+    .ifd panel_open(cpanel)
         lea rax,spanelb
         .if rax == cpanel
             lea rax,spanela
@@ -1523,9 +1523,9 @@ panel_putmini proc private uses rsi rdi rbx panel:PPANEL
                         movzx eax,al
                         mov DiskID,eax
 
-                        .if GetVolumeID(&cp_disk, &VolumeID)
+                        .ifd GetVolumeID(&cp_disk, &VolumeID)
 
-                            .if _disk_exist(DiskID)
+                            .ifd _disk_exist(DiskID)
 
                                 add rax,DISK.name[3]
                                 mov rcx,rax
@@ -1548,7 +1548,7 @@ panel_putmini proc private uses rsi rdi rbx panel:PPANEL
                         .endif
                     .endif
 
-                    .if GetFileSystemName(&cp_disk, &FileSystemName)
+                    .ifd GetFileSystemName(&cp_disk, &FileSystemName)
 
                         mov dl,at_background[B_Panel]
                         or  dl,at_foreground[F_Subdir]
@@ -1603,7 +1603,7 @@ panel_putmini proc private uses rsi rdi rbx panel:PPANEL
                     add eax,[rsi].PANEL.cel_index
                     mov fb,wsfblk([rsi].PANEL.wsub, eax)
 
-                    .if panel_selected(rsi)
+                    .ifd panel_selected(rsi)
 
                         xor eax,eax
                         xor edx,edx
@@ -1816,6 +1816,7 @@ fbputsize proc uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT, color:UINT
 
 fbputsize endp
 
+
     option proc:public
 
 fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
@@ -1851,7 +1852,7 @@ fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     .if cl > 8
         mov cl,8
     .endif
-    wcputs(rdi, esi, ecx, &[rbx].FBLK.name)
+    wcpututf(rdi, ecx, &[rbx].FBLK.name)
 
     .if ( len > 8 )
 
@@ -1877,7 +1878,7 @@ fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         mov edx,color
         shr edx,8
         mov dl,3
-        wcputs( &[rdi+9*4], esi, edx, rax)
+        wcpututf( &[rdi+9*4], edx, rax)
     .endif
     ret
 
@@ -1894,7 +1895,7 @@ fbputll proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     mov color,fbcolor(rbx)
     lea ecx,[rsi-1]
     mov ch,al
-    wcputs(rdi, esi, ecx, &[rbx].FBLK.name)
+    wcpututf(rdi, ecx, &[rbx].FBLK.name)
 
     .ifd ( strlen(&[rbx].FBLK.name) > esi )
 
@@ -1992,7 +1993,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
             mov cl,al
         .endif
     .endif
-    wcputs(rdi, esi, ecx, rdx)
+    wcpututf(rdi, ecx, rdx)
 
     mov rax,ext
     .if rax
@@ -2003,7 +2004,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         mov dl,byte ptr fext
         mov ecx,maxf
         add ecx,2
-        wcputs( &[rdi+rcx*4], esi, edx, rax)
+        wcpututf( &[rdi+rcx*4], edx, rax)
     .endif
     ret
 
@@ -2071,7 +2072,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
             mov cl,al
         .endif
     .endif
-    wcputs(rdi, esi, ecx, rdx)
+    wcpututf(rdi, ecx, rdx)
 
     mov rax,ext
     .if rax
@@ -2081,7 +2082,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         mov dl,3
         mov ecx,maxf
         add ecx,2
-        wcputs(&[rdi+rcx*4], esi, edx, rax)
+        wcpututf(&[rdi+rcx*4], edx, rax)
     .endif
     ret
 
@@ -2358,7 +2359,7 @@ pcell_update proc uses rsi rdi rbx panel:PPANEL
    .new p:ptr
 
     ldr rsi,panel
-    .if dlclose([rsi].PANEL.xl)
+    .ifd dlclose([rsi].PANEL.xl)
 
         pcell_set(rsi)
         .if panel_curobj(rsi)
@@ -2541,7 +2542,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             xor eax,eax
             .endc
         .endif
-        .endc .if !pcell_select(rsi)
+        .endc .ifd !pcell_select(rsi)
         .endc .if !(cflag & _C_INSMOVDN)
 
       .case KEY_DOWN
@@ -2749,7 +2750,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                     .if !( pe.pe_flag & _FB_ROOTDIR )
 
                         strfcat(addr pe.pe_path, [rdi].path, pe.pe_name)
-                        .if SetCurrentDirectory(rax)
+                        .ifd SetCurrentDirectory(rax)
 
                             GetCurrentDirectory(WMAXPATH, [rdi].path)
                         .endif
@@ -2797,7 +2798,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
 
                 .if pe.pe_file != al
 
-                    .if wsearch([rsi].wsub, addr pe.pe_file) != -1
+                    .ifd wsearch([rsi].wsub, addr pe.pe_file) != -1
 
                         panel_setid(rsi, eax)
                     .endif
@@ -2833,7 +2834,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             ; case file
             ;
             lea rbx,pe.pe_file
-            .if __isexec(strfcat(rbx, [rdi].path, pe.pe_name))
+            .ifd __isexec(strfcat(rbx, [rdi].path, pe.pe_name))
                 ;
                 ; case .EXE, .COM, .BAT, .CMD
                 ;
@@ -2861,7 +2862,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 ;
                 ; case EDit Info file (.EDI) ?
                 ;
-                .if !_stricmp(rax, ".edi")
+                .ifd !_stricmp(rax, ".edi")
 
                     topenedi(rbx)
                     mov eax,1
@@ -2872,14 +2873,14 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             ;
             ; Read 4 byte from file
             ;
-            .if readword(rbx)
+            .ifd readword(rbx)
 
                 .if ax == 4B50h ; 'PK'
                     ;
                     ; case .ZIP file
                     ;
                     mov eax,_W_ARCHZIP
-                .elseif warctest(pe.pe_fblk, eax) == 1
+                .elseifd warctest(pe.pe_fblk, eax) == 1
                     ;
                     ; case 7za archive
                     ;
@@ -2953,7 +2954,7 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
         mov rect,eax
         mov selected,panel_selected(rbx)
 
-        .if mousep() == 1
+        .ifd mousep() == 1
             ;
             ; Create a movable object
             ;
@@ -2976,7 +2977,7 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                     add cl,rect.col
                     dec cl
                     mov dl,rect.y
-                    .break .if getxyc(ecx, edx) != ' '
+                    .break .ifd getxyc(ecx, edx) != ' '
                     dec rect.col
                 .untilz
                 inc rect.col
@@ -2997,7 +2998,7 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 dec dl
                 mov rax,fblk
                 add rax,FBLK.name
-                wcputs(rcx, 0, edx, rax)
+                wcpututf(rcx, edx, rax)
             .endif
 
             mov dlflag,_D_DMOVE or _D_CLEAR or _D_COLOR or _D_DOPEN
@@ -3053,7 +3054,7 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
             .if !( eax & _W_PANELID )
                 mov rcx,panelb
             .endif
-            .if panel_xycmd(rcx, edi, esi)
+            .ifd panel_xycmd(rcx, edi, esi)
 
                 .if mouse
                     cmmove()
@@ -3062,7 +3063,7 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 .endif
                 mov eax,1
             .else
-                .if statusline_xy(edi, esi, 9, &MOBJ_Statusline)
+                .ifd statusline_xy(edi, esi, 9, &MOBJ_Statusline)
 
                     .switch ecx ;
                                 ; 9 cmhelp
@@ -3116,9 +3117,9 @@ pcell_setxy proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
 
             mov xpos,edi
             mov ypos,esi
-            .if panel_xycmd(rbx, edi, esi) != _XY_FILE
+            .ifd panel_xycmd(rbx, edi, esi) != _XY_FILE
 
-                .continue .if getmouse() == 2
+                .continue .ifd getmouse() == 2
 
                 xor eax,eax
                .break
@@ -3131,22 +3132,22 @@ pcell_setxy proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
                 pcell_update(rbx)
             .endif
 
-            .if getmouse() != 2
+            .ifd getmouse() != 2
 
                 mousewait(edi, esi, 1)
 
-                .if !pcell_move(rbx)
+                .ifd !pcell_move(rbx)
 
                     mov edi,10
                     .repeat
 
                         Sleep(16)
-                        .break .if mousep()
+                        .break .ifd mousep()
 
                         dec edi
                     .untilz
 
-                    .if getmouse()
+                    .ifd getmouse()
 
                         .if edi == xpos && esi == ypos
 

@@ -29,9 +29,9 @@ _chdir proc directory:LPSTR
 
     .repeat
         .repeat
-            .if SetCurrentDirectory(directory)
+            .ifd SetCurrentDirectory(directory)
 
-                .if GetCurrentDirectory(_MAX_PATH, &abspath)
+                .ifd GetCurrentDirectory(_MAX_PATH, &abspath)
 
                     mov ecx,dword ptr abspath
                     .if ch == ':'
@@ -42,7 +42,7 @@ _chdir proc directory:LPSTR
                             sub ah,'a' - 'A'
                         .endif
                         mov root,eax
-                        .break .if !SetEnvironmentVariable(&root, &abspath)
+                        .break .ifd !SetEnvironmentVariable(&root, &abspath)
                     .endif
                     xor eax,eax
                     .break(1)
@@ -57,13 +57,13 @@ _chdir endp
 
 _mkdir proc uses rbx directory:LPSTR
 
-    .if !CreateDirectoryA(directory, 0)
+    .ifd !CreateDirectoryA(directory, 0)
 
         .if __allocwpath(directory)
 
             mov rbx,rax
             add rax,8
-            .if !CreateDirectoryW(rax, 0)
+            .ifd !CreateDirectoryW(rax, 0)
 
                 CreateDirectoryW(rbx, 0)
             .endif
@@ -86,7 +86,7 @@ _mkdir endp
 
 _rmdir proc uses rbx directory:LPSTR
 
-    .if !RemoveDirectoryA(directory)
+    .ifd !RemoveDirectoryA(directory)
 
         .if __allocwpath(directory)
 
@@ -213,7 +213,7 @@ _getdrive proc
 
   local b[512]:byte
 
-    .if GetCurrentDirectory(512, &b)
+    .ifd GetCurrentDirectory(512, &b)
 
 ifdef _UNICODE
         mov al,b
@@ -245,7 +245,7 @@ _chdrive proc drive:SINT
         mov ah,':'
         mov drive,eax
 
-        .if SetCurrentDirectory(&drive)
+        .ifd SetCurrentDirectory(&drive)
 
             xor eax,eax
         .else
@@ -289,10 +289,10 @@ _disk_type endp
 
 _disk_test proc private disk:UINT
 
-    .if _disk_ready(disk)
-        .if _disk_type(disk) < 2
+    .ifd _disk_ready(disk)
+        .ifd _disk_type(disk) < 2
             .repeat
-                .if _disk_retry(disk)
+                .ifd _disk_retry(disk)
                     _disk_ready(disk)
                 .endif
             .until eax
@@ -307,8 +307,8 @@ _disk_test endp
 _disk_init proc uses rdi disk:UINT
 
     mov edi,disk
-    .if !_disk_test(edi)
-        .if _disk_select("Select disk")
+    .ifd !_disk_test(edi)
+        .ifd _disk_select("Select disk")
             mov edi,_disk_init(eax)
         .endif
     .endif
@@ -369,7 +369,7 @@ _disk_ready proc disk
 
     mov eax,disk
     inc eax
-    .if _disk_valid(eax)
+    .ifd _disk_valid(eax)
 
         mov eax,'\: '
         mov al,byte ptr disk
@@ -397,7 +397,7 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
 
     .repeat
 
-        .if _disk_exist(esi)
+        .ifd _disk_exist(esi)
 
             movzx eax,dobj.count
             inc dobj.count
@@ -499,7 +499,7 @@ _disk_read proc uses rsi rdi rbx
         mov [rbx].DISK.flag,eax
         shr edi,1
         .ifc
-            .if _disk_type(ecx) > 1
+            .ifd _disk_type(ecx) > 1
                 mov edx,_FB_ROOTDIR or _A_VOLID
                 .if eax == DRIVE_CDROM
                     or edx,_FB_CDROOM

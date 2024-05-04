@@ -28,7 +28,7 @@ ioupdate proc stream:PIOST
     ; This is called on each flush (copy)
     ;
     ldr rcx,stream
-    .if progress_update([rcx].IOST.total)
+    .ifd progress_update([rcx].IOST.total)
         xor eax,eax ; User break (ESC)
     .else
         mov eax,1
@@ -51,9 +51,9 @@ test_path proc
             or  al,' '
             sub al,'a' - 1
 
-            .if _disk_exist(eax)
+            .ifd _disk_exist(eax)
 
-                .if filexist(rsi) == 2
+                .ifd filexist(rsi) == 2
                     ;
                     ; disk and path exist
                     ;
@@ -104,7 +104,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
     SetEnvironmentVariable("DZ", rdi)
 
     mov rbx,strfn(rdi)
-    .if !strcmp(rbx, "bin")
+    .ifd !strcmp(rbx, "bin")
         mov byte ptr [rbx-1],0
     .endif
     SetEnvironmentVariable("ASMCDIR", rdi)
@@ -118,7 +118,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
     ;
     ; Create and read the DZ.INI file
     ;
-    .if !filexist(strfcat(__srcfile, rbx, addr DZ_INIFILE))
+    .ifd !filexist(strfcat(__srcfile, rbx, addr DZ_INIFILE))
         ;
         ; virgin call..
         ;
@@ -201,11 +201,11 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
 
     .elseif rbx
 
-        .if filexist(rbx) == 1
+        .ifd filexist(rbx) == 1
 
             lea rdi,[strfn(rbx)-FBLK.name]
 
-            .if __isexec(rbx)
+            .ifd __isexec(rbx)
 
                 jmp isexec
             .endif
@@ -261,7 +261,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
 
          isexec:
 
-            .if __isexec(rbx)
+            .ifd __isexec(rbx)
 
                 .if CFAddSection("Load")
 
@@ -371,13 +371,13 @@ doszip_open proc uses rsi rdi rbx
 
     mov rdi,_pgmpath
     mov rsi,path_a.path
-    .if !test_path()
+    .ifd !test_path()
 
         and path_a.flag,not _W_ARCHIVE
     .endif
 
     mov rsi,path_b.path
-    .if !test_path()
+    .ifd !test_path()
 
         and path_b.flag,not _W_ARCHIVE
     .endif

@@ -832,7 +832,7 @@ endif
         dlshow(rbx)
     .endif
 
-    scpath(1, 0, 41, filename)
+    scpathu(1, 0, 41, filename)
     mov ecx,_scrcol
     sub ecx,38
     mov edx,dword ptr STDI.fsize

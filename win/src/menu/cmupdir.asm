@@ -7,7 +7,7 @@ include doszip.inc
 
 cmupdir proc
 
-    .if panel_event(cpanel, KEY_HOME)
+    .ifd panel_event(cpanel, KEY_HOME)
         panel_event(cpanel, KEY_ENTER)
     .endif
     ret

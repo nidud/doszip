@@ -31,9 +31,9 @@ ccedit proc private uses rsi rdi copy:int_t ; rename or copy current file to a n
 		    movzx edx,[rsi].XCEL.rc.y
 		    scputw(ecx, edx, eax, 0x00070020)
 
-		    .if dledit(__outfile, [rsi].XCEL.rc, _MAX_PATH-1, 0) != KEY_ESC
+		    .ifd dledit(__outfile, [rsi].XCEL.rc, _MAX_PATH-1, 0) != KEY_ESC
 
-			.if strcmp(__outfile, __srcfile)
+			.ifd strcmp(__outfile, __srcfile)
 
 			    mov rax,__outfile
 			    mov al,[rax]
@@ -53,7 +53,7 @@ ccedit proc private uses rsi rdi copy:int_t ; rename or copy current file to a n
 		    .endif
 		.endif
 		mov rax,cpanel
-		.if dlclose([rax].PANEL.xl)
+		.ifd dlclose([rax].PANEL.xl)
 		    pcell_show(cpanel)
 		.endif
 		mov eax,1

@@ -225,7 +225,7 @@ endif
 
             .case 'N'
                 inc rbx
-                .if strtolx(rbx)
+                .ifd strtolx(rbx)
                     mov numfblock,eax
                 .endif
                 .endc
@@ -239,7 +239,7 @@ endif
                 .endc
             .case 'C'
                 inc rbx
-                .if filexist(rbx) == 2
+                .ifd filexist(rbx) == 2
 
                     free(_pgmpath)
                     _strdup(rbx)
@@ -258,7 +258,7 @@ endif
 
     SetConsoleTitle( DZTitle )
 
-    .if !doszip_init( rdi )
+    .ifd !doszip_init( rdi )
 
         .if nologo == 0
             _print( "The Doszip Commander Version " DOSZIP_VSTRING DOSZIP_VSTRPRE ", "

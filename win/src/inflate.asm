@@ -643,7 +643,7 @@ inflate_codes proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, l:SINT, d:SINT
         .if ( esi == 16 ) ; then it's a literal
 
             movzx eax,[rbx].HUFT.n
-            .if !oputc(eax)
+            .ifd !oputc(eax)
 
                 .return(ER_DISK)
             .endif
@@ -731,7 +731,7 @@ inflate_codes proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, l:SINT, d:SINT
 
                 .if ( eax >= OSIZE )
 
-                    .if !ioflush( &STDO )
+                    .ifd !ioflush( &STDO )
 
                         .return(ER_DISK)
                     .endif
@@ -769,7 +769,7 @@ inflate_fixed proc uses rdi rbx
 
         mov rdi,rbx
         mov fixed_bl,7
-        .if huft_build( rdi, 288, 257, &cplens, &cplext, &fixed_tl, &fixed_bl )
+        .ifd huft_build( rdi, 288, 257, &cplens, &cplext, &fixed_tl, &fixed_bl )
 
             mov fixed_tl,NULL
            .return
@@ -781,7 +781,7 @@ inflate_fixed proc uses rdi rbx
         rep stosd
         mov fixed_bd,5
         mov rdi,rdx
-        .if huft_build( rdi, 30, 0, &cpdist, &cpdext, &fixed_td, &fixed_bd )
+        .ifd huft_build( rdi, 30, 0, &cpdist, &cpdext, &fixed_td, &fixed_bd )
 
             .if ( eax != 1 )
 
@@ -796,7 +796,7 @@ inflate_fixed proc uses rdi rbx
     ;
     ; decompress until an end-of-block code
     ;
-    .if inflate_codes( fixed_tl, fixed_td, fixed_bl, fixed_bd )
+    .ifd inflate_codes( fixed_tl, fixed_td, fixed_bl, fixed_bd )
 
         mov eax,1
     .endif
@@ -849,7 +849,7 @@ inflate_dynamic proc uses rsi rdi rbx
     ; build decoding table for trees--single level, 7 bit lookup
 
     mov l,7
-    .if huft_build( &ll, 19, 19, NULL, NULL, &tl, &l )
+    .ifd huft_build( &ll, 19, 19, NULL, NULL, &tl, &l )
 
         mov esi,eax
         .if ( eax == 1 )
@@ -991,7 +991,7 @@ inflate_stored proc uses rsi
     .endif
     .for ( : esi : esi-- ) ; read and output the compressed data
 
-        .if !oputc(getbits(8))
+        .ifd !oputc(getbits(8))
 
             .return(ER_DISK)
         .endif
@@ -1027,7 +1027,7 @@ zip_inflate proc public uses rsi rdi rbx
         .if ( eax == 0 )
 
             .continue .if !edi
-            .if !ioflush(&STDO)
+            .ifd !ioflush(&STDO)
                 mov esi,ER_USERABORT
                 .if ( STDO.flag & IO_ERROR )
                     mov esi,ER_DISK
@@ -1150,7 +1150,7 @@ explode_docopy proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, xbl:uint_t, xbd:uint_t,
         s:ptr uint_t, u:ptr uint_t
 
     mov edi,getbits(bdl)        ; get distance low bits
-    .if decode_huft(td, xbd)    ; get coded distance high bits
+    .ifd decode_huft(td, xbd)    ; get coded distance high bits
 
         .return
     .endif
@@ -1161,7 +1161,7 @@ explode_docopy proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, xbl:uint_t, xbd:uint_t,
     sub eax,edx
     mov edi,eax
 
-    .if decode_huft(tl, xbl)    ; get coded length
+    .ifd decode_huft(tl, xbl)    ; get coded length
 
         .return
     .endif
@@ -1226,7 +1226,7 @@ explode_docopy proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, xbl:uint_t, xbd:uint_t,
         .if ( STDO.index >= OSIZE )
 
             mov uint_t ptr [rdx],0
-            .if !ioflush(&STDO)
+            .ifd !ioflush(&STDO)
                 .return( ER_DISK )
             .endif
         .endif
@@ -1246,25 +1246,25 @@ explode_lit proc uses rbx tb:PHUFT, tl:PHUFT, td:PHUFT,
 
     .while ( s ) ; do until ucsize bytes uncompressed
 
-        .if getbits(1) ; then literal--decode it
+        .ifd getbits(1) ; then literal--decode it
 
             dec s
-            .if decode_huft(tb, xbb)
+            .ifd decode_huft(tb, xbb)
                 .return
             .endif
             movzx ecx,[rbx].HUFT.n
-            .if ( oputc(ecx) == 0 )
+            .ifd ( oputc(ecx) == 0 )
                 .return( ER_DISK )
             .endif
 
             ; flush test?
 
-        .elseif explode_docopy(tl, td, xbl, xbd, bdl, &s, &u)
+        .elseifd explode_docopy(tl, td, xbl, xbd, bdl, &s, &u)
 
             .return
         .endif
     .endw
-    .if !ioflush( &STDO )
+    .ifd !ioflush( &STDO )
         mov eax,ER_DISK
     .else
         xor eax,eax
@@ -1283,21 +1283,21 @@ explode_nolit proc tl:PHUFT, td:PHUFT, xbl:uint_t, xbd:uint_t, bdl:uint_t
 
     .while ( s )
 
-        .if getbits(1)
+        .ifd getbits(1)
 
             dec s
-            .if !oputc(getbits(8))
+            .ifd !oputc(getbits(8))
                .return( ER_DISK )
             .endif
 
             ; flush test?
 
-        .elseif explode_docopy(tl, td, xbl, xbd, bdl, &s, &u)
+        .elseifd explode_docopy(tl, td, xbl, xbd, bdl, &s, &u)
 
             .return
         .endif
     .endw
-    .if !ioflush( &STDO )
+    .ifd !ioflush( &STDO )
         mov eax,ER_DISK
     .else
         xor eax,eax
@@ -1337,7 +1337,7 @@ zip_explode proc public uses rbx
             .return
         .endif
 
-        .if huft_build( &l, 256, 256, 0, 0, &tb, &xbb )
+        .ifd huft_build( &l, 256, 256, 0, 0, &tb, &xbb )
 
             .if ( eax == 1 )
                 mov ebx,eax
@@ -1346,7 +1346,7 @@ zip_explode proc public uses rbx
             .return
         .endif
 
-        .if get_tree(&l, 64)
+        .ifd get_tree(&l, 64)
 
             mov ebx,eax
             jmp freetb
@@ -1356,14 +1356,14 @@ zip_explode proc public uses rbx
     .else
 
         mov tb,NULL
-        .if get_tree(&l, 64)
+        .ifd get_tree(&l, 64)
 
            .return
         .endif
         lea rdx,cplen2
     .endif
 
-    .if huft_build( &l, 64, 0, rdx, &extra, &tl, &xbl )
+    .ifd huft_build( &l, 64, 0, rdx, &extra, &tl, &xbl )
 
         mov ebx,eax
         .if ( eax == 1 )
@@ -1372,7 +1372,7 @@ zip_explode proc public uses rbx
         jmp freetb
     .endif
 
-    .if get_tree(&l, 64)
+    .ifd get_tree(&l, 64)
 
         mov ebx,eax
         jmp freetl
@@ -1386,7 +1386,7 @@ zip_explode proc public uses rbx
         inc bdl
     .endif
 
-    .if huft_build( &l, 64, 0, rdx, &extra, &td, &xbd )
+    .ifd huft_build( &l, 64, 0, rdx, &extra, &td, &xbd )
 
         mov ebx,eax
         .if ( eax == 1 )

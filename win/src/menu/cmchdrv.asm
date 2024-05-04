@@ -17,7 +17,7 @@ cmchdrv proc private uses rsi rdi
     .if panel_state(rax)
 
         mov errno,0
-        .if _disk_select(addr cp_selectdrv)
+        .ifd _disk_select(addr cp_selectdrv)
 
             mov edi,eax
             panel_sethdd(rsi, eax)

@@ -117,7 +117,7 @@ mklistidd proc uses rsi rdi rbx
         mov mklist.offs,eax
         dlinit(rbx)
 
-        .if dlevent(rbx)
+        .ifd dlevent(rbx)
 
             xor eax,eax
             mov mklist.count,eax
@@ -139,7 +139,7 @@ mklistidd proc uses rsi rdi rbx
 
                     .if ( ecx == 1 )
 
-                        .if openfile(rdi, M_WRONLY, A_OPEN)
+                        .ifd openfile(rdi, M_WRONLY, A_OPEN)
 
                             mov mklist.handle,eax
                             _lseek(eax, 0, SEEK_END)
@@ -262,7 +262,7 @@ mklistadd proc uses rsi rdi rbx file:LPSTR
         strxchg(rbx, "\x7\x2", "%")
     .endif
 
-    .if oswrite(mklist.handle, rbx, strlen(rbx))
+    .ifd oswrite(mklist.handle, rbx, strlen(rbx))
 
         xor eax,eax
         .if !( mklist.flag & _MKL_MACRO )
@@ -283,10 +283,10 @@ mklistadd endp
 
 fp_mklist proc private path:LPSTR, wblk:ptr WIN32_FIND_DATA
 
-    .if filter_wblk(wblk)
+    .ifd filter_wblk(wblk)
 
         mov rax,wblk
-        .if !progress_set(0, strfcat(__srcfile, path, &[rax].WIN32_FIND_DATA.cFileName), 1)
+        .ifd !progress_set(0, strfcat(__srcfile, path, &[rax].WIN32_FIND_DATA.cFileName), 1)
 
             mklistadd(__srcfile)
         .endif
@@ -308,7 +308,7 @@ mksublist proc private uses rsi rdi zip_list:SINT, path:LPSTR
 
     .else
 
-        .if !mklistidd()
+        .ifd !mklistidd()
             .return
         .endif
         lea rax,filelist_bat
@@ -338,7 +338,7 @@ mksublist proc private uses rsi rdi zip_list:SINT, path:LPSTR
             mov edi,ecx
             mov rsi,rdx
 
-            .break .if progress_set(0, strfcat(__outpath, path, rax), 1)
+            .break .ifd progress_set(0, strfcat(__outpath, path, rax), 1)
 
             .if ( edi & _A_SUBDIR )
 
@@ -354,10 +354,10 @@ mksublist proc private uses rsi rdi zip_list:SINT, path:LPSTR
                     mklistadd(rax)
                     inc mklsubcnt
                 .else
-                    .break .if scansub(__outpath, &cp_stdmask, 0)
+                    .break .ifd scansub(__outpath, &cp_stdmask, 0)
                 .endif
             .else
-                .if filter_fblk(rsi)
+                .ifd filter_fblk(rsi)
 
                     mklistadd(__outpath)
                 .endif
@@ -377,7 +377,7 @@ mksublist endp
 
 mkwslist proc private zip_list:SINT
 
-    .if cpanel_findfirst()
+    .ifd cpanel_findfirst()
 
         mov rax,cpanel
         mov rdx,[rax].PANEL.wsub

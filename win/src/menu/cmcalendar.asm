@@ -207,7 +207,7 @@ cmcalendar proc uses rsi rdi rbx
                 xor edi,edi
                 xor esi,esi
             .endif
-            
+
             tgetevent()
             .switch eax
 
@@ -222,7 +222,7 @@ cmcalendar proc uses rsi rdi rbx
                 mov edx,eax
                 mousey()
                 mov rbx,dialog
-                .break .if !rcxyrow([rbx].DOBJ.rc, edx, eax)
+                .break .ifd !rcxyrow([rbx].DOBJ.rc, edx, eax)
                 dlmove(dialog)
                 mov rbx,dialog
                 sub eax,eax

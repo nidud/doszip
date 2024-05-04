@@ -89,7 +89,7 @@ cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
             add edx,2
             scpath(ecx, edx, 21, name)
 
-            .if dlevent(rbx)
+            .ifd dlevent(rbx)
 
                 mov al,_O_FLAGB
                 xor edx,edx
@@ -117,7 +117,7 @@ cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
                     setfattr(name, edx)
                 .endif
 
-                .if osopen(name, _A_NORMAL, M_WRONLY, A_OPEN) != -1
+                .ifd osopen(name, _A_NORMAL, M_WRONLY, A_OPEN) != -1
 
                     mov esi,eax
                     setftime(esi,

@@ -63,7 +63,7 @@ cmcompoption proc
         .endif
     .endif
 
-    .if CompareOptions(&options)
+    .ifd CompareOptions(&options)
 
         .if CFAddSection(".compsubdir")
 
@@ -136,7 +136,7 @@ cmcompare proc uses rsi rdi rbx
         xchg rsi,rdi        ; Set SI to current panel
     .endif
 
-    .return .if !panel_stateab() ; Need two panels
+    .return .ifd !panel_stateab() ; Need two panels
 
     mov rbx,[rsi].PANEL.wsub
     mov eax,[rbx].WSUB.flag

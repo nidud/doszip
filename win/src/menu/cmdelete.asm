@@ -30,9 +30,9 @@ remove_file proc uses rsi directory:LPSTR, filename:LPSTR, attrib
 
     lea rsi,path
 
-    .if !progress_set(filename, directory, 0)
+    .ifd !progress_set(filename, directory, 0)
 
-	.if confirm_delete_file(filename, attrib) && eax != -1
+	.ifd confirm_delete_file(filename, attrib) && eax != -1
 
 	    strfcat(rsi, directory, filename)
 	    .if byte ptr attrib & _A_RDONLY
@@ -40,7 +40,7 @@ remove_file proc uses rsi directory:LPSTR, filename:LPSTR, attrib
 	    .endif
 
 	    mov errno,0
-	    .if remove(rsi)
+	    .ifd remove(rsi)
 		erdelete(rsi)
 	    .endif
 	.endif
@@ -53,7 +53,7 @@ remove_directory proc directory:LPSTR
 
   local path[_MAX_PATH*2]:byte
 
-    .if confirm_delete_sub(strfcat(&path, __spath, directory)) == 1
+    .ifd confirm_delete_sub(strfcat(&path, __spath, directory)) == 1
 
 	scan_directory(0, &path)
     .endif
@@ -74,7 +74,7 @@ fp_remove_file endp
 fp_remove_directory proc uses rsi rbx directory:LPSTR
 
     ldr rbx,directory
-    .if !progress_set(0, rbx, 1)
+    .ifd !progress_set(0, rbx, 1)
 
 	mov esi,scan_files(rbx)
 	setfattr(rbx, 0)
@@ -120,7 +120,7 @@ cmdelete proc uses rbx
 	open_progress()
 	.repeat
 	    mov rax,cpanel
-	    .break .if wzipdel([rax].PANEL.wsub, rbx)
+	    .break .ifd wzipdel([rax].PANEL.wsub, rbx)
 	    and [rbx].FBLK.flag,not _FB_SELECTED
 	    panel_findnext(cpanel)
 	    mov rbx,rdx
@@ -151,7 +151,7 @@ cmdelete proc uses rbx
 	.else
 	    .repeat
 
-		.break .if cmdelete_remove()
+		.break .ifd cmdelete_remove()
 		and [rbx].FBLK.flag,not _FB_SELECTED
 		panel_findnext(cpanel)
 		mov rbx,rdx

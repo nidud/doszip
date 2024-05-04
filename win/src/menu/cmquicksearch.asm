@@ -56,7 +56,7 @@ psearch proc private uses rsi rdi rbx cname:string_t, l:int_t, direction:int_t
       ifdef SKIPSUBDIR
 	.if !( byte ptr [rbx] & _A_SUBDIR )
       endif
-	.if !_strnicmp(cname, &[rbx].FBLK.name, l)
+	.ifd !_strnicmp(cname, &[rbx].FBLK.name, l)
 
 	    mov rbx,cpanel
 	    dlclose([rbx].PANEL.xl)
@@ -83,7 +83,7 @@ cmquicksearch proc uses rsi rdi rbx
    .new fname[256]:char_t
    .new key:int_t
 
-    .if cpanel_state()
+    .ifd cpanel_state()
 
 	_getcursor(&cursor)
 	_cursoron()
@@ -158,7 +158,7 @@ cmquicksearch proc uses rsi rdi rbx
 		mov key,eax
 		mov edx,esi
 		sub edx,ecx
-		.if psearch(rbx, edx, eax)
+		.ifd psearch(rbx, edx, eax)
 		    .if key
 			scputw(esi, edi, 1, key)
 			.ifs ( esi < 78 )

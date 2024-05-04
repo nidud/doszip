@@ -242,11 +242,11 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
         .endif
 
         mov result,eax
-        .break .if !filter_wblk(rdi)
+        .break .ifd !filter_wblk(rdi)
 
         add rdi,WIN32_FIND_DATA.cFileName
         strfcat(&path, directory, rdi)
-        .break .if !cmpwarg(rdi, fp_maskp)
+        .break .ifd !cmpwarg(rdi, fp_maskp)
 
         mov result,test_userabort()
         .break .if eax
@@ -277,7 +277,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
 
             .if flags & compare_create ; Compare File creation time
 
-                .if osopen(&[rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
+                .ifd osopen(&[rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
 
                     mov h,eax
                     mov t,getftime_create(eax)
@@ -290,7 +290,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
 
             .if flags & compare_access ; Compare Last access time
 
-                .if osopen(&[rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
+                .ifd osopen(&[rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
 
                     mov h,eax
                     mov t,getftime_access(eax)
@@ -304,13 +304,13 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
             .if flags & compare_name ; Compare File names
 
                 mov rcx,strfn(&[rcx].FBLK.name)
-               .continue .if _stricmp(&[rbx].WIN32_FIND_DATA.cFileName, rcx)
+               .continue .ifd _stricmp(&[rbx].WIN32_FIND_DATA.cFileName, rcx)
                 mov rcx,[rsi]
             .endif
 
             .if flags & compare_data ; Compare File content
 
-                .continue .if CompareFileData(&[rcx].FBLK.name, &path)
+                .continue .ifd CompareFileData(&[rcx].FBLK.name, &path)
                 mov rcx,[rsi]
             .endif
             mov found,1
@@ -384,7 +384,7 @@ ff_addfileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
     mov eax,[rdi].WIN32_FIND_DATA.nFileSizeLow
     mov dword ptr fsize,eax
 
-    .if filter_wblk(rdi)
+    .ifd filter_wblk(rdi)
 
         strfcat(&path, directory, &[rdi].WIN32_FIND_DATA.cFileName)
         mov eax,ff_count
@@ -442,13 +442,13 @@ ff_directory proc uses rbx directory:LPSTR
         .if eax >= ebx
             mov eax,ebx
         .endif
-        .if !_strnicmp(directory, source, eax)
+        .ifd !_strnicmp(directory, source, eax)
             rsmodal(IDD_DZRecursiveCompare)
         .endif
     .endif
     .if eax
         mov ff_recursive,1
-        .if !progress_set(0, directory, 0)
+        .ifd !progress_set(0, directory, 0)
             scan_files(directory)
         .endif
     .endif
@@ -510,7 +510,7 @@ ff_searchpath proc uses rsi rdi rbx directory:LPSTR
         mov ff_basedir,ffsearchinitpath(ff_basedir)
         mov rdi,rcx
 
-        .if strlen(rax)
+        .ifd strlen(rax)
 
             mov len,eax
             add rax,ff_basedir
@@ -628,7 +628,7 @@ event_mklist proc uses rsi rdi rbx
 
     .if [rsi].LOBJ.count != eax
 
-        .if mklistidd()
+        .ifd mklistidd()
 
             .for ( edi = 0 : edi < [rsi].LOBJ.count : edi++ )
 

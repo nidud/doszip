@@ -29,13 +29,13 @@ string proc private file:string_t
 
     .if ( [rsi].FILTER.minclude )
 
-        .if !cmpwargs( file, &[rsi].FILTER.minclude )
+        .ifd !cmpwargs( file, &[rsi].FILTER.minclude )
             .return
         .endif
     .endif
     .if ( [rsi].FILTER.mexclude )
 
-        .if cmpwargs( file, &[rsi].FILTER.mexclude )
+        .ifd cmpwargs( file, &[rsi].FILTER.mexclude )
             .return( 0 )
         .endif
     .endif
@@ -54,7 +54,7 @@ filter_fblk proc uses rsi rdi rbx fb:PFBLK
     ldr rdi,fb
     mov eax,[rdi].FBLK.time
     and eax,0xFFFF0000
-    .if ( binary(eax, [rdi].FBLK.flag, size_t ptr [rdi].FBLK.size) )
+    .ifd ( binary(eax, [rdi].FBLK.flag, size_t ptr [rdi].FBLK.size) )
 
         .return string(&[rdi].FBLK.name)
     .endif
@@ -78,7 +78,7 @@ ifdef _WIN64
     shl rcx,32
     or  rdx,rcx
 endif
-    .if ( binary(eax, [rdi].WIN32_FIND_DATA.dwFileAttributes, rdx) )
+    .ifd ( binary(eax, [rdi].WIN32_FIND_DATA.dwFileAttributes, rdx) )
 
         .return string(&[rdi].WIN32_FIND_DATA.cFileName)
     .endif

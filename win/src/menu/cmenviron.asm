@@ -106,7 +106,7 @@ read_environ proc uses rsi rdi rbx
                         inc [rbx].LOBJ.numcel
                     .endif
                 .endif
-                .break .if !strlen(rsi)
+                .break .ifd !strlen(rsi)
                 lea rsi,[rsi+rax+1]
             .endw
             FreeEnvironmentStrings(p)
@@ -233,13 +233,13 @@ event_edit proc uses rsi rdi rbx
                 .if rsi
 
                     inc rsi
-                    .if !strcmp(rsi, rbx)
+                    .ifd !strcmp(rsi, rbx)
 
                         .return(_C_NORMAL)
                     .endif
                 .endif
 
-                .if SetEnvironmentVariable(rdi, rbx)
+                .ifd SetEnvironmentVariable(rdi, rbx)
 
                     read_environ()
                     update_cellid()
@@ -259,7 +259,7 @@ event_add proc uses rsi rdi rbx
     lea rbx,environ
     mov byte ptr [rbx],0
 
-    .if tgetline("Format: <variable>=<value>", rbx, 60, 2048)
+    .ifd tgetline("Format: <variable>=<value>", rbx, 60, 2048)
 
         .if byte ptr [rbx]
 
@@ -267,7 +267,7 @@ event_add proc uses rsi rdi rbx
 
                 mov byte ptr [rax],0
                 inc rax
-                .if SetEnvironmentVariable(rbx, rax)
+                .ifd SetEnvironmentVariable(rbx, rax)
 
                     read_environ()
                     update_cellid()
@@ -296,7 +296,7 @@ event_delete proc uses rsi rbx
             .if eax
 
                 mov rbx,FCB_Environ
-                .if !read_environ()
+                .ifd !read_environ()
 
                     mov [rbx].LOBJ.index,eax
                     mov [rbx].LOBJ.celoff,eax
@@ -349,7 +349,7 @@ event_load proc
 
   local path[_MAX_PATH]:sbyte
 
-    .if wgetfile(&path, "*.env", _WOPEN)
+    .ifd wgetfile(&path, "*.env", _WOPEN)
 
         _close(eax)
         ReadEnvironment(&path)
@@ -366,7 +366,7 @@ event_save proc
 
   local path[_MAX_PATH]:sbyte
 
-    .if wgetfile(&path, "*.env", _WSAVE)
+    .ifd wgetfile(&path, "*.env", _WSAVE)
 
         _close(eax)
         SaveEnvironment(&path)
@@ -424,7 +424,7 @@ cmenviron proc public uses rsi rdi rbx
             .while rsevent(IDD_DZEnviron, rbx)
                 .switch eax
                 .case 1..19
-                    .break .if event_edit() != _C_NORMAL
+                    .break .ifd event_edit() != _C_NORMAL
                     .endc
                 .case 20
                     event_add()

@@ -20,7 +20,7 @@ cmmkdir proc uses rsi rdi rbx
 	.if panel_state(rax)
 
 	    mov byte ptr [rbx],0
-	    .if tgetline("Make directory", rbx, 40, 512)
+	    .ifd tgetline("Make directory", rbx, 40, 512)
 
 		xor eax,eax
 		.if [rbx] != al

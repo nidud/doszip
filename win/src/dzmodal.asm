@@ -90,7 +90,7 @@ statusline_xy proc uses rsi rdi rbx x:SINT, y:SINT, q:SINT, o:PMSOBJ
             mov rsi,o
             .repeat
                 mov [rsi].MSOBJ.rc.y,bl
-                .break .if rcxyrow([rsi].MSOBJ.rc, x, ebx)
+                .break .ifd rcxyrow([rsi].MSOBJ.rc, x, ebx)
                 add rsi,MSOBJ
                 dec edi
             .untilz
@@ -329,7 +329,7 @@ mouseevent proc private uses rsi rdi rbx
         .endif
 
         mov rbx,panela
-        .if !panel_xycmd(rbx, edi, esi)
+        .ifd !panel_xycmd(rbx, edi, esi)
 
             mov rbx,panelb
             panel_xycmd(rbx, edi, esi)
@@ -400,7 +400,7 @@ doszip_modal proc uses rsi
                 mov rax,cpanel
                 mov rsi,[rax].PANEL.wsub
 
-                .if filexist([rsi].WSUB.path) != 2
+                .ifd filexist([rsi].WSUB.path) != 2
 
                     mov rax,[rsi].WSUB.path
                     mov byte ptr [rax],0
@@ -409,7 +409,7 @@ doszip_modal proc uses rsi
 
                 .if [rsi].WSUB.flag & _W_ARCHIVE
 
-                    .if filexist([rsi].WSUB.file) != 1
+                    .ifd filexist([rsi].WSUB.file) != 1
 
                         and [rsi].WSUB.flag,not _W_ARCHIVE
                     .endif
@@ -427,9 +427,9 @@ doszip_modal proc uses rsi
         mov esi,menus_getevent()
         .if ( ( eax == KEY_ENTER || eax == KEY_KPENTER) && com_base && cflag & _C_COMMANDLINE )
 
-            .if doskeysave()
+            .ifd doskeysave()
 
-                .continue .if command(&com_base)
+                .continue .ifd command(&com_base)
             .endif
 
             comevent(KEY_END)
@@ -438,12 +438,12 @@ doszip_modal proc uses rsi
 
         .if com_base && cflag & _C_COMMANDLINE
 
-            .continue .if comevent(esi)
+            .continue .ifd comevent(esi)
         .endif
 
-        .if cpanel_state()
+        .ifd cpanel_state()
 
-            .continue .if panel_event(cpanel, esi)
+            .continue .ifd panel_event(cpanel, esi)
         .endif
 
         .break .if !mainswitch

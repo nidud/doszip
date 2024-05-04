@@ -1100,7 +1100,7 @@ tiread proc private uses rsi rdi rbx ti:PTINFO
     mov line_count,0
     mov rdi,[rsi].base
 
-    .if ioopen(&STDI, [rsi].file, M_RDONLY, OO_MEMBUF) != -1
+    .ifd ioopen(&STDI, [rsi].file, M_RDONLY, OO_MEMBUF) != -1
 
         mov eax,STDI.fsize_l
         mov [rsi].size,eax
@@ -1132,7 +1132,7 @@ tiread proc private uses rsi rdi rbx ti:PTINFO
                  .endif
 
 
-                .break .if ogetc() == -1
+                .break .ifd ogetc() == -1
 
                 .switch al
                 .case 0
@@ -4260,7 +4260,7 @@ tishow proc uses rsi rdi rbx ti:PTINFO
 
                 mov ecx,[rsi].cols
                 sub ecx,19
-                scpath(edi, ebx, ecx, [rsi].file)
+                scpathu(edi, ebx, ecx, [rsi].file)
             .endif
             tiputs(rsi)
         .endif

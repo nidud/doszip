@@ -49,7 +49,7 @@ PackerGetSection proc private uses rsi rdi rbx section:LPSTR, result:LPSTR
             add ecx,8
             scputf(ecx, edx, 0, 0, "Select External Tool")
 
-            .if rsevent(IDD_DZHistory, rbx)
+            .ifd rsevent(IDD_DZHistory, rbx)
 
                 imul eax,eax,TOBJ
                 strcpy(result, [rbx+rax].TOBJ.data)
@@ -96,7 +96,7 @@ cmcompress proc uses rsi rdi rbx
 
                     wcenter([rbx].DOBJ.wp, 59, "Compress")
 
-                    .if dlmodal(rbx)
+                    .ifd dlmodal(rbx)
 
                         ;------------------------------------------
                         ; no unix path, no mask in directory\[*.*]
@@ -106,9 +106,9 @@ cmcompress proc uses rsi rdi rbx
                         and eax,not (_MKL_UNIX or _MKL_MASK)
                         mov mklist.flag,eax
 
-                        .if mkziplst_open(&list)
+                        .ifd mkziplst_open(&list)
 
-                            .if mkziplst()
+                            .ifd mkziplst()
                                 xor eax,eax
                             .else
                                 or  eax,mklist.count
@@ -176,7 +176,7 @@ cmdecompress proc uses rsi rdi rbx
                     mov dl,ah
                     scpath(eax, edx, 50, archive)
 
-                    .if dlmodal(rdi)
+                    .ifd dlmodal(rdi)
 
                         .if CFGetSectionID(rbx, 0)
 
@@ -184,7 +184,7 @@ cmdecompress proc uses rsi rdi rbx
                             strcat(strcpy(rdi, rax), " ")
 
                             .if CFGetSectionID(rbx, 1)
-                                
+
                                 ; <command> -o"<out_path>" <archive>
 
                                 strcat(rdi, rax)

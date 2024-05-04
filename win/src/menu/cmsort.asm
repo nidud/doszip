@@ -26,7 +26,7 @@ cmsort proc watcall private uses rsi rdi rbx panel:PPANEL, flags:uint_t
 	    lea rcx,path
 	    strcpy(rcx, rax)
 	    wssort(rsi)
-	    .if wsearch(rsi, &path) != -1
+	    .ifd wsearch(rsi, &path) != -1
 
 		mov ebx,eax
 		dlclose([rdi].PANEL.xl)

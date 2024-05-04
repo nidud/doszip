@@ -47,10 +47,10 @@ move_deletefile endp
 
 fp_movedirectory proc private directory:LPSTR
 
-    .if !progress_set(0, directory, 0)
+    .ifd !progress_set(0, directory, 0)
 
         setfattr(directory, eax)
-        .if _rmdir(directory)
+        .ifd _rmdir(directory)
 
             xor eax,eax
             .if jmp_count == eax
@@ -75,9 +75,9 @@ fp_movefile endp
 fblk_movefile proc private uses rbx fblk:PFBLK
 
     ldr rbx,fblk
-    .if !progress_set(addr [rbx].FBLK.name, __outpath, [rbx].FBLK.size)
+    .ifd !progress_set(addr [rbx].FBLK.name, __outpath, [rbx].FBLK.size)
 
-        .if rename(__srcfile, __outfile)
+        .ifd rename(__srcfile, __outfile)
 
             copyfile([rbx].FBLK.size, [rbx].FBLK.time, [rbx].FBLK.flag)
             move_deletefile(eax, [rbx].FBLK.flag)
@@ -95,14 +95,14 @@ fblk_movedirectory proc private uses rsi rdi fblk:PFBLK
     ldr rsi,fblk
     add rsi,FBLK.name
 
-    .if !progress_set(rsi, __outpath, 0)
+    .ifd !progress_set(rsi, __outpath, 0)
 
         move_initfiles(rsi)
-        .if rename(rax, __outfile)
+        .ifd rename(rax, __outfile)
 
             strfcat(rdi, __srcpath, rsi)
             mov fp_directory,&fp_copydirectory
-            .if scansub(rdi, &cp_stdmask, 1)
+            .ifd scansub(rdi, &cp_stdmask, 1)
 
                 mov eax,-1
             .else
@@ -132,7 +132,7 @@ cmmove proc uses rdi
             ;
             ; ...
             ;
-        .elseif init_copy(rdi, 0)
+        .elseifd init_copy(rdi, 0)
 
             .if !( copy_flag & _COPY_IARCHIVE or _COPY_OARCHIVE )
 

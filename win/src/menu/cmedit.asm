@@ -65,7 +65,7 @@ zipadd proc private uses rsi rdi rbx archive:LPSTR, path:LPSTR, file:LPSTR
     .ifd ( osopen(rbx, _A_NORMAL, M_RDONLY, A_OPEN) != -1 )
 
         mov esi,eax
-        .if _filelength(eax)
+        .ifd _filelength(eax)
 
             mov edi,eax
             _close(esi)
@@ -97,7 +97,7 @@ editzip proc private uses rsi rdi rbx file:LPSTR
     mov edi,ecx
     mov rcx,rdx
 
-    .if unzip_to_temp(rcx, rbx)
+    .ifd unzip_to_temp(rcx, rbx)
 
         mov esi,_diskflag
         setfattr(rax, 0)
@@ -155,7 +155,7 @@ cmwindowlist endp
 
 cmtmodal proc
 
-    .if tistate(tinfo)
+    .ifd tistate(tinfo)
         tmodal()
     .else
         topensession()

@@ -27,7 +27,7 @@ cmsearchidd proc uses rsi rdi rbx sflag:uint_t
         .endif
         dlinit(rdi)
 
-        .if rsevent(IDD_Search, rdi)
+        .ifd rsevent(IDD_Search, rdi)
 
             mov eax,sflag
             and eax,not IO_SEARCHMASK

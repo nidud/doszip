@@ -750,5 +750,5 @@ Welcome to Doszip Commander Version 3.72!
    These people contributed to Doszip (additions, bugfixes, bug reports):
 
    Hjort Nidudsson, Japheth, Michael Kennedy, Robert Riebisch, Rugxulo,
-   Yury, Fritz Mueller
+   Yury, Fritz Mueller, xrayer
 

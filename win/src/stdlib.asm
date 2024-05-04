@@ -334,7 +334,7 @@ recursive proc uses rsi rdi name:LPSTR, src:LPSTR, dst:LPSTR
     strlen (rsi)
     mov word ptr [rsi+rax],0x005C
     inc eax
-    .if _strnicmp(rsi, rdi, eax)
+    .ifd _strnicmp(rsi, rdi, eax)
         mov eax,-1
     .endif
     inc eax
@@ -347,13 +347,13 @@ __allocwpath proc uses rsi rdi rbx path:LPSTR
     mov rsi,path
     xor edi,edi
 
-    .if MultiByteToWideChar(0, 0, rsi, -1, 0, 0)
+    .ifd MultiByteToWideChar(0, 0, rsi, -1, 0, 0)
 
         mov ebx,eax
         mov rdi,malloc(&[rax*2+8])
         add rax,8
 
-        .if MultiByteToWideChar(0, 0, rsi, -1, rax, ebx)
+        .ifd MultiByteToWideChar(0, 0, rsi, -1, rax, ebx)
 
             mov dword ptr [rdi],  0x005C005C    ; "\\?\"
             mov dword ptr [rdi+4],0x005C003F
@@ -596,7 +596,7 @@ getenvp proc private enval:LPSTR
 
   local buf[2048]:byte
 
-    .if GetEnvironmentVariable(enval, &buf, 2048)
+    .ifd GetEnvironmentVariable(enval, &buf, 2048)
 
         _strdup(&buf)
     .endif
@@ -694,7 +694,7 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
     ;
     ; Read the new environment block
     ;
-    .if osopen(FileName, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+    .ifd osopen(FileName, _A_NORMAL, M_RDONLY, A_OPEN) != -1
 
         mov edi,eax
         mov ebx,_filelength(eax)
@@ -774,29 +774,29 @@ SaveEnvironment proc uses rsi rdi rbx FileName:LPSTR
 
     .if GetEnvironmentStrings()
 
-    mov rsi,rax
-    mov rbx,rax
+        mov rsi,rax
+        mov rbx,rax
 
-    .ifd osopen(FileName, _A_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
+        .ifd osopen(FileName, _A_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
 
-        mov edi,eax
-        oswrite(edi, rsi, GetEnvironmentSize(rsi))
+            mov edi,eax
+            oswrite(edi, rsi, GetEnvironmentSize(rsi))
 
-        lea rsi,CurrentDirectory
-        .if GetCurrentDirectory(WMAXPATH, rsi)
+            lea rsi,CurrentDirectory
+            .if GetCurrentDirectory(WMAXPATH, rsi)
 
-        strlen(rsi)
-        inc eax
-        oswrite(edi, rsi, eax)
-        inc retval
+                strlen(rsi)
+                inc eax
+                oswrite(edi, rsi, eax)
+                inc retval
+            .endif
+            _close(edi)
+
+            .if ( retval == 0 )
+                remove(FileName)
+            .endif
         .endif
-        _close(edi)
-
-        .if ( retval == 0 )
-        remove(FileName)
-        .endif
-    .endif
-    FreeEnvironmentStrings(rbx)
+        FreeEnvironmentStrings(rbx)
     .endif
     .return(retval)
 
@@ -822,7 +822,7 @@ TestPath proc private uses rsi rdi rbx file:LPSTR, buffer:LPSTR
             mov ebx,eax
             memcpy(rdi, rsi, eax)
             mov word ptr [rdi+rbx],'\'
-            .if filexist(strcat(rdi, file)) == 1
+            .ifd filexist(strcat(rdi, file)) == 1
                 .if ( buffer )
                     strcpy(buffer, rdi)
                 .endif
@@ -844,7 +844,7 @@ TestPathExt proc private uses rsi rdi file:LPSTR, path:LPSTR, buffer:LPSTR
     lea rdi,temp
     lea rsi,exetype
     .while byte ptr [rsi]
-        .if filexist(strcat(strfcat(rdi, path, file), rsi)) == 1
+        .ifd filexist(strcat(strfcat(rdi, path, file), rsi)) == 1
 
             .if ( buffer )
                 strcpy(buffer, rdi)
@@ -883,7 +883,7 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
     ;
     .if ( isexec )
 
-        .if ( filexist(rbx) == 1 )
+        .ifd ( filexist(rbx) == 1 )
 
             .if ( strfn(rbx) == rbx )
 
@@ -893,7 +893,7 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
                 mov ecx,[rbx]
                 xor eax,eax
                 .if ( ch != ':' )
-                    .if GetFullPathName(rbx, _MAX_PATH*2, rdi, 0)
+                    .ifd GetFullPathName(rbx, _MAX_PATH*2, rdi, 0)
                         mov rax,rdi
                     .endif
                 .endif
@@ -933,7 +933,7 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
     ;
     ; case name, no ext
     ;
-    .if TestPathExt(rbx, rsi, buffer)
+    .ifd TestPathExt(rbx, rsi, buffer)
 
         .return
     .endif
@@ -951,7 +951,7 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
         rep movsb
         mov byte ptr [rdi],0
         lea rdi,file
-        .break .if TestPathExt(rbx, rdi, buffer)
+        .break .ifd TestPathExt(rbx, rdi, buffer)
         lodsb
     .until !eax
     ret

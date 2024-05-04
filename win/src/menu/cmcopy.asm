@@ -62,7 +62,7 @@ getcopycount proc private uses rsi rdi rbx
             .if eax & _A_SUBDIR
 
                 inc copy_subdcount
-                .if recursive(&[rbx].FBLK.name, __srcpath, __outpath)
+                .ifd recursive(&[rbx].FBLK.name, __srcpath, __outpath)
 
                     mov copy_flag,_COPY_RECURSIV
                    .break
@@ -255,7 +255,7 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
     mov esi,[rax].FBLK.flag
     .if esi & _FB_SELECTED
 
-        .if !getcopycount()       ; copy/move selected files
+        .ifd !getcopycount()       ; copy/move selected files
 
             mov al,copy_flag
            .return
@@ -266,7 +266,7 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
 
         add rax,FBLK.name
         mov copy_subdcount,1    ; copy/move one directory
-        .if recursive(rax, __srcpath, rbx)
+        .ifd recursive(rax, __srcpath, rbx)
             or copy_flag,_COPY_RECURSIV
         .endif
     .else
@@ -296,7 +296,7 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
     .if copy_flag & _COPY_IARCHIVE
         and copy_flag,not _COPY_RECURSIV
     .else
-        .if !strcmp(__outfile, __srcfile)
+        .ifd !strcmp(__outfile, __srcfile)
 
            .return ermsg(0, "You can't copy a file to itself")
         .endif
@@ -309,9 +309,9 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
 
     .if !( copy_flag & _COPY_OARCHIVE )
 
-        .if getfattr(rbx) == -1
+        .ifd getfattr(rbx) == -1
 
-            .if _mkdir(rbx)
+            .ifd _mkdir(rbx)
 
                 ermkdir(rbx)
                .return( 0 )
@@ -399,7 +399,7 @@ copyfile endp
 fblk_copyfile proc private uses rbx fblk:PFBLK, skip_outfile:UINT
 
     ldr rbx,fblk
-    .if filter_fblk(rbx)
+    .ifd filter_fblk(rbx)
 
         strfcat(__srcfile, __srcpath, &[rbx].FBLK.name)
         .if ( !skip_outfile && !( copy_flag & _COPY_OARCHIVE ) )
@@ -407,7 +407,7 @@ fblk_copyfile proc private uses rbx fblk:PFBLK, skip_outfile:UINT
             strfcat(__outfile, __outpath, &[rbx].FBLK.name)
         .endif
 
-        .if !progress_set(&[rbx].FBLK.name, __outpath, [rbx].FBLK.size)
+        .ifd !progress_set(&[rbx].FBLK.name, __outpath, [rbx].FBLK.size)
 
             mov edx,[rbx].FBLK.flag
             .if edx & _FB_ARCHIVE
@@ -430,7 +430,7 @@ fp_copyfile proc uses rsi rdi rbx directory:LPSTR, wblk:PWIN32_FIND_DATA
    .new q:Q64
 
     ldr rbx,wblk
-    .if filter_wblk(rbx)
+    .ifd filter_wblk(rbx)
 
         strfcat(__srcfile, directory, &[rbx].WIN32_FIND_DATA.cFileName)
         .if !(copy_flag & _COPY_OARCHIVE)
@@ -439,7 +439,7 @@ fp_copyfile proc uses rsi rdi rbx directory:LPSTR, wblk:PWIN32_FIND_DATA
         .endif
         mov q.q_h,[rbx].WIN32_FIND_DATA.nFileSizeHigh
         mov q.q_l,[rbx].WIN32_FIND_DATA.nFileSizeLow
-        .if !progress_set(&[rbx].WIN32_FIND_DATA.cFileName, __outpath, q)
+        .ifd !progress_set(&[rbx].WIN32_FIND_DATA.cFileName, __outpath, q)
 
             FileTimeToTime(&[rbx].WIN32_FIND_DATA.ftLastWriteTime)
             mov edx,[rbx].WIN32_FIND_DATA.dwFileAttributes
@@ -486,9 +486,9 @@ fp_copydirectory proc uses rsi rdi rbx directory:LPSTR
             wzipadd(0, esi, getfattr(directory))
         .endif
 
-    .elseif !_mkdir(strfcat(__outpath, 0, rsi))
+    .elseifd !_mkdir(strfcat(__outpath, 0, rsi))
 
-        .if !setfattr(__outpath, 0)
+        .ifd !setfattr(__outpath, 0)
 
             getfattr(directory)
             and eax,not _A_SUBDIR
@@ -534,10 +534,10 @@ copydirectory proc private uses rsi rdi rbx fblk:PFBLK
                 ; if panel name is not found: use fast copy
                 ;-------------------------------------------
 
-                .if wsearch([rax].PANEL.wsub, rdi) == -1
+                .ifd wsearch([rax].PANEL.wsub, rdi) == -1
 
                     inc copy_fast
-                    .if wzipopen()
+                    .ifd wzipopen()
 
                         scansub(rsi, &cp_stdmask, 1)
                         dec copy_fast
@@ -594,7 +594,7 @@ cmcopy proc uses rsi rdi rbx
         mov esi,ecx
         mov rcx,rdx
 
-        .if init_copy(rcx, 1)
+        .ifd init_copy(rcx, 1)
 
             mov al,copy_flag
             .if ( al & _COPY_IEXTFILE )

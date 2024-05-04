@@ -110,10 +110,12 @@ getosfhnd endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-osopen proc uses rsi rdi rbx file:LPSTR, attrib:UINT, mode:UINT, action:UINT
+osopen proc uses rbx file:LPSTR, attrib:UINT, mode:UINT, action:UINT
 
+    .new len:int_t
     .new h:SINT
     .new share:SINT = 0
+
     .if ( mode != M_RDONLY )
         mov byte ptr _diskflag,1
     .endif
@@ -137,8 +139,25 @@ osopen proc uses rsi rdi rbx file:LPSTR, attrib:UINT, mode:UINT, action:UINT
         .endif
     .endw
     mov h,eax
+    strlen(file)
+    inc eax
+    mov len,eax
 
-    .ifd ( CreateFileA(file, mode, share, 0, action, attrib, 0) == -1 )
+    .ifd ( !MultiByteToWideChar(CP_UTF8, 0, file, eax, 0, 0) )
+
+        dec rax
+       .return
+    .endif
+
+    mov ebx,eax
+    add eax,4 ; \\?\
+    add eax,eax
+    alloca(eax)
+    mov ecx,ebx
+    lea rbx,[rax+8]
+    MultiByteToWideChar(CP_UTF8, 0, file, len, rbx, ecx)
+
+    .ifd ( CreateFileW(rbx, mode, share, 0, action, attrib, 0) == -1 )
 
      ifdef  _WIN95
         .if ( console & CON_WIN95 )
@@ -153,24 +172,12 @@ osopen proc uses rsi rdi rbx file:LPSTR, attrib:UINT, mode:UINT, action:UINT
             .return
         .endif
 
-        mov rbx,rsp
-        mov rcx,alloca(WMAXPATH)
-        mov rdi,rax
-        mov rsi,file
-        mov eax,'\'
-        stosw
-        stosw
-        mov al,'?'
-        stosw
-        mov al,'\'
-        stosw
-        .repeat
-            lodsb
-            stosw
-        .until !al
-        CreateFileW(rcx, mode, share, 0, action, attrib, 0)
-        mov rsp,rbx
-        .ifd ( eax == -1 )
+        sub rbx,8
+        mov eax,(('\' shl 16) or '\')
+        mov [rbx],eax
+        mov eax,(('?' shl 16) or '\')
+        mov [rbx+4],eax
+        .ifd ( CreateFileW(rbx, mode, share, 0, action, attrib, 0) == -1 )
             .return osmaperr()
         .endif
     .endif
@@ -221,7 +228,7 @@ osread proc h:SINT, b:PTR, size:UINT
     lea rax,_osfhnd
     mov rcx,[rax+rcx*size_t]
 
-    .if !ReadFile(rcx, b, size, &retval, 0)
+    .ifd !ReadFile(rcx, b, size, &retval, 0)
 
         osmaperr()
        .return( 0 )
@@ -239,7 +246,7 @@ oswrite proc h:SINT, b:PTR, size:UINT
     lea rax,_osfhnd
     mov rcx,[rax+rcx*size_t]
 
-    .if WriteFile(rcx, b, size, &NumberOfBytesWritten, 0)
+    .ifd WriteFile(rcx, b, size, &NumberOfBytesWritten, 0)
 
         mov eax,NumberOfBytesWritten
         .if eax != size
@@ -314,7 +321,7 @@ _write proc uses rdi rsi rbx h:SINT, b:PTR, l:UINT
             lea rax,lb
             mov rdx,rdi
             sub rdx,rax
-            .if !oswrite(h, &lb, edx)
+            .ifd !oswrite(h, &lb, edx)
 
                 inc result
                .break
@@ -326,7 +333,7 @@ _write proc uses rdi rsi rbx h:SINT, b:PTR, l:UINT
         .endf
     .else
 
-        .return .if oswrite(h, b, l)
+        .return .ifd oswrite(h, b, l)
 
         inc result
     .endif
@@ -402,7 +409,7 @@ _lseek endp
 
 getfattr proc uses rsi rdi lpFilename:LPSTR
 
-    .if GetFileAttributesA(lpFilename) == -1
+    .ifd GetFileAttributesA(lpFilename) == -1
 
         .if !__allocwpath(lpFilename)
 
@@ -410,7 +417,7 @@ getfattr proc uses rsi rdi lpFilename:LPSTR
            .return
         .endif
         mov rsi,rax
-        .if GetFileAttributesW(rsi) == -1
+        .ifd GetFileAttributesW(rsi) == -1
 
             osmaperr()
         .endif
@@ -425,7 +432,7 @@ getfattr endp
 
 setfattr proc lpFilename:LPTSTR, Attributes:UINT
 
-    .if !SetFileAttributes(lpFilename, Attributes)
+    .ifd !SetFileAttributes(lpFilename, Attributes)
 
         osmaperr()
     .else
@@ -475,7 +482,7 @@ _filelength proc handle:SINT
     lea rax,_osfhnd
     mov rcx,[rax+rcx*size_t]
 
-    .if GetFileSizeEx( rcx, &FileSize )
+    .ifd GetFileSizeEx( rcx, &FileSize )
 ifdef _WIN64
         mov rax,FileSize
 else
@@ -496,10 +503,10 @@ getftime proc handle:SINT
 
   local FileTime:FILETIME
 
-    .if getosfhnd(handle) != -1
+    .ifd getosfhnd(handle) != -1
 
         mov rcx,rax
-        .if !GetFileTime(rcx, 0, 0, &FileTime)
+        .ifd !GetFileTime(rcx, 0, 0, &FileTime)
 
             osmaperr()
         .else
@@ -514,10 +521,10 @@ getftime_access proc handle:SINT
 
   local FileTime:FILETIME
 
-    .if getosfhnd(handle) != -1
+    .ifd getosfhnd(handle) != -1
 
         mov rcx,rax
-        .if !GetFileTime(rcx, 0, &FileTime, 0)
+        .ifd !GetFileTime(rcx, 0, &FileTime, 0)
 
             osmaperr()
         .else
@@ -532,10 +539,10 @@ getftime_create proc handle:SINT
 
   local FileTime:FILETIME
 
-    .if getosfhnd(handle) != -1
+    .ifd getosfhnd(handle) != -1
 
         mov rcx,rax
-        .if !GetFileTime(rcx, &FileTime, 0, 0)
+        .ifd !GetFileTime(rcx, &FileTime, 0, 0)
 
             osmaperr()
         .else
@@ -550,10 +557,10 @@ setftime proc uses rbx h:SINT, t:UINT
 
   local FileTime:FILETIME
 
-    .if getosfhnd(h) != -1
+    .ifd getosfhnd(h) != -1
 
         mov rbx,rax
-        .if SetFileTime(rbx, 0, 0, TimeToFileTime(t, addr FileTime))
+        .ifd SetFileTime(rbx, 0, 0, TimeToFileTime(t, addr FileTime))
 
             xor eax,eax
             mov byte ptr _diskflag,2
@@ -569,10 +576,10 @@ setftime_create proc uses rbx h:SINT, t:UINT
 
   local FileTime:FILETIME
 
-    .if getosfhnd(h) != -1
+    .ifd getosfhnd(h) != -1
 
         mov rbx,rax
-        .if SetFileTime(rbx, TimeToFileTime(t, &FileTime), 0, 0)
+        .ifd SetFileTime(rbx, TimeToFileTime(t, &FileTime), 0, 0)
 
             xor eax,eax
             mov byte ptr _diskflag,2
@@ -588,10 +595,10 @@ setftime_access proc uses rbx h:SINT, t:UINT
 
   local FileTime:FILETIME
 
-    .if getosfhnd(h) != -1
+    .ifd getosfhnd(h) != -1
 
         mov rbx,rax
-        .if SetFileTime(rbx, 0, TimeToFileTime(t, addr FileTime), 0)
+        .ifd SetFileTime(rbx, 0, TimeToFileTime(t, addr FileTime), 0)
 
             xor eax,eax
             mov byte ptr _diskflag,2
@@ -607,7 +614,7 @@ setftime_access endp
 
 remove proc file:LPSTR
 
-    .if DeleteFileA(file)
+    .ifd DeleteFileA(file)
 
         xor eax,eax
         mov _diskflag,1
@@ -620,7 +627,7 @@ remove endp
 
 rename proc Oldname:LPSTR, Newname:LPSTR
 
-    .if MoveFileA(Oldname, Newname)
+    .ifd MoveFileA(Oldname, Newname)
 
         xor eax,eax
         mov _diskflag,1
@@ -695,7 +702,7 @@ ioopen proc uses rbx io:PIOST, file:LPSTR, mode:DWORD, bsize:DWORD
     .ifs ( eax > 0 ) ; -1, 0 (error, cancel), or handle
 
         mov [rbx].IOST.file,eax
-        .if !ioinit(rbx, bsize)
+        .ifd !ioinit(rbx, bsize)
 
             _close([rbx].file)
             ermsg(0, _sys_errlist[ENOMEM*size_t])
@@ -792,7 +799,7 @@ iogetc proc private uses rbx io:PIOST
 
             .if !( [rbx].flag & IO_MEMBUF )
 
-                .if ioread(rbx)
+                .ifd ioread(rbx)
 
                     mov eax,[rbx].index
                    .break
@@ -815,7 +822,7 @@ ioputc proc private uses rbx io:PIOST, c:int_t
 
     .if ( ecx == [rbx].size )
 
-        .if ( ioflush(rbx) == 0 )
+        .ifd ( ioflush(rbx) == 0 )
 
             .return 0
         .endif
@@ -855,7 +862,7 @@ endif
     mov eax,[rsi].cnt ; if count is zero -- file copy
     sub eax,[rsi].index
     .ifz
-        .if ( iogetc(rsi) == -1 )
+        .ifd ( iogetc(rsi) == -1 )
 
             .return( 0 )
         .endif
@@ -911,7 +918,7 @@ endif
                 movzx eax,byte ptr [rax]
                 mov   szh,edx
 
-                .if ( ioputc(rdi, eax) == 0 )
+                .ifd ( ioputc(rdi, eax) == 0 )
 
                     .return
                 .endif
@@ -933,7 +940,7 @@ endif
     .endif
 
     mov szh,edx
-    .if ( ioflush(rdi) == 0 ) ; flush STDO
+    .ifd ( ioflush(rdi) == 0 ) ; flush STDO
 
         .return( 0 )
     .endif
@@ -949,7 +956,7 @@ endif
 
     .repeat
 
-        .if ( ioread(rsi) == 0 )
+        .ifd ( ioread(rsi) == 0 )
 
             .break .if szh
             .break .if ebx
@@ -1057,7 +1064,7 @@ endif
     .if ( esi & IO_USEUPD )
 
         mov edi,eax
-        .if ( oupdate(rbx) == 0 )
+        .ifd ( oupdate(rbx) == 0 )
 
             osmaperr()
             or [rbx].flag,IO_ERROR
@@ -1092,7 +1099,7 @@ iowrite proc uses rsi rdi rbx io:PIOST, buf:ptr, len:size_t
             add count,eax
             rep movsb
 
-           .return .if !ioflush(rbx)
+           .return .ifd !ioflush(rbx)
            .continue( 0 )
         .endif
         add count,ecx
@@ -1193,7 +1200,7 @@ oread proc size:DWORD
     sub ecx,STDI.index
     .if ( ecx < size )
 
-        .if !ioread( &STDI )
+        .ifd !ioread( &STDI )
 
             .return
         .endif
@@ -1215,7 +1222,7 @@ oreadb proc uses rsi rdi rbx b:LPSTR, size:DWORD
     ldr rdi,b
     ldr ebx,size
 
-    .if oread(ebx)
+    .ifd oread(ebx)
 
         memcpy(rdi, rax, ebx)
         mov eax,ebx
@@ -1241,7 +1248,7 @@ oputc proc uses rbx c:SINT
     mov ebx,STDO.index
     .if ebx == STDO.size
 
-        .if !ioflush(&STDO)
+        .ifd !ioflush(&STDO)
 
             .return
         .endif
@@ -1343,7 +1350,7 @@ oprintf proc __Cdecl uses rsi rbx format:LPSTR, argptr:VARARG
             lea rcx,_osfile
             .if ( byte ptr [rcx+rax] & FH_TEXT )
 
-                .if !oputc(13)
+                .ifd !oputc(13)
 
                     .break
                 .endif
@@ -1351,7 +1358,7 @@ oprintf proc __Cdecl uses rsi rbx format:LPSTR, argptr:VARARG
             .endif
             mov eax,10
         .endif
-        .break .if !oputc(eax)
+        .break .ifd !oputc(eax)
     .endw
     .return(ebx)
 
@@ -1359,7 +1366,7 @@ oprintf endp
 
 openfile proc fname:LPSTR, mode:uint_t, action:uint_t
 
-    .if osopen(fname, _A_NORMAL, mode, action) == -1
+    .ifd osopen(fname, _A_NORMAL, mode, action) == -1
 
         eropen(fname)
     .endif
@@ -1370,7 +1377,7 @@ openfile endp
 
 ogetouth proc filename:LPSTR, mode:uint_t
 
-    .if osopen(filename, _A_NORMAL, mode, A_CREATE) != -1
+    .ifd osopen(filename, _A_NORMAL, mode, A_CREATE) != -1
 
         .return
     .endif
@@ -1425,7 +1432,7 @@ ogetl proc filename:LPSTR, buffer:LPSTR, bsize
 
     memset(&STDI, 0, sizeof(IOST))
 
-    .if osopen(filename, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+    .ifd osopen(filename, _A_NORMAL, M_RDONLY, A_OPEN) != -1
 
         mov STDI.file,eax
         .if malloc(OO_MEM64K)
@@ -1453,7 +1460,7 @@ ogets proc uses rdi
 
         sub ecx,2
 
-        .break .if ogetc() == -1
+        .break .ifd ogetc() == -1
         .repeat
 
             .if al == 0x0D
@@ -1504,7 +1511,7 @@ SearchText proc private uses rsi rdi rbx pos:qword
 
             .while 1
 
-                .if ogetc() == -1
+                .ifd ogetc() == -1
 ifndef _WIN64
                     cdq
 endif
@@ -1534,7 +1541,7 @@ endif
 
             .while 1
 
-                .if ogetc() == -1
+                .ifd ogetc() == -1
 ifndef _WIN64
                     cdq
 endif
@@ -1584,7 +1591,7 @@ endif
 
         .while 1
 
-            .if ogetc() == -1
+            .ifd ogetc() == -1
 ifndef _WIN64
                 cdq
 endif
@@ -1708,7 +1715,7 @@ SearchHex proc private uses rsi rdi rbx pos:qword
 
         .while 1
 
-            .if ogetc() == -1
+            .ifd ogetc() == -1
 ifndef _WIN64
                 cdq
 endif
@@ -1749,7 +1756,7 @@ endif
 
         .while 1
 
-            .if ogetc() == -1
+            .ifd ogetc() == -1
 ifndef _WIN64
                 cdq
 endif

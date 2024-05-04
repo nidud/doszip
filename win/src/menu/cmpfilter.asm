@@ -61,7 +61,7 @@ PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
         sprintf([rdi].TOBJ.data[ID_READCOUNT], "%d", [rsi].WSUB.maxfb)
         dlinit(rdi)
 
-        .if dlevent(rdi)
+        .ifd dlevent(rdi)
 
             mov ebx,atol([rdi].TOBJ.data[ID_READCOUNT])
 
@@ -74,7 +74,7 @@ PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
                 mov edi,[rsi].WSUB.maxfb
                 mov [rsi].WSUB.maxfb,ebx
 
-                .if wsopen(rsi)
+                .ifd wsopen(rsi)
 
                     mov eax,1
                 .else
@@ -126,7 +126,7 @@ cmloadpath proc uses rbx
 
     lea rbx,path
     mov pathptr,rbx
-    .if ( event_loadpath() == _C_REOPEN )
+    .ifd ( event_loadpath() == _C_REOPEN )
 
         cpanel_setpath(rbx)
     .endif

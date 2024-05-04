@@ -169,7 +169,7 @@ unzip_to_temp proc uses rsi rdi fblk:PFBLK, name_buffer:LPSTR
         mov rax,cpanel
         wsdecomp([rax].PANEL.wsub, rdi, envtemp)
 
-        .if !progress_close()
+        .ifd !progress_close()
 
             add rdi,FBLK.name
             strfcat(name_buffer, envtemp, rdi)
@@ -189,7 +189,7 @@ viewzip proc private uses rdi
     mov edi,ecx
     mov rcx,rdx
 
-    .if unzip_to_temp(rcx, rbx)
+    .ifd unzip_to_temp(rcx, rbx)
 
         load_tview(rax, edi)
         setfattr(rbx, 0)

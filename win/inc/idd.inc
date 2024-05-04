@@ -20,6 +20,7 @@ externdef IDD_ConfirmAddFiles:PIDD
 externdef IDD_ConfirmContinue:PIDD
 externdef IDD_ConfirmDelete:PIDD
 externdef IDD_ConsoleSize:PIDD
+externdef IDD_Deflate64:PIDD
 externdef IDD_DriveNotReady:PIDD
 externdef IDD_DZCompareDirectories:PIDD
 externdef IDD_DZCompression:PIDD
@@ -54,6 +55,7 @@ externdef IDD_DZSystemOptions:PIDD
 externdef IDD_DZTransfer:PIDD
 externdef IDD_DZZipAttributes:PIDD
 externdef IDD_EditColor:PIDD
+externdef IDD_FFReplace:PIDD
 externdef IDD_HEFormat:PIDD
 externdef IDD_HELine:PIDD
 externdef IDD_HEMenusline:PIDD

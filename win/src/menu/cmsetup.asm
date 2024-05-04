@@ -173,7 +173,7 @@ event_loadcolor proc uses rsi
 
   local path[_MAX_PATH]:byte
 
-    .if wgetfile(&path, "*.pal", _WOPEN)
+    .ifd wgetfile(&path, "*.pal", _WOPEN)
 
         mov esi,eax
         osread(esi, &at_foreground, COLOR)
@@ -192,7 +192,7 @@ event_savecolor proc uses rbx
 
   local path[_MAX_PATH]:byte
 
-    .if wgetfile(&path, "*.pal", _WSAVE)
+    .ifd wgetfile(&path, "*.pal", _WSAVE)
 
         mov ebx,eax
         oswrite(eax, &at_foreground, COLOR)
@@ -207,7 +207,7 @@ ifdef __AT__
 
 event_editat proc
 
-    .if editattrib()
+    .ifd editattrib()
         event_reload()
     .else
         mov eax,_C_NORMAL
@@ -227,7 +227,7 @@ event_standard proc
     mov [rcx].RIDD.rc.x,al
     mov [rcx].RIDD.rc.y,ah
 
-    .if rsmodal(rcx)
+    .ifd rsmodal(rcx)
 
         .if eax < 6
 
@@ -461,7 +461,7 @@ cmcompression proc uses rbx
 
         dlinit(rbx)
 
-        .if rsevent(IDD_DZCompression, rbx)
+        .ifd rsevent(IDD_DZCompression, rbx)
 
             mov eax,cflag
             and eax,not _C_ZINCSUBDIR
@@ -549,9 +549,9 @@ cmscreensize proc uses rsi rdi rbx
 
     .repeat
 
-        .break .if !GetConsoleScreenBufferInfo(_confh, addr ci)
+        .break .ifd !GetConsoleScreenBufferInfo(_confh, addr ci)
          mov rcx,GetConsoleWindow()
-        .break .if !GetWindowRect(rcx, addr rc)
+        .break .ifd !GetWindowRect(rcx, addr rc)
         .break .if !rsopen(IDD_ConsoleSize)
         mov rbx,rax
 
@@ -609,10 +609,10 @@ cmscreensize proc uses rsi rdi rbx
         add esi,24
         scputf(esi, edi, 0, 0, "%d\n%d", maxcol, maxrow)
 
-        .while rsevent(IDD_ConsoleSize, rbx)
+        .whiled rsevent(IDD_ConsoleSize, rbx)
 
             xor esi,esi
-            .if atol([rbx+ID_MIN_ROW].TOBJ.data) < MINROWS
+            .ifd atol([rbx+ID_MIN_ROW].TOBJ.data) < MINROWS
                 sprintf([rbx+ID_MIN_ROW].TOBJ.data, "%d", MINROWS)
                 inc esi
             .elseif eax > MAXROWS
@@ -620,7 +620,7 @@ cmscreensize proc uses rsi rdi rbx
                 inc esi
             .endif
 
-            .if atol([rbx+ID_MIN_COL].TOBJ.data) < MINCOLS
+            .ifd atol([rbx+ID_MIN_COL].TOBJ.data) < MINCOLS
                 sprintf([rbx+ID_MIN_COL].TOBJ.data, "%d", MINCOLS)
                 inc esi
             .elseif eax > MAXCOLS
@@ -628,7 +628,7 @@ cmscreensize proc uses rsi rdi rbx
                 inc esi
             .endif
 
-            .if atol([rbx+ID_MAX_ROW].TOBJ.data) < MINROWS
+            .ifd atol([rbx+ID_MAX_ROW].TOBJ.data) < MINROWS
                 sprintf([rbx+ID_MAX_ROW].TOBJ.data, "%d", MINROWS)
                 inc esi
             .elseif eax > MAXROWS
@@ -636,7 +636,7 @@ cmscreensize proc uses rsi rdi rbx
                 inc esi
             .endif
 
-            .if atol([rbx+ID_MAX_COL].TOBJ.data) < MINCOLS
+            .ifd atol([rbx+ID_MAX_COL].TOBJ.data) < MINCOLS
                 sprintf([rbx+ID_MAX_COL].TOBJ.data, "%d", MINCOLS)
                 inc esi
             .elseif eax > MAXCOLS

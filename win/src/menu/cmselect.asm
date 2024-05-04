@@ -13,7 +13,7 @@ cmselect proc uses rsi rdi
 	strcpy(&cp_selectmask, &cp_stdmask)
     .endif
 
-    .if tgetline("Select files", &cp_selectmask, 12, 32+8000h)
+    .ifd tgetline("Select files", &cp_selectmask, 12, 32+8000h)
 
 	.if cp_selectmask
 
@@ -27,7 +27,7 @@ cmselect proc uses rsi rdi
 
 		    mov rax,[rdi]
 
-		    .if cmpwarg(&[rax].FBLK.name, &cp_selectmask)
+		    .ifd cmpwarg(&[rax].FBLK.name, &cp_selectmask)
 
 			fblk_select([rdi])
 		    .endif
@@ -51,7 +51,7 @@ cmdeselect proc uses rsi rdi
 	strcpy(&cp_selectmask, &cp_stdmask)
     .endif
 
-    .if tgetline("Deselect files", &cp_selectmask, 12, 32+8000h)
+    .ifd tgetline("Deselect files", &cp_selectmask, 12, 32+8000h)
 
 	.if cp_selectmask
 
@@ -66,7 +66,7 @@ cmdeselect proc uses rsi rdi
 		    mov rax,[rdi]
 		    add rax,FBLK.name
 
-		    .if cmpwarg(rax, &cp_selectmask)
+		    .ifd cmpwarg(rax, &cp_selectmask)
 
 			mov rax,[rdi]
 			and [rax].FBLK.flag,not _FB_SELECTED

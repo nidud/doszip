@@ -14,7 +14,7 @@ cmquit endp
 
 cmexit proc
     .if config.c_cflag & _C_CONFEXIT
-	.if !rsmodal(IDD_DZExit)
+	.ifd !rsmodal(IDD_DZExit)
 	    .return
 	.endif
     .endif

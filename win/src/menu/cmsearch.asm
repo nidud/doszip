@@ -34,6 +34,7 @@ GetPathFromHistory proto :ptr
     O_FILTER,
     O_SAVE,
     O_GOTO,
+    O_REPLACE,
     O_QUIT,
     O_GCMD
     }
@@ -50,10 +51,25 @@ GetPathFromHistory proto :ptr
     ID_FILTER,
     ID_SAVE,
     ID_GOTO,
+    ID_REPLACE,
     ID_QUIT,
     ID_MOUSEUP,
     ID_MOUSEDN,
     ID_GCMD = ID_MOUSEUP
+    }
+
+.enumt FFReplaceIDD : TOBJ {
+    O_NEWSTRING = 1,
+    O_CREATEBACUP,
+    O_USEESCAPE,
+    }
+
+.enum {
+    ID_NEWSTRING,
+    ID_CREATEBACUP,
+    ID_USEESCAPE,
+    ID_OK,
+    ID_CANCEL,
     }
 
     .data
@@ -73,6 +89,7 @@ GetPathFromHistory proto :ptr
         { KEY_F11,    EventProc }, ; Path
         { KEY_F12,    EventProc }, ; Single file
         { KEY_DEL,    EventProc }, ; Delete
+        { KEY_ALTR,   EventProc }, ; Replace
         { KEY_ALTX,   EventProc }, ; Quit
         { 0,          0         }
 
@@ -100,7 +117,7 @@ FileSearch::PutCellId proc uses rsi rdi rbx
     add   ebx,3
     add   edi,15
 
-    .if ( scputf(ebx, edi, 0, 0, "[ %u:%u ]", eax, ecx) < 13 )
+    .ifd ( scputf(ebx, edi, 0, 0, "[ %u:%u ]", eax, ecx) < 13 )
 
         add ebx,eax
         mov ecx,13
@@ -186,7 +203,7 @@ CallbackFile proc private uses rsi rdi rbx directory:string_t, wfblk:PWIN32_FIND
     .if ( [rbx].ll.count < FFMAXHIT )
 
         mov result,eax
-        .if filter_wblk(rdi)
+        .ifd filter_wblk(rdi)
 
             add rdi,WIN32_FIND_DATA.cFileName
             strfcat(&path, directory, rdi)
@@ -194,7 +211,7 @@ CallbackFile proc private uses rsi rdi rbx directory:string_t, wfblk:PWIN32_FIND
 
             .if !eax
                 .if directory
-                    .if cmpwarg(rdi, fp_maskp)
+                    .ifd cmpwarg(rdi, fp_maskp)
                         inc esi
                     .endif
                 .else
@@ -256,7 +273,7 @@ CallbackFile proc private uses rsi rdi rbx directory:string_t, wfblk:PWIN32_FIND
                     mov STDI.offs_h,edx
                     or  STDI.flag,IO_SEARCHCUR
                     .break .if !searchstring
-                    .break .if osearch() == -1
+                    .break .ifd osearch() == -1
 
                     mov offs,eax
                     mov line,ecx
@@ -342,7 +359,7 @@ CallbackFile endp
 
 CallbackDirectory proc private directory:string_t
 
-    .if !progress_set(0, directory, 0)
+    .ifd !progress_set(0, directory, 0)
 
         scan_files(directory)
     .endif
@@ -402,7 +419,7 @@ FileSearch::Searchpath proc uses rsi rdi rbx directory:string_t
         mov [rbx].basedir,InitPath([rbx].basedir)
         mov rdi,rcx
 
-        .if strlen(rax)
+        .ifd strlen(rax)
             mov length,eax
             add rax,[rbx].basedir
             .if byte ptr [rax-1] == '\'
@@ -505,6 +522,118 @@ FileSearch::Find proc uses rsi rdi rbx
     ret
 
 FileSearch::Find endp
+
+
+define FILEBUF 0x8000
+
+FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
+
+   .new curfile:string_t
+   .new tmpfile:string_t
+   .new bakfile:string_t
+   .new readbuf:string_t
+   .new srchandle:int_t
+   .new tmphandle:int_t
+   .new index:int_t = 0
+   .new size:uint_t
+   .new offs:uint_t
+   .new lenstr1:int_t
+   .new lenstr2:int_t
+   .new replace[256]:char_t
+
+    ldr rbx,this
+    ldr edi,escape
+
+    .if !malloc(FILEBUF*3)
+        .return
+    .endif
+    mov tmpfile,rax
+    add rax,FILEBUF
+    mov bakfile,rax
+    add rax,FILEBUF
+    mov readbuf,rax
+
+    .if ( edi )
+        _aesc2str(&replace, &replacestring)
+    .else
+        strlen(strcpy(&replace, &replacestring))
+    .endif
+    mov lenstr2,eax
+    mov lenstr1,strlen(&searchstring)
+
+    .for ( rdi = [rbx].ll.list : index < [rbx].ll.count : index++ )
+
+        mov rdx,[rdi]
+        mov offs,[rdx].SBLK.offs
+        lea rax,[rdx].SBLK.file
+        mov curfile,rax
+        strcpy(bakfile, strcpy(tmpfile, rax))
+
+        .ifd ( osopen(curfile, 0, M_RDONLY, A_OPEN) == -1 )
+            .break
+        .endif
+        mov srchandle,eax
+        .ifd ( osopen(setfext(tmpfile, ".$$$"), 0, M_WRONLY, A_CREATETRUNC) == -1 )
+            _close(srchandle)
+            .break
+        .endif
+        mov tmphandle,eax
+        xor esi,esi
+
+        .while 1
+
+            .for ( : esi < offs : )
+
+                mov eax,offs
+                sub eax,esi
+                .if ( eax > FILEBUF )
+                    mov eax,FILEBUF
+                .endif
+                add esi,eax
+                mov size,eax
+               .break .if ( eax == 0 )
+               .break .ifd ( osread(srchandle, readbuf, size) != size )
+               .break .ifd ( oswrite(tmphandle, readbuf,size) != size )
+            .endf
+            add esi,lenstr1
+            osread(srchandle, readbuf, lenstr1)
+            .if ( lenstr2 )
+                oswrite(tmphandle, &replace, lenstr2)
+            .endif
+            add rdi,size_t
+            mov ecx,index
+            inc ecx
+            mov eax,1
+            .if ( ecx < [rbx].ll.count )
+
+                mov rdx,[rdi]
+                mov offs,[rdx].SBLK.offs
+                strcmp(curfile, &[rdx].SBLK.file)
+            .endif
+            .if ( eax )
+
+                .while 1
+                    .break .ifd ( osread(srchandle, readbuf, FILEBUF) == 0 )
+                    .break .ifd ( oswrite(tmphandle, readbuf, eax) == 0 )
+                .endw
+                .break
+            .endif
+            inc index
+        .endw
+        _close(srchandle)
+        _close(tmphandle)
+        .if ( backup )
+            remove(setfext(bakfile, ".bak"))
+            rename(curfile, bakfile)
+        .else
+            remove(curfile)
+        .endif
+        rename(tmpfile, curfile)
+    .endf
+    free(tmpfile)
+    ret
+
+FileSearch::Replace endp
 
 
 FileSearch::Modal proc uses rbx
@@ -692,7 +821,7 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
         xor eax,eax
         .if ( [rbx].ll.count )
 
-            .if mklistidd()
+            .ifd mklistidd()
 
                 .for ( rsi = [rbx].ll.list,
                        edi = 0 : edi < [rbx].ll.count : edi++ )
@@ -756,7 +885,7 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
 
         mov rdi,[rsi].wp[O_STRING]
         .if ( [rsi].flag[O_HEX] & _O_FLAGB )
-            .if strlen(rdi)
+            .ifd strlen(rdi)
                 .if eax < 128 / 2
                     btohex(rdi, eax)
                 .endif
@@ -860,6 +989,45 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
         scputw(ecx, edx, 1, eax)
        .return(_C_NORMAL)
 
+    .case KEY_ALTR
+        .if ( [rbx].ll.count == 0 )
+
+            stdmsg("Replace", "Nothing to do")
+           .return(_C_NORMAL)
+        .endif
+        .if rsopen(IDD_FFReplace)
+
+            mov rsi,rax
+            mov [rsi].count[O_NEWSTRING],256 shr 4
+            lea rax,replacestring
+            mov [rsi].wp[O_NEWSTRING],rax
+            ;or [rdx].TOBJ.flag[O_CREATEBACUP],_O_FLAGB
+            dlinit(rsi)
+            dlshow(rsi)
+
+            movzx ecx,[rsi].rc.x
+            movzx edx,[rsi].rc.y
+            add ecx,11
+            add edx,2
+            scputf(ecx, edx, 0, 0, "%d occurrence(s) of", [rbx].ll.count)
+            movzx ecx,[rsi].rc.x
+            movzx edx,[rsi].rc.y
+            add ecx,3
+            add edx,3
+            scpath(ecx, edx, 10, &searchstring)
+
+            .ifd rsevent(IDD_FFReplace, rsi)
+
+                movzx edx,[rsi].flag[O_CREATEBACUP]
+                movzx ecx,[rsi].flag[O_USEESCAPE]
+                and edx,_O_FLAGB
+                and ecx,_O_FLAGB
+                this.Replace(edx, ecx)
+            .endif
+            dlclose(rsi)
+        .endif
+        .return(_C_NORMAL)
+
     .case KEY_ALTX
         mov eax,_C_ESCAPE
     .endsw
@@ -913,7 +1081,7 @@ EventFilter endp
 
 EventHex proc
 
-    .if dlcheckevent() == KEY_SPACE
+    .ifd dlcheckevent() == KEY_SPACE
 
         ff.WndProc(KEY_F6)
     .endif
@@ -927,6 +1095,13 @@ EventSave proc
     ret
 
 EventSave endp
+
+EventReplace proc
+
+    ff.WndProc(KEY_ALTR)
+    ret
+
+EventReplace endp
 
 FileSearch::FileSearch proc uses rsi rdi rbx directory:string_t
 
@@ -958,7 +1133,7 @@ FileSearch::FileSearch proc uses rsi rdi rbx directory:string_t
     mov [rbx].ll.list,rax
 
     for m,<Release,WndProc,Find,Modal,PutCellId,UpdateCell,CurItem,\
-           CurFile,List,ClearList,Searchpath>
+           CurFile,List,ClearList,Searchpath,Replace>
         mov [rdi].FileSearchVtbl.m,&FileSearch_&m&
         endm
 
@@ -994,6 +1169,7 @@ FileSearch::FileSearch proc uses rsi rdi rbx directory:string_t
     mov [rdi].tproc[O_START],&EventFind
     mov [rdi].tproc[O_FILTER],&EventFilter
     mov [rdi].tproc[O_SAVE],&EventSave
+    mov [rdi].tproc[O_REPLACE],&EventReplace
 
     mov eax,fsflag
     .if eax & IO_SEARCHCASE

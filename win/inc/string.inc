@@ -9,6 +9,8 @@ define _memicmp <strncasecmp>
 define _strdup <strdup>
 endif
 
+_aesc2str	proto __cdecl :LPSTR, :LPSTR
+
 memchr		proto __cdecl :ptr, :int_t, :size_t
 memcpy		proto __cdecl :ptr, :ptr, :size_t
 memmove		proto __cdecl :ptr, :ptr, :size_t

@@ -15,6 +15,9 @@
 [Path]
 0=%DZ%
 1=%PATH%
+;2=C:\<VS2022>\VC\Tools\MSVC\14.39.33519\bin\Hostx64\x64
+;3=C:\<VS2022>\VC\Tools\MSVC\14.39.33519\bin\Hostx64\x86
+;4=C:\Users\<user>\AppData\Local\GitHubDesktop\app-3.3.11\resources\app\git\cmd
 
 [Comspec]
 0=%SystemRoot%\system32\cmd.exe

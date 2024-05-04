@@ -483,7 +483,7 @@ tools_idd proc uses rsi rdi rbx lsize:int_t, p:LPSTR, section:LPSTR
         .break .if !open_idd(ID_MTOOLS, &mtitle)
 
         mov rbx,rax
-        .if !readtools(section, rax, esi, lsize)
+        .ifd !readtools(section, rax, esi, lsize)
 
             close_idd(ID_MTOOLS, mtitle)
             dlclose(rbx)
@@ -535,7 +535,7 @@ tools_idd proc uses rsi rdi rbx lsize:int_t, p:LPSTR, section:LPSTR
             mov esi,command(rax)
         .endif
 
-        .if mousep()
+        .ifd mousep()
             mov esi,MOUSECMD
         .endif
         .break
@@ -744,7 +744,7 @@ menus_modalidd proc private uses rsi rdi rbx id:int_t
                 .endif
             .endif
 
-            .if mousep()
+            .ifd mousep()
                 mov esi,MOUSECMD
             .endif
         .endif
@@ -826,7 +826,7 @@ menus_event proc private uses rsi rdi rbx id:uint_t, key:uint_t
 
         .if ( cflag & _C_MENUSLINE && !keybmouse_y && !edi )
 
-            .if mousep()
+            .ifd mousep()
 
                 mov eax,keybmouse_x
                 mov edx,eax

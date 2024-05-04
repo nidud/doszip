@@ -23,7 +23,7 @@ test_userabort proc
     mov ecx,getkey()
     xor eax,eax
     .if ecx == KEY_ESC
-        .if confirm_continue(progress_name)
+        .ifd confirm_continue(progress_name)
             mov eax,ER_USERABORT
         .endif
     .endif
@@ -105,7 +105,7 @@ progress_set endp
 
 progress_close proc
 
-    .if dlclose(&progress_dobj)
+    .ifd dlclose(&progress_dobj)
 
         mov eax,old_console
         and eax,CON_SLEEP
