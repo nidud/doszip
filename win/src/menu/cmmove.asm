@@ -168,6 +168,7 @@ cmmove proc uses rdi
                 .endif
                 progress_close()
                 mov eax,1
+                mov _diskflag,eax
             .endif
         .endif
     .endif

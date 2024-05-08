@@ -823,7 +823,7 @@ rcshade proc private uses rbx rc:TRECT, wp:PCHAR_INFO, shade:int_t
 
 rcshade endp
 
-rchide proc private rc:TRECT, flag:uint_t, p:PCHAR_INFO
+rchide proc rc:TRECT, flag:uint_t, p:PCHAR_INFO
 
     ldr eax,flag
     and eax,_D_DOPEN or _D_ONSCR

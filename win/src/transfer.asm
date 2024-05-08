@@ -49,41 +49,43 @@ chars       db "\abcdefghijklmnopqrstuvwxyz0123456789_@",0
 ;
 
 clear_error proc
+
     free(err_file)
+
     xor eax,eax
     mov err_file,rax
     mov error_id,eax
     mov error_count,eax
     ret
+
 clear_error endp
 
     assume rbx:ptr ERFILE
 
 ParseLine proc uses rcx rdi rsi rbx
 
-    mov eax,sizeof(ERFILE)
-    mul error_count
+    imul eax,error_count,ERFILE
     add rax,err_file
     mov rbx,rax
     mov al,[rsi]
 
-    .switch al
-      .case 'A'..'Z'
+    .if ( al >= 'A' && al <= 'Z' )
+
         or al,20h
-    .endsw
+    .endif
 
     lea rdi,chars
     mov ecx,sizeof( chars )
     repne scasb
 
-    .if byte ptr [rdi-1]
+    .if ( byte ptr [rdi-1] )
 
         mov rdi,rsi
 
         .if strchr(rdi, 40)
 
             mov cl,[rax+1]
-            .if cl >= '0' && cl <= '9'
+            .if ( cl >= '0' && cl <= '9' )
 
                 mov rsi,rax
                 mov byte ptr [rsi],0
@@ -93,7 +95,7 @@ ParseLine proc uses rcx rdi rsi rbx
                 mov [rbx].m_line,eax
                 strnzcpy(&[rbx].m_file, rdi, _MAX_PATH-1)
 
-                .if byte ptr [rax+1] != ':'
+                .if ( byte ptr [rax+1] != ':' )
 
                     GetFullPathName(rax, _MAX_PATH, rax, 0)
                 .endif
@@ -125,7 +127,7 @@ ParseOutput proc uses rsi rdi rbx
     mov rax,[rdx].TINFO.file
     lea rdi,FName
 
-    .ifd osopen(strfxcat(strcpy(rdi, strfn(rax)), ".err"), 0, M_RDONLY, A_OPEN) != -1
+    .ifd ( osopen(strfxcat(strcpy(rdi, strfn(rax)), ".err"), 0, M_RDONLY, A_OPEN) != -1 )
 
         mov esi,eax
         inc _filelength(esi)
@@ -148,7 +150,7 @@ ParseOutput proc uses rsi rdi rbx
                 mov rsi,rdi
                 mov ecx,bSize
 
-                .while error_count < MAXERROR-1
+                .while ( error_count < MAXERROR-1 )
 
                     mov al,10
                     repne scasb
@@ -169,13 +171,14 @@ ParseOutput proc uses rsi rdi rbx
 
 ParseOutput endp
 
-GetMessageId proc id
+GetMessageId proc id:UINT
 
     mov rax,err_file
     .if rax
-        mov eax,sizeof(ERFILE)
-        mul id
-        add rax,err_file
+
+        ldr  ecx,id
+        imul ecx,ecx,ERFILE
+        add  rax,rcx
     .endif
     ret
 
@@ -187,11 +190,13 @@ tifindfile proc uses rsi rbx fname:LPSTR
 
         mov rsi,rax
         mov rbx,rdx
+
         .repeat
+
             .ifd !_stricmp(fname, [rsi].TINFO.file)
 
                 mov rax,rsi
-                .break
+               .break
             .endif
             xor eax,eax
             cmp rsi,rbx
@@ -207,43 +212,43 @@ LoadMessageFile proc uses rsi rdi rbx M:ptr
     mov rsi,tinfo
     mov rdi,M
 
-    .repeat
-        .if !tifindfile(&[rdi].ERFILE.m_file)
+    .if !tifindfile(&[rdi].ERFILE.m_file)
 
-            .break .if !topen(&[rdi].ERFILE.m_file, 0)
+        .if !topen(&[rdi].ERFILE.m_file, 0)
 
-            mov rax,tinfo
+            .return
         .endif
+        mov rax,tinfo
+    .endif
 
-        .if rax != rsi
+    .if ( rax != rsi )
 
-            mov tinfo,rsi
-            mov tinfo,titogglefile(rsi, rax)
-            mov rsi,tinfo
-        .endif
+        mov tinfo,rsi
+        mov tinfo,titogglefile(rsi, rax)
+        mov rsi,tinfo
+    .endif
 
-        mov eax,[rdi].ERFILE.m_line
-        .if eax
+    mov eax,[rdi].ERFILE.m_line
+    .if eax
+        dec eax
+    .endif
 
-            dec eax
-        .endif
+    tialigny(rsi, eax)
+    tiputs(rsi)
 
-        tialigny(rsi, eax)
-        tiputs(rsi)
+    lea rax,[rdi].ERFILE.m_info
+    mov ebx,[rsi].TINFO.ypos
+    add ebx,[rsi].TINFO.yoffs
+    inc ebx
 
-        lea rax,[rdi].ERFILE.m_info
-        mov ebx,[rsi].TINFO.ypos
-        add ebx,[rsi].TINFO.yoffs
-        inc ebx
-        .if ebx > [rsi].TINFO.rows
-            sub ebx,2
-        .endif
+    .if ( ebx > [rsi].TINFO.rows )
+        sub ebx,2
+    .endif
 
-        scputs([rsi].TINFO.xpos, ebx, 0x4F, [rsi].TINFO.cols, rax)
-        xor eax,eax
-        mov [rsi].TINFO.crc,eax
-        inc eax
-    .until  1
+    scputs([rsi].TINFO.xpos, ebx, 0x4F, [rsi].TINFO.cols, rax)
+    xor eax,eax
+    mov [rsi].TINFO.crc,eax
+    inc eax
     ret
 
 LoadMessageFile endp
@@ -297,6 +302,7 @@ tiexecuteini proc uses rbx
         .endif
     .endif
     ret
+
 tiexecuteini endp
 
     option proc:PUBLIC
@@ -347,7 +353,7 @@ tinexterror proc
 
 tinexterror endp
 
-TIAltFx proc id
+TIAltFx proc id:UINT
 
     clear_error()
 
@@ -363,9 +369,10 @@ TIAltFx proc id
         .endif
     .endif
     ret
+
 TIAltFx endp
 
-TIShiftFx proc id
+TIShiftFx proc id:UINT
 
     clear_error()
     mov eax,id
@@ -451,9 +458,8 @@ titransfer proc uses rsi rdi rbx
         .endif
     .endif
 
-    .repeat
+    .if rsopen(IDD_DZTransfer)
 
-        .break .if !rsopen(IDD_DZTransfer)
         mov rdi,rax
         lea rdx,event_transfer
         mov ecx,MAXEXTCMD
@@ -509,19 +515,23 @@ titransfer proc uses rsi rdi rbx
         .while rsevent(IDD_DZTransfer, rdi)
 
             transfer_initsection()
+
             .if byte ptr [rsi] == 0
 
                 transfer_edit()
+
             .else
+
                 dlclose(rdi)
                 mov rax,rbx
                 tiexecuteini()
-               .break( 1 )
+               .return
             .endif
         .endw
+
         dlclose(rdi)
         xor eax,eax
-    .until 1
+    .endif
     ret
 
 titransfer endp

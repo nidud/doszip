@@ -2,6 +2,9 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
+Changes in 3.73 - 8 May 2024
+- added more Unicode support
+
 Changes in 3.72 - 4 May 2024
 - added Replace to File Search
 - added limited support for ZIP64 (files with <= 34K dictionaries)

@@ -3,6 +3,7 @@
 
 include doszip.inc
 include string.inc
+include stdlib.inc
 include io.inc
 
     .code
@@ -45,8 +46,14 @@ ccedit proc private uses rsi rdi copy:int_t ; rename or copy current file to a n
 
 					copyfile([rdi].FBLK.size, [rdi].FBLK.time, eax)
 				    .endif
+
 				.else
-				    rename(__srcfile, __outfile)
+
+				   .new wbuf[1024]:wchar_t
+
+				    mov rsi,wcscpy(&wbuf, _utftows(__srcfile))
+				    mov rdi,_utftows(__outfile)
+				    _wrename(rsi, rdi)
 				.endif
 			    .endif
 			.endif
