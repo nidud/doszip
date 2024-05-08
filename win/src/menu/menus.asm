@@ -7,7 +7,10 @@ include config.inc
 include time.inc
 include conio.inc
 include stdlib.inc
-include string.inc
+include dzstr.inc
+
+externdef time_id:dword
+tupdtime proto __cdecl
 
 .enum {
     ID_MPANELA,
@@ -451,7 +454,7 @@ readtools proc private uses rsi rdi rbx section:LPSTR, dialog:PDOBJ, index:int_t
             .else
 
                 add rcx,2*4
-                wcputs(rcx, 0, 32, rsi)
+                wcputs(rcx, 32, rsi)
                 mov eax,not _O_STATE
                 and [rbx].TOBJ.flag,ax
 

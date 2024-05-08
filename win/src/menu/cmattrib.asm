@@ -4,6 +4,7 @@
 include doszip.inc
 include string.inc
 include wsub.inc
+include stdlib.inc
 
 .enumt AttribIDD : TOBJ {
     ID_DIALOG,
@@ -109,23 +110,23 @@ cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
                 mov al,byte ptr flag
                 and al,_A_ARCH or _A_SYSTEM or _A_HIDDEN or _A_RDONLY
                 .if al != dl
-                    .if flag & _A_SUBDIR
-                        mov flag,edx
-                        setfattr(name, 0)
-                        mov edx,flag
+
+                    mov edi,edx
+                    mov rsi,_utftows(name)
+                    .if ( flag & _A_SUBDIR )
+
+                        _wsetfattr(rsi, 0)
                     .endif
-                    setfattr(name, edx)
+                    _wsetfattr(rsi, edi)
                 .endif
 
-                .ifd osopen(name, _A_NORMAL, M_WRONLY, A_OPEN) != -1
+                .ifd ( osopen(name, _A_NORMAL, M_WRONLY, A_OPEN) != -1 )
 
                     mov esi,eax
-                    setftime(esi,
-                        StringToTime([rbx].TOBJ.data[ID_MODTIME], [rbx].TOBJ.data[ID_MODDATE]))
-                    setftime_create(esi,
-                        StringToTime([rbx].TOBJ.data[ID_CREATETIME], [rbx].TOBJ.data[ID_CREATEDATE]))
-                    setftime_access(esi,
-                        StringToTime([rbx].TOBJ.data[ID_ACCESSTIME], [rbx].TOBJ.data[ID_ACCESSDATE]))
+                    mov _diskflag,1
+                    setftime(esi, StringToTime([rbx].TOBJ.data[ID_MODTIME], [rbx].TOBJ.data[ID_MODDATE]))
+                    setftime_create(esi, StringToTime([rbx].TOBJ.data[ID_CREATETIME], [rbx].TOBJ.data[ID_CREATEDATE]))
+                    setftime_access(esi, StringToTime([rbx].TOBJ.data[ID_ACCESSTIME], [rbx].TOBJ.data[ID_ACCESSDATE]))
                     _close(esi)
                 .endif
             .endif

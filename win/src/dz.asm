@@ -5,7 +5,7 @@ include doszip.inc
 include stdio.inc
 include stdlib.inc
 include malloc.inc
-include string.inc
+include dzstr.inc
 include config.inc
 ifdef _WIN64
 include signal.inc
@@ -124,7 +124,7 @@ _exception_handler proc \
         bswap r9
     .endif
 
-    _print(
+    printf(
             "This message is created due to unrecoverable error\n"
             "and may contain data necessary to locate it.\n"
             "\n"
@@ -185,7 +185,7 @@ endif
         .switch al
 
         .case '?'
-            _print(
+            printf(
                 "The Doszip Commander Version " DOSZIP_VSTRING DOSZIP_VSTRPRE ", "
                 "Copyright (C) 2023 Doszip Developers\n\n"
                 "Command line switches\n"
@@ -261,7 +261,7 @@ endif
     .ifd !doszip_init( rdi )
 
         .if nologo == 0
-            _print( "The Doszip Commander Version " DOSZIP_VSTRING DOSZIP_VSTRPRE ", "
+            printf( "The Doszip Commander Version " DOSZIP_VSTRING DOSZIP_VSTRPRE ", "
                 "Copyright (C) 2023 Doszip Developers\n\n" )
         .endif
 

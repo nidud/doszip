@@ -5,10 +5,11 @@
 ; 2017-10-19 - added ClassMode
 ; 2017-10-14 - created
 ;
-include string.inc
+include dzstr.inc
 include stdio.inc
 include stdlib.inc
 include errno.inc
+include syserr.inc
 include ltype.inc
 include doszip.inc
 include config.inc
@@ -49,7 +50,7 @@ define T_ARRAY     (T_STRING or T_BINARY)
 
 savefile proc uses rsi rdi rbx file:LPSTR, buffer:ptr, fsize:dword
 
-  local path[_MAX_PATH]:byte
+  local path[1024]:byte
   local flags:dword
     lea rdi,path
 
@@ -64,7 +65,7 @@ savefile proc uses rsi rdi rbx file:LPSTR, buffer:ptr, fsize:dword
         ermsg(0, "The file is Read-Only")
     .endif
 
-    .ifsd ogetouth(setfext(rdi, ".$$$"), M_WRONLY) <= 0
+    .ifsd ogetouth(strfxcat(rdi, ".$$$"), M_WRONLY) <= 0
 
         .return( 0 )
     .endif
@@ -75,7 +76,7 @@ savefile proc uses rsi rdi rbx file:LPSTR, buffer:ptr, fsize:dword
     .endif
     _close(esi)
     .if ebx
-        remove(file)
+        _wremove(_utftows(file))
         rename(rdi, file)
         mov eax,1
     .else
@@ -263,7 +264,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     .if ( ( !eax && !edx ) || edx )
 
         .if edx
-            ermsg(0, _sys_errlist[ENOMEM*size_t])
+            ermsg(0, _sys_err_msg(ENOMEM))
         .endif
         _close(ebx)
         .return( 0 )
@@ -277,7 +278,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     add eax,esi
     .if !malloc(eax)
 
-        ermsg(0, _sys_errlist[ENOMEM*size_t])
+        ermsg(0, _sys_err_msg(ENOMEM))
         _close(ebx)
         .return( 0 )
     .endif

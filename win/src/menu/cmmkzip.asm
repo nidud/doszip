@@ -47,6 +47,7 @@ cmmkzip proc uses rsi rdi
 
 		    oswrite(esi, rdx, ZEND)
 		    _close(esi)
+		    mov _diskflag,1
 		.endif
 	    .endif
 	.endif

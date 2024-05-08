@@ -6,23 +6,24 @@
 
 include stdlib.inc
 include stdio.inc
-include string.inc
+include dzstr.inc
 include malloc.inc
 include direct.inc
 include wsub.inc
 include process.inc
-include user32.inc
+include winbase.inc
+
+externdef _diskflag:int_t
+
+public _pgmpath
+public envtemp
 
     .data
-     __argv         LPSTR NULL
-     _environ       LPSTR NULL
-     _pgmptr        LPSTR NULL
      _pgmpath       LPSTR NULL
      __pCommandCom  LPSTR default
      __pCommandArg  LPSTR command_arg
      envpath        LPSTR curpath
      envtemp        LPSTR NULL
-     __argc         SINT 0
      comspec_type   UINT 0 ; %COMSPEC% or CMD.EXE
      exetype        SBYTE ".bat",0, ".com",0, ".exe",0, ".cmd",0,0
      curpath        SBYTE ".",0
@@ -34,148 +35,6 @@ include user32.inc
     .code
 
     option dotname
-
-atol proc string:string_t
-
-    ldr     rcx,string
-
-    xor     edx,edx
-    xor     eax,eax
-.0:
-    mov     dl,[rcx]
-    inc     rcx
-    cmp     dl,' '
-    je      .0
-ifdef _WIN64
-    mov     r8b,dl
-else
-    push    edx
-endif
-    cmp     dl,'+'
-    je      .1
-    cmp     dl,'-'
-    jne     .2
-.1:
-    mov     dl,[rcx]
-    inc     rcx
-.2:
-    sub     dl,'0'
-    jb      .3
-    cmp     dl,9
-    ja      .3
-    imul    eax,eax,10
-    add     eax,edx
-    mov     dl,[rcx]
-    inc     rcx
-    jmp     .2
-.3:
-ifdef _WIN64
-    cmp     r8b,'-'
-else
-    pop     ecx
-    cmp     cl,'-'
-endif
-    jne     .4
-    neg     eax
-.4:
-    ret
-
-atol endp
-
-_atoi64 proc string:string_t
-
-    ldr rcx,string
-    xor eax,eax
-    xor edx,edx
-
-    .repeat
-        mov al,[rcx]
-        inc rcx
-    .until al != ' '
-
-ifdef _WIN64
-    mov r8b,al
-else
-    push eax
-endif
-
-    .if ( al == '-' || al == '+' )
-
-        mov al,[rcx]
-        inc rcx
-    .endif
-
-ifdef _WIN64
-
-    .while 1
-
-        sub al,'0'
-
-        .break .ifc
-        .break .if al > 9
-
-        mov r9,rdx
-        shl rdx,3
-        add rdx,r9
-        add rdx,r9
-        add rdx,rax
-        mov al,[rcx]
-        inc rcx
-    .endw
-
-    .if ( r8b == '-' )
-
-        neg rdx
-    .endif
-    mov rax,rdx
-
-else
-
-    push esi
-    push edi
-    push ebx
-
-    mov ebx,ecx
-    mov ecx,eax
-    xor eax,eax
-    xor edx,edx
-
-    .while 1
-
-        sub cl,'0'
-
-        .break .ifc
-        .break .if ( cl > 9 )
-
-        mov esi,edx
-        mov edi,eax
-        shld edx,eax,3
-        shl eax,3
-        add eax,edi
-        adc edx,esi
-        add eax,edi
-        adc edx,esi
-        add eax,ecx
-        adc edx,0
-        mov cl,[ebx]
-        inc ebx
-    .endw
-
-    pop ebx
-    pop edi
-    pop esi
-    pop ecx
-
-    .if ( cl == '-' )
-
-        neg edx
-        neg eax
-        sbb edx,0
-    .endif
-endif
-    ret
-
-_atoi64 endp
 
 __xtol proc string:LPSTR
 
@@ -299,26 +158,6 @@ mkbstring proc uses rsi rdi buf:LPSTR, qw:qword
 
 mkbstring endp
 
-__isexec proc filename:string_t
-
-    ldr rcx,filename
-    .if strext( rcx )
-
-        mov ecx,[rax+1]
-        or  ecx,'   '
-        xor eax,eax
-
-        .switch pascal ecx
-        .case 'dmc' : mov eax,_EXEC_CMD
-        .case 'exe' : mov eax,_EXEC_EXE
-        .case 'moc' : mov eax,_EXEC_COM
-        .case 'tab' : mov eax,_EXEC_BAT
-        .endsw
-    .endif
-    ret
-
-__isexec endp
-
 recursive proc uses rsi rdi name:LPSTR, src:LPSTR, dst:LPSTR
 
    .new temp[WMAXPATH]:char_t
@@ -341,207 +180,6 @@ recursive proc uses rsi rdi name:LPSTR, src:LPSTR, dst:LPSTR
     ret
 
 recursive endp
-
-__allocwpath proc uses rsi rdi rbx path:LPSTR
-
-    mov rsi,path
-    xor edi,edi
-
-    .ifd MultiByteToWideChar(0, 0, rsi, -1, 0, 0)
-
-        mov ebx,eax
-        mov rdi,malloc(&[rax*2+8])
-        add rax,8
-
-        .ifd MultiByteToWideChar(0, 0, rsi, -1, rax, ebx)
-
-            mov dword ptr [rdi],  0x005C005C    ; "\\?\"
-            mov dword ptr [rdi+4],0x005C003F
-        .else
-            free(rdi)
-            xor edi,edi
-        .endif
-    .endif
-    mov rax,rdi
-    ret
-
-__allocwpath endp
-
-define MAXCOUNT 256
-
-__setenvp proc private uses rsi rdi rbx envp:string_t
-
-    .new offs[MAXCOUNT]:int_t
-
-    ; size up the environment
-
-    .for ( rdi = GetEnvironmentStringsA(),
-           rsi = rax, ; save start of block in ESI
-           eax = 0,
-           ebx = 0,
-           ecx = -1 : al != [rdi] && ebx < MAXCOUNT : )
-
-        .if ( byte ptr [rdi] != '=' )
-
-            mov  rdx,rdi    ; save offset of string
-            sub  rdx,rsi
-            mov  offs[rbx*int_t],edx
-            inc  rbx        ; increase count
-        .endif
-        repnz scasb         ; next string..
-    .endf
-
-    inc ebx                 ; count strings plus NULL
-    sub rdi,rsi             ; EDI to size
-    malloc( &[rdi+rbx*size_t] ) ; pointers plus size of environment
-
-    mov rcx,envp            ; return result
-    mov [rcx],rax
-    .if ( rax == NULL )
-        .return
-    .endif
-    mov rcx,rdi
-    mov rdi,rax
-                            ; new adderss of block
-    memcpy( &[rax+rbx*size_t], rsi, rcx )
-
-    xchg rax,rsi            ; ESI to block
-    FreeEnvironmentStringsA(rax)
-
-    .for ( ebx--, ecx = 0 : ecx < ebx : ecx++ )
-
-        mov eax,offs[rcx*int_t]
-        add rax,rsi
-        mov [rdi+rcx*string_t],rax
-    .endf
-    xor eax,eax
-    mov [rdi+rcx*string_t],rax
-   .return( rdi )
-
-__setenvp endp
-
-define MAXARGCOUNT 256
-define MAXARGSIZE  0x8000  ; Max argument size: 32K
-
-setargv proc private uses rsi rdi rbx argc:ptr int_t, cmdline:string_t
-
-  local argv[MAXARGCOUNT]:string_t
-  local buffer:string_t
-  local i:int_t
-
-    ldr rcx,argc
-    ldr rsi,cmdline
-    mov dword ptr [rcx],0
-    mov buffer,malloc(MAXARGSIZE)
-    mov rdi,rax
-    lodsb
-
-    .while al
-
-        xor ecx,ecx     ; Add a new argument
-        xor edx,edx     ; "quote from start" in EDX - remove
-        mov [rdi],cl
-
-        .for ( : al == ' ' || ( al >= 9 && al <= 13 ) : )
-            lodsb
-        .endf
-        .break .if !al  ; end of command string
-
-        .if ( al == '"' )
-            add edx,1
-            lodsb
-        .endif
-        .while ( al == '"' ) ; ""A" B"
-            add ecx,1
-            lodsb
-        .endw
-
-        .while al
-
-            .break .if ( !edx && !ecx && ( al == ' ' || ( al >= 9 && al <= 13 ) ) )
-
-            .if ( al == '"' )
-
-                .if ecx
-                    dec ecx
-                .elseif edx
-                    mov al,[rsi]
-                    .break .if ( al == ' ' || ( al >= 9 && al <= 13 ) )
-                    dec edx
-                .else
-                    inc ecx
-                .endif
-            .else
-                stosb
-            .endif
-            lodsb
-        .endw
-
-        xor ecx,ecx
-        mov [rdi],ecx
-        lea rbx,[rdi+1]
-        mov rdi,buffer
-        .break .if ( cl == [rdi] )
-
-        mov i,eax
-        sub rbx,rdi
-        memcpy(malloc(rbx), rdi, rbx)
-        mov rdx,argc
-        mov ecx,[rdx]
-        mov argv[rcx*size_t],rax
-        inc dword ptr [rdx]
-        mov eax,i
-
-        .break .if !( ecx < MAXARGCOUNT )
-    .endw
-
-    xor eax,eax
-    mov rdx,argc
-    mov ebx,[rdx]
-    lea rdi,argv
-    mov [rdi+rbx*size_t],rax
-    lea rbx,[rbx*size_t+size_t]
-    mov rsi,malloc(rbx)
-    free(buffer)
-    memcpy(rsi, rdi, rbx)
-    ret
-
-setargv endp
-
-__initargv proc private uses rdi
-
-  local pgname[260]:SBYTE
-
-    __setenvp( &_environ )
-    mov __argv,setargv(&__argc, GetCommandLineA())
-    mov rax,[rax]
-
-    .if ( byte ptr [rax+1] != ':' )
-
-        free(rax)
-        ;
-        ; Get the program name pointer from Win32 Base
-        ;
-        GetModuleFileNameA(0, &pgname, 260)
-        malloc(&[rax+1])
-        lea rcx,pgname
-        strcpy(rax, rcx)
-        mov rcx,__argv
-        mov [rcx],rax
-
-        .if byte ptr [rax] == '"'
-            mov rdi,rax
-            strcpy(rdi, &[rax+1])
-            .if strrchr(rdi, '"')
-                mov byte ptr [rax],0
-            .endif
-            mov rax,rdi
-        .endif
-    .endif
-    mov _pgmptr,rax
-    ret
-
-__initargv endp
 
 __initpath proc private uses rdi
 
@@ -655,19 +293,24 @@ GetEnvironmentTEMP proc
 
 GetEnvironmentTEMP endp
 
-removefile proc file:LPSTR
+removefile proc uses rbx file:LPSTR
 
-    setfattr(file, 0)
-    remove(file)
+    ldr rcx,file
+
+    mov rbx,_utftows(rcx)
+    _wsetfattr(rbx, 0)
+    _wremove(rbx)
     ret
 
 removefile endp
 
-removetemp proc path:LPSTR
+removetemp proc uses rbx path:LPSTR
 
-  local nbuf[_MAX_PATH]:byte
+   .new buffer[1024]:char_t
 
-    removefile(strfcat(&nbuf, envtemp, path))
+    mov rbx,_utftows(strfcat(&buffer, envtemp, path))
+    _wsetfattr(rbx, 0)
+    _wremove(rbx)
     ret
 
 removetemp endp
@@ -683,83 +326,88 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
     mov Result,0
 
     .if GetEnvironmentStrings()
-    ;
-    ; Read the current environment block
-    ;
-    mov rdi,rax
-    mov esi,GetEnvironmentSize(rax)
-    mov CurrentEnvSize,esi
-    mov CurrentEnvironment,memcpy(alloca(esi), rdi, esi)
-    FreeEnvironmentStrings(rdi)
-    ;
-    ; Read the new environment block
-    ;
-    .ifd osopen(FileName, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+        ;
+        ; Read the current environment block
+        ;
+        mov rdi,rax
+        mov esi,GetEnvironmentSize(rax)
+        mov CurrentEnvSize,esi
+        mov CurrentEnvironment,memcpy(alloca(esi), rdi, esi)
+        FreeEnvironmentStrings(rdi)
+        ;
+        ; Read the new environment block
+        ;
+        .ifd osopen(FileName, _A_NORMAL, M_RDONLY, A_OPEN) != -1
 
-        mov edi,eax
-        mov ebx,_filelength(eax)
-        mov rsi,alloca(eax)
-        mov byte ptr [rsi],0
-        osread(edi, rsi, ebx)
-        xchg eax,edi
-        _close(eax)
-        mov NewEnvironment,rsi
+            mov edi,eax
+            mov ebx,_filelength(eax)
+            mov rsi,alloca(eax)
+            mov byte ptr [rsi],0
+            osread(edi, rsi, ebx)
+            xchg eax,edi
+            _close(eax)
+            mov NewEnvironment,rsi
 
-        test ebx,ebx    ; Exit on zero file or IO error
-        jz toend
-        cmp edi,ebx
-        jne toend
-        ;
-        ; Get size of new block
-        ;
-        GetEnvironmentSize(rsi)
-        mov rdi,rsi
-        mov esi,eax
-        mov NewEnvSize,esi
-        .if esi == CurrentEnvSize
-        mov ecx,esi
-        mov rdx,rdi
-        mov rsi,CurrentEnvironment
-        repz cmpsb
-        mov rsi,rdx
-        jz  directory   ; Skip if equal
-        .endif
-        ;
-        ; The new block differ from the current
-        ; - delete the current block
-        ;
-        mov rsi,CurrentEnvironment
-        .while byte ptr [rsi]
-        lea rax,[rsi+1]
-        .if strchr(rax, '=')
-            mov byte ptr [rax],0
-            mov rbx,rax
-            SetEnvironmentVariable(rsi, 0)
-            mov byte ptr [rbx],'='
-        .endif
-        strlen(rsi)
-        lea rsi,[rsi+rax+1]
-        .endw
-        ;
-        ; - set the new block
-        ;
-        mov rsi,NewEnvironment
-        .while byte ptr [rsi]
-        lea rax,[rsi+1]
-        .if strchr(rax, '=')
-            mov byte ptr [rax],0
-            lea rbx,[rax+1]
-            SetEnvironmentVariable(rsi, rbx)
-            mov byte ptr [rbx-1],'='
-        .endif
-        strlen(rsi)
-        lea rsi,[rsi+rax+1]
-        .endw
-        inc rsi
+            test ebx,ebx    ; Exit on zero file or IO error
+            jz toend
+            cmp edi,ebx
+            jne toend
+            ;
+            ; Get size of new block
+            ;
+            GetEnvironmentSize(rsi)
+            mov rdi,rsi
+            mov esi,eax
+            mov NewEnvSize,esi
+            .if esi == CurrentEnvSize
+
+                mov ecx,esi
+                mov rdx,rdi
+                mov rsi,CurrentEnvironment
+                repz cmpsb
+                mov rsi,rdx
+                jz  directory   ; Skip if equal
+            .endif
+            ;
+            ; The new block differ from the current
+            ; - delete the current block
+            ;
+            mov rsi,CurrentEnvironment
+            .while byte ptr [rsi]
+
+                lea rax,[rsi+1]
+                .if strchr(rax, '=')
+
+                    mov byte ptr [rax],0
+                    mov rbx,rax
+                    SetEnvironmentVariable(rsi, 0)
+                    mov byte ptr [rbx],'='
+                .endif
+                strlen(rsi)
+                lea rsi,[rsi+rax+1]
+            .endw
+            ;
+            ; - set the new block
+            ;
+            mov rsi,NewEnvironment
+            .while byte ptr [rsi]
+
+                lea rax,[rsi+1]
+                .if strchr(rax, '=')
+
+                    mov byte ptr [rax],0
+                    lea rbx,[rax+1]
+                    SetEnvironmentVariable(rsi, rbx)
+                    mov byte ptr [rbx-1],'='
+                .endif
+                strlen(rsi)
+                lea rsi,[rsi+rax+1]
+            .endw
+            inc rsi
 directory:
-        SetCurrentDirectory(rsi)
-        inc Result
-    .endif
+            SetCurrentDirectory(rsi)
+            inc Result
+        .endif
     .endif
 toend:
     mov eax,Result
@@ -780,6 +428,7 @@ SaveEnvironment proc uses rsi rdi rbx FileName:LPSTR
         .ifd osopen(FileName, _A_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
 
             mov edi,eax
+            mov _diskflag,1
             oswrite(edi, rsi, GetEnvironmentSize(rsi))
 
             lea rsi,CurrentDirectory
@@ -793,7 +442,8 @@ SaveEnvironment proc uses rsi rdi rbx FileName:LPSTR
             _close(edi)
 
             .if ( retval == 0 )
-                remove(FileName)
+
+                _wremove(_utftows(FileName))
             .endif
         .endif
         FreeEnvironmentStrings(rbx)
@@ -873,7 +523,7 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
     ;
     ; Test valid extension
     ;
-    mov isexec,__isexec(rbx)
+    mov isexec,_aisexec(rbx)
 
     lea rsi,path
     lea rdi,file
@@ -958,7 +608,6 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
 
 searchp endp
 
-.pragma init(__initargv, 4)
 .pragma init(__initpath, 5)
 .pragma init(__initcomspec, 60)
 .pragma init(GetEnvironmentPATH, 101)

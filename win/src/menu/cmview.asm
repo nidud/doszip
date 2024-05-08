@@ -2,7 +2,7 @@
 ; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
 
 include io.inc
-include string.inc
+include dzstr.inc
 include stdlib.inc
 include process.inc
 include config.inc
@@ -192,8 +192,10 @@ viewzip proc private uses rdi
     .ifd unzip_to_temp(rcx, rbx)
 
         load_tview(rax, edi)
-        setfattr(rbx, 0)
-        remove(rbx)
+
+        mov rdi,_utftows(rbx)
+        _wsetfattr(rdi, 0)
+        _wremove(rdi)
         mov eax,1
     .endif
     ret

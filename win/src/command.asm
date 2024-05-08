@@ -4,7 +4,7 @@
 include doszip.inc
 include tview.inc
 include process.inc
-include string.inc
+include dzstr.inc
 include malloc.inc
 include stdio.inc
 include stdlib.inc
@@ -28,7 +28,9 @@ comhndlevent proc private event:uint_t
         dledite(&com_info, event)
     .endif
     ret
+
 comhndlevent endp
+
 
 cominit proc wsub:PWSUB
 
@@ -41,6 +43,7 @@ cominit proc wsub:PWSUB
     ret
 
 cominit endp
+
 
     assume rsi:PWSUB
 
@@ -87,16 +90,17 @@ cominitline proc private uses rsi rdi rbx
 
 cominitline endp
 
+
 comshow proc
 
     mov eax,com_info.ypos
+
     lea rcx,prect_b
-    .if !(byte ptr [rcx] & _D_ONSCR)
+    .if ( [rcx].DOBJ.flag & _D_ONSCR )
 
         lea rcx,prect_a
     .endif
-
-    .if (byte ptr [rcx] & _D_ONSCR)
+    .if ( [rcx].DOBJ.flag & _D_ONSCR )
 
         mov dl,[rcx].DOBJ.rc.y
         add dl,[rcx].DOBJ.rc.row
@@ -106,18 +110,13 @@ comshow proc
         .endif
     .endif
 
-    .if !eax && cflag & _C_MENUSLINE
-
+    .if ( !eax && cflag & _C_MENUSLINE )
         inc eax
     .endif
-
-    .if eax >= _scrrow && cflag & _C_STATUSLINE
-
+    .if ( eax >= _scrrow && cflag & _C_STATUSLINE )
         dec eax
     .endif
-
-    .if eax > _scrrow
-
+    .if ( eax > _scrrow )
         mov eax,_scrrow
     .endif
 
@@ -136,47 +135,49 @@ comshow proc
 
 comshow endp
 
+
 comhide proc
+
     dlhide(DLG_Commandline)
     _cursoroff()
     ret
+
 comhide endp
 
-comevent proc event
 
-    mov eax,event
+comevent proc event:UINT
+
+    ldr eax,event
     .switch eax
-      .case KEY_UP
+    .case KEY_UP
         .ifd cpanel_state()
-
             xor eax,eax
         .else
             cmdoskeyup()
             mov eax,1
         .endif
         .endc
-      .case KEY_DOWN
+    .case KEY_DOWN
         .ifd cpanel_state()
-
             xor eax,eax
         .else
             cmdoskeydown()
             mov eax,1
         .endif
         .endc
-      .case KEY_ALTRIGHT
+    .case KEY_ALTRIGHT
         cmpathright()
         mov eax,1
-        .endc
-      .case KEY_ALTLEFT
+       .endc
+    .case KEY_ALTLEFT
         cmpathleft()
         mov eax,1
-        .endc
-      .case 0
-      .case KEY_CTRLX
+       .endc
+    .case 0
+    .case KEY_CTRLX
         xor eax,eax
-        .endc
-      .default
+       .endc
+    .default
         .ifd comhndlevent(eax)
             xor eax,eax
         .else
@@ -184,16 +185,20 @@ comevent proc event
         .endif
     .endsw
     ret
+
 comevent endp
 
+
 clrcmdl proc
-    .if cflag & _C_COMMANDLINE
+
+    .if ( cflag & _C_COMMANDLINE )
 
         mov com_base,0
         comevent(KEY_HOME)
         cominitline()
     .endif
     ret
+
 clrcmdl endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -375,30 +380,29 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
         ;
         ; SET and FOR may change the environment
         ;
-        __isexec(rbx)
+        _aisexec(rbx)
         test eax,eax
         jnz execute_command
+
         mov eax,[rbx]
         and eax,00FFFFFFh
         or  eax,00202020h
-        .switch eax
-          ;
-          ; Change or set environment variable
-          ;
-          .case 'tes'   ; SET
-          .case 'rof'   ; FOR
-            mov al,[rdi+3]
-            .switch al
-              .case ' '
-              .case 9
+
+        .if ( eax == 'tes' || eax == 'rof' )
+            ;
+            ; Change or set environment variable
+            ;
+            mov al,[rbx+3]
+            .if ( al == ' ' || al == 9 )
+
                 inc UpdateEnviron
                 jmp create_batch
-            .endsw
-        .endsw
+            .endif
+        .endif
         jmp execute_command
     .endif
 
-    .switch __isexec(rbx)
+    .switch _aisexec(rbx)
       .case _EXEC_EXE
         .if comspec_type == 0
 

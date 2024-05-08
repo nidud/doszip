@@ -31,9 +31,10 @@
 ;
 
 include malloc.inc
-include string.inc
+include dzstr.inc
 include stdio.inc
 include stdlib.inc
+include winnls.inc
 include io.inc
 include wsub.inc
 include direct.inc
@@ -646,10 +647,11 @@ previous_line endp
 
 putscreenb proc uses rsi rdi rbx y:int_t, row:int_t, lp:ptr
 
-  local bz:COORD, rect:SMALL_RECT, lbuf[TIMAXSCRLINE]:CHAR_INFO
+  local bz:COORD, rect:SMALL_RECT, ci[TIMAXSCRLINE]:CHAR_INFO, rows:int_t
 
-    mov rsi,lp
-    mov ebx,row
+    ldr rsi,lp
+    ldr eax,row
+    mov rows,eax
     mov eax,_scrcol
     mov bz.X,ax
     mov bz.Y,1
@@ -658,28 +660,25 @@ putscreenb proc uses rsi rdi rbx y:int_t, row:int_t, lp:ptr
     mov rect.Right,ax
 
     .repeat
-        lea rdi,lbuf
-        mov ecx,_scrcol
-        movzx eax,at_background[B_TextView]
-        or  al,at_foreground[F_TextView]
-        shl eax,16
-        .repeat
-            lodsb
-            .if ( al == 179 )
-                mov ax,0x2502
-                stosd
-                mov ah,0
-            .else
-                stosd
+
+        .for ( rdi = &ci, ebx = 0 : ebx < _scrcol : ebx++, rsi++, rdi+=4 )
+
+            .ifd !MultiByteToWideChar(_consolecp, 0, rsi, 1, rdi, 1)
+
+                mov al,[rsi]
+                mov [rdi],ax
             .endif
-        .untilcxz
+            movzx eax,at_background[B_TextView]
+            or  al,at_foreground[F_TextView]
+            mov [rdi+2],ax
+        .endf
         mov eax,y
         add eax,row
-        sub eax,ebx
+        sub eax,rows
         mov rect.Top,ax
         mov rect.Bottom,ax
-        .break .if !WriteConsoleOutputW(_confh, &lbuf, bz, 0, &rect)
-        dec ebx
+        .break .if !WriteConsoleOutputW(_confh, &ci, bz, 0, &rect)
+        dec rows
     .untilz
     ret
 
@@ -832,7 +831,7 @@ endif
         dlshow(rbx)
     .endif
 
-    scpathu(1, 0, 41, filename)
+    scpath(1, 0, 41, filename)
     mov ecx,_scrcol
     sub ecx,38
     mov edx,dword ptr STDI.fsize

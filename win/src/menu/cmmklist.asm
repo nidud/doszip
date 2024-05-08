@@ -4,7 +4,7 @@
 ; Make List File from selection set
 ;
 include doszip.inc
-include string.inc
+include dzstr.inc
 include io.inc
 include stdio.inc
 include stdlib.inc
@@ -193,7 +193,7 @@ mklistadd proc uses rsi rdi rbx file:LPSTR
 
     .if ( mklist.flag & _MKL_UNIX )
 
-        mov rbx,dostounix(rbx)
+        mov rbx,strunix(rbx)
     .endif
 
     .if ( mklist.flag & _MKL_EXCL_FILE )

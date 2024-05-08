@@ -5,6 +5,7 @@ include doszip.inc
 include io.inc
 include wsub.inc
 include errno.inc
+include syserr.inc
 include time.inc
 include string.inc
 include malloc.inc
@@ -24,7 +25,7 @@ include progress.inc
 error_diskfull proc private
 
     ermsg(0, "%s\n%s\n\n%s", "There was an error while copying",
-            __outfile, _sys_errlist[ENOSPC*size_t])
+            __outfile, _sys_err_msg(ENOSPC))
     ret
 
 error_diskfull endp
@@ -246,7 +247,7 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
 
         strfcat(__outfile, rbx, [rdi].WSUB.file)
         strcpy(rbx, [rdi].WSUB.arch)
-        dostounix(rax)
+        strunix(rax)
     .else
         strfcat(__outfile, rbx, strfn(__srcfile))
     .endif
@@ -309,13 +310,15 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
 
     .if !( copy_flag & _COPY_OARCHIVE )
 
-        .ifd getfattr(rbx) == -1
+        mov rdi,_utftows(rbx)
+        .ifd ( _wgetfattr(rdi) == -1 )
 
-            .ifd _mkdir(rbx)
+            .ifd _wmkdir(rdi)
 
                 ermkdir(rbx)
                .return( 0 )
             .endif
+            mov _diskflag,1
         .endif
     .endif
     setconfirmflag()
@@ -347,11 +350,10 @@ copyfile proc uses rsi rdi file_size:qword, t:dword, attrib:UINT
         .if eax != STDI.crc
 
             ioclose(&STDO)
-            mov rax,_sys_errlist[EIO*size_t]
-            mov edx,errno
-            .if edx
-                lea rax,_sys_errlist
-                mov rax,[rax+rdx*size_t]
+            .ifd ( _get_errno(NULL) )
+                _sys_err_msg(eax)
+            .else
+                _sys_err_msg(EIO)
             .endif
             ermsg(0, "%s\n'%s'", "There was an error while copying", rax)
 
@@ -384,7 +386,8 @@ copyfile proc uses rsi rdi file_size:qword, t:dword, attrib:UINT
                 .endif
             .endif
             and eax,_A_FATTRIB
-            setfattr(__outfile, eax)
+            mov edi,eax
+            _wsetfattr(_utftows(__outfile), edi)
             mov eax,esi
         .endif
     .endif
@@ -458,10 +461,12 @@ fp_copyfile endp
 
 fp_copydirectory proc uses rsi rdi rbx directory:LPSTR
 
+   .new attr:UINT
    .new path:LPSTR = alloca(WMAXPATH)
 
     mov rbx,rax
     mov rsi,directory
+    mov attr,_wgetfattr(_utftows(rsi))
     add rsi,strlen(__srcpath)
 
     .if byte ptr [rsi] == '\'
@@ -475,7 +480,7 @@ fp_copydirectory proc uses rsi rdi rbx directory:LPSTR
         .if byte ptr [rcx]
             strcat(rcx, "/")
         .endif
-        dostounix(strcat(strcat(__outpath, rsi), "/"))
+        strunix(strcat(strcat(__outpath, rsi), "/"))
 
         mov rcx,__srcfile
         mov byte ptr [rcx],0
@@ -483,16 +488,20 @@ fp_copydirectory proc uses rsi rdi rbx directory:LPSTR
         .if ( cflag & _C_ZINCSUBDIR )
 
             mov esi,clock()
-            wzipadd(0, esi, getfattr(directory))
+            wzipadd(0, esi, attr)
         .endif
 
-    .elseifd !_mkdir(strfcat(__outpath, 0, rsi))
+    .else
+        mov rsi,_utftows(strfcat(__outpath, 0, rsi))
+        .ifd !_wmkdir(rsi)
 
-        .ifd !setfattr(__outpath, 0)
+            mov _diskflag,1
+            .ifd ( !_wsetfattr(rsi, 0) )
 
-            getfattr(directory)
-            and eax,not _A_SUBDIR
-            setfattr(__outpath, eax)
+                mov eax,attr
+                and eax,not _A_SUBDIR
+                _wsetfattr(rsi, eax)
+            .endif
         .endif
     .endif
     mov esi,scan_files(directory)
@@ -511,12 +520,13 @@ copydirectory proc private uses rsi rdi rbx fblk:PFBLK
     mov rdi,fblk
     lea rdi,[rdi].FBLK.name
     mov rbx,__outpath
+    mov _diskflag,1
 
     .if !progress_set(rdi, rbx, 0)
 
         .if !( copy_flag & _COPY_OARCHIVE )
 
-            _mkdir(rbx)
+            _wmkdir(_utftows(rbx))
         .endif
 
         strfcat(rsi, __srcpath, rdi)
@@ -596,6 +606,7 @@ cmcopy proc uses rsi rdi rbx
 
         .ifd init_copy(rcx, 1)
 
+            mov _diskflag,1
             mov al,copy_flag
             .if ( al & _COPY_IEXTFILE )
 
@@ -618,7 +629,7 @@ cmcopy proc uses rsi rdi rbx
                 mov fp_fileblock,&fp_copyfile
                 mov fp_directory,&fp_copydirectory
                 .if copy_flag & _COPY_OARCHIVE
-                    dostounix(__outpath)
+                    strunix(__outpath)
                     .if copy_flag & _COPY_OZIPFILE && copy_fast
                         and eax,wzipopen()
                         jz done

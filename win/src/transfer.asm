@@ -1,10 +1,11 @@
 include conio.inc
 include malloc.inc
-include string.inc
+include dzstr.inc
 include stdio.inc
 include stdlib.inc
 include io.inc
 include errno.inc
+include syserr.inc
 include direct.inc
 include config.inc
 include wsub.inc
@@ -124,7 +125,7 @@ ParseOutput proc uses rsi rdi rbx
     mov rax,[rdx].TINFO.file
     lea rdi,FName
 
-    .ifd osopen(setfext(strcpy(rdi, strfn(rax)), ".err"), 0, M_RDONLY, A_OPEN) != -1
+    .ifd osopen(strfxcat(strcpy(rdi, strfn(rax)), ".err"), 0, M_RDONLY, A_OPEN) != -1
 
         mov esi,eax
         inc _filelength(esi)
@@ -269,9 +270,7 @@ cmspawnini proc uses rsi rbx IniSection:ptr
 
             .ifd !CreateConsole(rbx, _P_WAIT)
 
-                mov eax,errno
-                lea rcx,_sys_errlist
-                mov rax,[rcx+rax*size_t]
+                _sys_err_msg(_get_errno(NULL))
                 ermsg(0, "Unable to execute command:\n\n%s\n\n'%s'", __srcfile, rax)
                 xor eax,eax
             .endif

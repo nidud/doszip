@@ -4,7 +4,7 @@
 include doszip.inc
 include stdio.inc
 include stdlib.inc
-include string.inc
+include dzstr.inc
 include time.inc
 
 .enumt FilterIDD : TOBJ {

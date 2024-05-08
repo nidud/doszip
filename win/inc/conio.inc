@@ -2,7 +2,7 @@
 ifndef __INC_CONIO
 define __INC_CONIO
 
-include user32.inc
+include wincon.inc
 include keyb.inc
 
 ifndef _INTPTR_T_DEFINED
@@ -238,8 +238,8 @@ rcxyrow		proto __cdecl :TRECT, :UINT, :UINT
 rcinside	proto __cdecl :TRECT, :UINT
 rczip		proto __cdecl :TRECT, :PTR, :PCHAR_INFO
 
-wcputf		proto __Cdecl :PCHAR_INFO, :DWORD, :DWORD, :LPSTR, :VARARG
-wcputs		proto __cdecl :PCHAR_INFO, :DWORD, :DWORD, :LPSTR
+wcputf		proto __Cdecl :PCHAR_INFO, :DWORD, :LPSTR, :VARARG
+wcputs		proto __cdecl :PCHAR_INFO, :DWORD, :LPSTR
 wcpath		proto __cdecl :PCHAR_INFO, :DWORD, :LPSTR
 wcputw		proto __cdecl :PCHAR_INFO, :DWORD, :DWORD
 wcenter		proto __cdecl :PCHAR_INFO, :DWORD, :LPSTR
@@ -259,10 +259,10 @@ scputfg		proto __cdecl :UINT, :UINT, :UINT, :UINT
 scputc		proto __cdecl :UINT, :UINT, :UINT, :UINT
 scputw		proto __cdecl :UINT, :UINT, :UINT, :UINT
 scputs		proto __cdecl :UINT, :UINT, :UINT, :UINT, :LPSTR
-scpath		proto __cdecl :UINT, :UINT, :UINT, :LPSTR
+scpath		proto __cdecl :SINT, :SINT, :SINT, :LPSTR
 scpathl		proto __cdecl :UINT, :UINT, :UINT, :LPSTR
 scenter		proto __cdecl :UINT, :UINT, :UINT, :LPSTR
-scputf		proto __Cdecl :UINT, :UINT, :UINT, :UINT, :LPSTR, :VARARG
+scputf		proto __Cdecl :SINT, :SINT, :SINT, :SINT, :LPSTR, :VARARG
 
 
 ROBJ		struct 1
@@ -411,6 +411,7 @@ PTINFO		typedef ptr TINFO
 externdef	tinfo:PTINFO
 externdef	tiflags:UINT
 externdef	titabsize:UINT
+externdef	_consolecp:UINT
 
 tistate		proto __cdecl :PTINFO
 tialigny	proto __cdecl :PTINFO, :UINT

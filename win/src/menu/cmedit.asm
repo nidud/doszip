@@ -1,11 +1,11 @@
 ; CMEDIT.ASM--
 ; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
 
-include string.inc
 include io.inc
 include time.inc
 include doszip.inc
 include stdlib.inc
+include dzstr.inc
 
     .code
 
@@ -100,7 +100,7 @@ editzip proc private uses rsi rdi rbx file:LPSTR
     .ifd unzip_to_temp(rcx, rbx)
 
         mov esi,_diskflag
-        setfattr(rax, 0)
+        _wsetfattr(_utftows(rax), 0)
         mov _diskflag,0
         tedit(rbx, 0)
         mov eax,_diskflag
@@ -113,7 +113,7 @@ editzip proc private uses rsi rdi rbx file:LPSTR
         .else
             mov _diskflag,esi
         .endif
-        remove(rbx)
+        _wremove(_utftows(rbx))
     .endif
     ret
 

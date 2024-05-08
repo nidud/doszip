@@ -57,6 +57,7 @@ ccedit proc private uses rsi rdi copy:int_t ; rename or copy current file to a n
 		    pcell_show(cpanel)
 		.endif
 		mov eax,1
+		mov _diskflag,eax
 	    .endif
 	.else
 	    xor eax,eax

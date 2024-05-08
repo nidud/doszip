@@ -389,6 +389,7 @@ doszip_modal proc uses rsi
                 ;
                 ; Update after extern command
                 ;
+                mov _consolecp,GetConsoleCP()
                 SetConsoleTitle(DZTitle)
 
                 .if ( cflag & _C_DELTEMP )

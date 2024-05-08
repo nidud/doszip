@@ -10,10 +10,12 @@ include time.inc
 include io.inc
 include conio.inc
 include errno.inc
+include syserr.inc
 include stdlib.inc
 include malloc.inc
 include wsub.inc
 
+public _diskflag
 
     .data
      _diskflag dd 0
@@ -21,159 +23,6 @@ include wsub.inc
      push_button db "&A",0
 
     .code
-
-_chdir proc directory:LPSTR
-
-  local root
-  local abspath[_MAX_PATH]:byte
-
-    .repeat
-        .repeat
-            .ifd SetCurrentDirectory(directory)
-
-                .ifd GetCurrentDirectory(_MAX_PATH, &abspath)
-
-                    mov ecx,dword ptr abspath
-                    .if ch == ':'
-
-                        mov eax,0x003A003D
-                        mov ah,cl
-                        .if ah >= 'a' && ah <= 'z'
-                            sub ah,'a' - 'A'
-                        .endif
-                        mov root,eax
-                        .break .ifd !SetEnvironmentVariable(&root, &abspath)
-                    .endif
-                    xor eax,eax
-                    .break(1)
-                .endif
-            .endif
-        .until 1
-        osmaperr()
-    .until 1
-    ret
-
-_chdir endp
-
-_mkdir proc uses rbx directory:LPSTR
-
-    .ifd !CreateDirectoryA(directory, 0)
-
-        .if __allocwpath(directory)
-
-            mov rbx,rax
-            add rax,8
-            .ifd !CreateDirectoryW(rax, 0)
-
-                CreateDirectoryW(rbx, 0)
-            .endif
-            mov rcx,rbx
-            mov ebx,eax
-            free(rcx)
-            mov eax,ebx
-        .endif
-    .endif
-
-    .if ( eax == 0 )
-        osmaperr()
-    .else
-        mov _diskflag,1
-        xor eax,eax
-    .endif
-    ret
-
-_mkdir endp
-
-_rmdir proc uses rbx directory:LPSTR
-
-    .ifd !RemoveDirectoryA(directory)
-
-        .if __allocwpath(directory)
-
-            mov rbx,rax
-            RemoveDirectoryW(rbx)
-            mov rcx,rbx
-            mov ebx,eax
-            free(rcx)
-            mov eax,ebx
-        .endif
-    .endif
-    .if ( eax == 0 )
-        osmaperr()
-    .else
-        xor eax,eax
-    .endif
-    ret
-
-_rmdir endp
-
-_getdcwd proc private uses rdi drive:SINT, buffer:LPSTR, maxlen:SINT
-
-    mov rdi,malloc( maxlen )
-    ;
-    ; GetCurrentDirectory only works for the default drive
-    ;
-    .if ( drive == 0 ) ; 0 = default, 1 = 'a:', 2 = 'b:', etc.
-
-        GetCurrentDirectoryA( maxlen, rdi )
-    .else
-        ;
-        ; Not the default drive - make sure it's valid.
-        ;
-        GetLogicalDrives()
-        mov ecx,drive
-        shr eax,cl
-        .ifnc
-
-            free( rdi )
-            mov _doserrno,ERROR_INVALID_DRIVE
-            mov errno,EACCES
-           .return 0
-        .endif
-        ;
-        ; Get the current directory string on that drive and its length
-        ;
-       .new path[4]:char_t
-
-        add cl,'A'-1
-        mov path[0],cl
-        mov path[1],':'
-        mov path[2],'.'
-        mov path[3],0
-
-        GetFullPathNameA( &path, maxlen, rdi, 0 )
-    .endif
-    ;
-    ; API call failed, or buffer not large enough
-    ;
-    .if ( eax > maxlen )
-
-        free( rdi )
-        mov errno,ERANGE
-        .return 0
-
-    .elseif ( eax )
-
-        mov rax,rdi
-        mov rcx,buffer
-
-        .if ( rcx )
-
-            strcpy( rcx, rdi )
-            free( rdi )
-            mov rax,buffer
-        .endif
-    .endif
-    ret
-
-_getdcwd endp
-
-_getcwd proc buffer:LPSTR, maxlen:SINT
-
-    _getdcwd(0, buffer, maxlen)
-    ret
-
-_getcwd endp
 
 GetVolumeID proc lpRootPathName:LPSTR, lpVolumeNameBuffer:LPSTR
 
@@ -208,57 +57,6 @@ GetFileSystemName proc lpRootPathName:LPSTR, lpFileSystemNameBuffer:LPSTR
     ret
 
 GetFileSystemName endp
-
-_getdrive proc
-
-  local b[512]:byte
-
-    .ifd GetCurrentDirectory(512, &b)
-
-ifdef _UNICODE
-        mov al,b
-        mov ah,b[2]
-else
-        mov ax,word ptr b
-endif
-        .if ah == ':'
-
-            movzx eax,al
-            or    al,0x20
-            sub   al,'a' - 1  ; A: == 1
-        .else
-            xor eax,eax
-        .endif
-    .else
-        osmaperr()
-    .endif
-    ret
-
-_getdrive endp
-
-_chdrive proc drive:SINT
-
-    mov eax,drive
-    .ifs eax > 0 || eax > 31
-
-        add al,'A' - 1
-        mov ah,':'
-        mov drive,eax
-
-        .ifd SetCurrentDirectory(&drive)
-
-            xor eax,eax
-        .else
-            osmaperr()
-        .endif
-    .else
-        mov errno,EACCES
-        mov _doserrno,ERROR_INVALID_DRIVE
-        or  eax,-1
-    .endif
-    ret
-
-_chdrive endp
 
 _disk_valid proc private drive:SINT
 
@@ -350,9 +148,7 @@ _disk_retry proc private uses rsi rdi rbx disk:UINT
 
         sub ebx,22
         add esi,2
-        mov eax,errno
-        lea rcx,_sys_errlist
-        mov rcx,[rcx+rax*LPSTR]
+        mov rcx,_sys_err_msg(_get_errno(NULL))
         scputs(ebx, esi, 0, 29, rcx)
         dlmodal(rdi)
     .endif

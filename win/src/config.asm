@@ -332,47 +332,38 @@ INIRead endp
 
 INIWrite proc uses rsi rdi rbx ini:LPINI, file:LPSTR
 
-    .ifd osopen(file, _A_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
+    .new fp:LPFILE
 
-        mov STDO.file,eax
-        lea rcx,_osfile
-        or byte ptr [rcx+rax],FH_TEXT
+    .if ( fopen(file, "wt") != NULL )
 
-        .ifd ioinit(&STDO, OO_MEM64K)
+        mov fp,rax
+        mov _diskflag,1
 
-            mov rsi,ini
-            .while rsi
+        mov rsi,ini
+        .while rsi
 
-                .if [rsi].flags == INI_SECTION
+            .if [rsi].flags == INI_SECTION
 
-                    oprintf("\n[%s]\n", [rsi].entry)
+                fprintf(fp, "\n[%s]\n", [rsi].entry)
+            .endif
+            mov rdi,[rsi].value
+            .while rdi
+
+                .if [rdi].flags == INI_ENTRY
+
+                    fprintf(fp, "%s=%s\n", [rdi].entry, [rdi].value)
+                .elseif [rdi].flags == INI_COMMENT
+
+                    fprintf(fp, "%s\n", [rdi].entry)
+                .else
+                    fprintf(fp, ";%s\n", [rdi].entry)
                 .endif
-
-                mov rdi,[rsi].value
-                .while rdi
-
-                    .if [rdi].flags == INI_ENTRY
-
-                        oprintf("%s=%s\n", [rdi].entry, [rdi].value)
-                    .elseif [rdi].flags == INI_COMMENT
-
-                        oprintf("%s\n", [rdi].entry)
-                    .else
-                        oprintf( ";%s\n", [rdi].entry)
-                    .endif
-                    mov rdi,[rdi].next
-                .endw
-                mov rsi,[rsi].next
+                mov rdi,[rdi].next
             .endw
-            ioflush(&STDO)
-            ioclose(&STDO)
-            mov eax,1
-        .else
-            _close(STDO.file)
-            xor eax,eax
-        .endif
-    .else
-        xor eax,eax
+            mov rsi,[rsi].next
+        .endw
+        fclose(fp)
+        mov eax,1
     .endif
     ret
 
@@ -380,8 +371,9 @@ INIWrite endp
 
 INIAddEntryX proc __Cdecl ini:LPINI, format:LPSTR, argptr:VARARG
 
-    .if ftobufin(format, &argptr)
-        INIAddEntry(ini, rdx)
+    .ifd vsprintf( &_bufin, format, &argptr )
+
+        INIAddEntry(ini, &_bufin)
     .endif
     ret
 
@@ -1010,14 +1002,14 @@ config_create proc uses rsi rdi
     xor edi,edi
     mov config.c_cel_indexa,5
 
-    .ifd osopen(__srcfile, 0, M_WRONLY, A_CREATETRUNC) != -1
+    .if fopen(__srcfile, "wt")
 
-        mov esi,eax
-        lea rcx,_osfile
-        or  byte ptr [rcx+rax],FH_TEXT
-        _write(esi, addr default_ini, strlen(addr default_ini))
+        mov rsi,rax
+        mov _diskflag,1
+
+        fwrite(&default_ini, 1, strlen(&default_ini), rsi)
         mov edi,eax
-        _close(esi)
+        fclose(rsi)
     .endif
     mov eax,edi
     ret

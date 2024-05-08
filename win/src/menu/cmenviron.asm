@@ -7,8 +7,8 @@ include io.inc
 include string.inc
 include stdio.inc
 include errno.inc
+include syserr.inc
 include stdlib.inc
-include kernel32.inc
 
 define MAXHIT      128
 define CELLCOUNT   18
@@ -452,7 +452,7 @@ cmenviron proc public uses rsi rdi rbx
             free(rsi)
         .endif
     .else
-        ermsg(0, _sys_errlist[ENOMEM*size_t])
+        ermsg(0, _sys_err_msg(ENOMEM))
     .endif
     GetEnvironmentTEMP()
     GetEnvironmentPATH()

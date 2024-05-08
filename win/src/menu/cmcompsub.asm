@@ -6,6 +6,7 @@ include malloc.inc
 include io.inc
 include string.inc
 include errno.inc
+include syserr.inc
 include time.inc
 include config.inc
 include stdlib.inc
@@ -246,7 +247,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
 
         add rdi,WIN32_FIND_DATA.cFileName
         strfcat(&path, directory, rdi)
-        .break .ifd !cmpwarg(rdi, fp_maskp)
+        .break .ifd !strwild(fp_maskp, rdi)
 
         mov result,test_userabort()
         .break .if eax
@@ -327,7 +328,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
         .if !ff_alloc(&path, rcx)
 
             clear_table()
-            ermsg(0, _sys_errlist[ENOMEM*4])
+            ermsg(0, _sys_err_msg(ENOMEM))
             mov result,-1
         .endif
     .until 1
@@ -406,7 +407,7 @@ else
 endif
             .else
                 clear_table()
-                ermsg(0, _sys_errlist[ENOMEM*size_t])
+                ermsg(0, _sys_err_msg(ENOMEM))
                 mov eax,1
             .endif
         .else
@@ -1053,7 +1054,7 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
             clear_list()
             clear_table()
         .else
-            ermsg(0, _sys_errlist[ENOMEM*size_t])
+            ermsg(0, _sys_err_msg(ENOMEM))
         .endif
         free(ll.list)
     .endif

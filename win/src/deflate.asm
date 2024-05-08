@@ -47,7 +47,7 @@ define MAX_DIST (WSIZE-MIN_LOOKAHEAD)
 
 define FILE_BINARY      0       ; internal file attribute
 define FILE_ASCII       1
-define FILE_UNKNOWN     (-1)
+;define FILE_UNKNOWN     (-1)
 
 define METHOD_STORE     0       ; Store method
 define METHOD_DEFLATE   8       ; Deflation method
@@ -114,6 +114,7 @@ union
 ends
 ct_data         ends
 PCTDATA         typedef ptr ct_data
+LPINT           typedef ptr SDWORD
 
 tree_desc       struct
 dyn_tree        PCTDATA ?   ; the dynamic tree

@@ -2,12 +2,14 @@
 # Makefile for Doszip 32/64-bit using LINKW
 #
 asmc   = \asmc
-flags  = -win64 -frame -Zp8
+flags  = -MT -win64 -frame -Zp8
 libdir = x64
+start  = mainCRTStartup
 ifdef x86
-flags  = -coff -Zp4
+flags  = -MT -coff -Zp4
 model  = -mf -Gd
 libdir = x86
+start  = _mainCRTStartup
 endif
 
 dz.exe:
@@ -18,6 +20,7 @@ dz.exe:
 name    $@
 libpath $(asmc)\lib\$(libdir)
 library libc
+symt    $(start)
 option  map
 option  stub=src\res\dz.bin
 option  resource=src\res\dz.res

@@ -3,6 +3,7 @@
 
 include doszip.inc
 include io.inc
+include stdlib.inc
 include string.inc
 include errno.inc
 include conio.inc
@@ -21,7 +22,7 @@ move_initfiles proc private filename:LPSTR
 
 move_initfiles endp
 
-move_deletefile proc private result:SINT, flag:UINT
+move_deletefile proc private uses rbx result:SINT, flag:UINT
 
     mov eax,result
     add eax,copy_jump
@@ -34,23 +35,26 @@ move_deletefile proc private result:SINT, flag:UINT
             inc jmp_count
         .endif
     .else
-        .if byte ptr flag & _A_RDONLY
 
-            setfattr(__srcfile, 0)
+        mov rbx,_utftows(__srcfile)
+        .if ( flag & _A_RDONLY )
+
+            _wsetfattr(rbx, 0)
         .endif
-        remove(__srcfile)
+        _wremove(rbx)
         mov eax,result
     .endif
     ret
 
 move_deletefile endp
 
-fp_movedirectory proc private directory:LPSTR
+fp_movedirectory proc private uses rbx directory:LPSTR
 
     .ifd !progress_set(0, directory, 0)
 
-        setfattr(directory, eax)
-        .ifd _rmdir(directory)
+        mov rbx,_utftows(directory)
+        _wsetfattr(rbx, 0)
+        .ifd _wrmdir(rbx)
 
             xor eax,eax
             .if jmp_count == eax
@@ -75,6 +79,7 @@ fp_movefile endp
 fblk_movefile proc private uses rbx fblk:PFBLK
 
     ldr rbx,fblk
+
     .ifd !progress_set(addr [rbx].FBLK.name, __outpath, [rbx].FBLK.size)
 
         .ifd rename(__srcfile, __outfile)
@@ -167,6 +172,7 @@ cmmove proc uses rdi
         .endif
     .endif
     ret
+
 cmmove endp
 
     end

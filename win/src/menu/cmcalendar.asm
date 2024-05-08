@@ -1,5 +1,6 @@
 include time.inc
 include conio.inc
+include winbase.inc
 
 define STARTYEAR   0
 define MAXYEAR     3000

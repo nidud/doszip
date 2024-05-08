@@ -3,10 +3,11 @@ include conio.inc
 include io.inc
 include malloc.inc
 include direct.inc
-include string.inc
+include dzstr.inc
 include stdio.inc
 include stdlib.inc
 include errno.inc
+include syserr.inc
 include ltype.inc
 include config.inc
 
@@ -84,7 +85,7 @@ tialloc proc private uses rsi ti:PTINFO
         mov eax,1
     .else
 
-        ermsg(0, _sys_errlist[ENOMEM*size_t])
+        ermsg(0, _sys_err_msg(ENOMEM))
         xor eax,eax
     .endif
     ret
@@ -710,24 +711,29 @@ tiflushl endp
 
 tiflush proc uses rsi rdi rbx ti:PTINFO
 
-  local path[_MAX_PATH]:byte
+   .new path[1024]:char_t
+   .new wbuf[1024]:wchar_t
 
     ldr rsi,ti
-    lea rdi,path
-    .ifd getfattr(strcpy(rdi, [rsi].TINFO.file)) == -1
+
+    mov rdi,strcpy(&path, [rsi].TINFO.file)
+    .ifd ( _wgetfattr(_utftows(rdi)) == -1 )
+
         .if tigetfilename(rsi)
             strcpy(rdi, rax)
         .else
             xor edi,edi
         .endif
-    .elseif eax & _A_RDONLY
+
+    .elseif ( eax & _A_RDONLY )
+
         ermsg(0, "The file is Read-Only")
         xor edi,edi
     .endif
 
-    .if edi
+    .if rdi
 
-        ioopen(&STDO, setfext(rdi, ".$$$"), M_WRONLY, OO_MEM64K)
+        ioopen(&STDO, strfxcat(rdi, ".$$$"), M_WRONLY, OO_MEM64K)
 
         .ifs eax > 0
 
@@ -737,23 +743,26 @@ tiflush proc uses rsi rdi rbx ti:PTINFO
             .if !tiflushl(rsi, 0, 0, ecx, -1)
 
                 ioclose(&STDO)
-                remove(rdi)
+                _wremove(_utftows(rdi))
                 xor edi,edi
 
             .else
 
                 ioflush(&STDO)
                 ioclose(&STDO)
+                wcscpy(&wbuf, _utftows([rsi].TINFO.file))
 
-                .if [rsi].TINFO.flags & _T_USEBAKFILE
+                .if ( [rsi].TINFO.flags & _T_USEBAKFILE )
 
-                    remove(setfext(rdi, ".bak"))
-                    rename([rsi].TINFO.file, rdi)
-                    setfext(rdi, ".$$$")
+                    mov rbx,_utftows(strfxcat(rdi, ".bak"))
+                    _wremove(rbx)
+                    _wrename(&wbuf, rbx)
+                    strfxcat(rdi, ".$$$")
                 .endif
 
-                remove([rsi].TINFO.file)
-                rename(rdi, [rsi].TINFO.file)
+                _wremove(&wbuf)
+                mov rbx,_utftows(rdi)
+                _wrename(rbx, &wbuf)
 
                 lea rdi,[rax+1]
                 and [rsi].TINFO.flags,not _T_MODIFIED
@@ -767,7 +776,7 @@ tiflush proc uses rsi rdi rbx ti:PTINFO
                 mov rax,__argv
                 mov rcx,[rax]
 
-                setfext(strcpy(&path, rcx), ".ini")
+                strfxcat(strcpy(&path, rcx), ".ini")
                 .if !_stricmp([rsi].TINFO.file, rax)
 
                     CFClose()
@@ -1304,7 +1313,7 @@ tiopen proc private uses rsi ti:PTINFO, tabsize:UINT, flags:UINT
 
     .if !malloc(TINFO)
 
-        ermsg(0, _sys_errlist[ENOMEM*size_t])
+        ermsg(0, _sys_err_msg(ENOMEM))
        .return( 0 )
     .endif
 
@@ -1350,7 +1359,7 @@ tiopen proc private uses rsi ti:PTINFO, tabsize:UINT, flags:UINT
     .else
 
         free(rsi)
-        ermsg(0, _sys_errlist[ENOMEM*size_t])
+        ermsg(0, _sys_err_msg(ENOMEM))
         xor eax,eax
     .endif
     ret
@@ -1508,6 +1517,83 @@ TOLOWER macro reg
     retm<reg>
     endm
 
+    option dotname
+
+memquote proc uses rsi rdi rbx string:string_t, bsize:uint_t
+
+    ldr     rax,string
+    ldr     ebx,bsize
+
+    test    ebx,ebx
+    jz      .2
+    test    rax,3
+    jz      .0
+    mov     ecx,0x2227
+
+    cmp     [rax],cl
+    je      .5
+    cmp     [rax],ch
+    je      .5
+    cmp     ebx,1
+    jz      .2
+
+    cmp     [rax+1],cl
+    je      .4
+    cmp     [rax+1],ch
+    je      .4
+    cmp     ebx,2
+    jz      .2
+
+    cmp     [rax+2],cl
+    je      .3
+    cmp     [rax+2],ch
+    je      .3
+    cmp     ebx,3
+    jz      .2
+
+.0:
+    add     rbx,rax
+    add     rax,3
+    and     rax,-4
+.1:
+    cmp     rax,rbx
+    jae     .2
+
+    mov     esi,[rax]
+    mov     edi,esi
+    add     rax,4
+    xor     esi,'""""'
+    xor     edi,"''''"
+    lea     ecx,[rsi-0x01010101]
+    not     esi
+    and     ecx,esi
+    lea     esi,[rdi-0x01010101]
+    not     edi
+    and     esi,edi
+    and     ecx,0x80808080
+    and     esi,0x80808080
+    or      ecx,esi
+    jz      .1
+    bsf     ecx,ecx
+    shr     ecx,3
+    lea     rax,[rax+rcx-4]
+    cmp     rax,rbx
+    sbb     rcx,rcx
+    and     rax,rcx
+    jmp     .5
+.2:
+    xor     eax,eax
+    jmp     .5
+.3:
+    inc     rax
+.4:
+    inc     rax
+.5:
+    ret
+
+memquote endp
+
+
 TIStyleIsQuote proc private uses rsi rdi rbx line:LPSTR, string:LPSTR
 
     ldr rdi,line
@@ -1555,6 +1641,30 @@ TIStyleIsQuote endp
     ;--------------------------------------
     ; seek back to get offset of /* and */
     ;--------------------------------------
+
+memrchr proc uses rdi base:string_t, char:int_t, bsize:uint_t
+
+    ldr     rdi,base
+    ldr     eax,char
+    ldr     ecx,bsize
+
+    test    ecx,ecx
+    jz      .0
+    lea     rdi,[rdi+rcx-1]
+    std
+    repnz   scasb
+    cld
+    jnz     .0
+    mov     rax,rdi
+    inc     rax
+    jmp     .1
+.0:
+    xor     eax,eax
+.1:
+    ret
+
+memrchr endp
+
 
 find_token proc private uses rdi rbx ti:PTINFO
 
@@ -2882,15 +2992,14 @@ tihome proc private ti:PTINFO
 
 tihome endp
 
-titoend proc private uses rsi rdi ti:PTINFO
+titoend proc private ti:PTINFO
 
     ldr rdx,ti
     .if ticurlp(rdx)
 
-        .if stripend(rax)
+        .ifd stripend(rax)
 
-            mov [rdx].bcount,ecx
-            mov eax,ecx
+            mov [rdx].bcount,eax
             sub eax,[rdx].boffs
             .if eax < [rdx].cols
 
@@ -4260,7 +4369,7 @@ tishow proc uses rsi rdi rbx ti:PTINFO
 
                 mov ecx,[rsi].cols
                 sub ecx,19
-                scpathu(edi, ebx, ecx, [rsi].file)
+                scpath(edi, ebx, ecx, [rsi].file)
             .endif
             tiputs(rsi)
         .endif
@@ -4354,7 +4463,7 @@ topen proc uses rsi rdi file:LPSTR, tflag:UINT
 
                 tiread(rsi)
             .else
-                ermsg(0, _sys_errlist[ENOMEM*size_t])
+                ermsg(0, _sys_err_msg(ENOMEM))
                 ticlose(rsi)
                 xor esi,esi
             .endif

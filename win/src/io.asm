@@ -5,26 +5,41 @@ include malloc.inc
 include stdio.inc
 include string.inc
 include errno.inc
+include syserr.inc
 include conio.inc
 include confirm.inc
 include wsub.inc
 include doszip.inc
 
-    .data
-     _osfile BYTE \
-        FH_OPEN or FH_DEVICE or FH_TEXT,
-        FH_OPEN or FH_DEVICE or FH_TEXT,
-        FH_OPEN or FH_DEVICE or FH_TEXT, _NFILE_ - 3 dup(0)
+stq macro m
+ifdef _WIN64
+    mov m,rax
+else
+    mov dword ptr m,eax
+    mov dword ptr m[4],edx
+endif
+endm
 
-     align size_t
-     _osfhnd    label HANDLE
-     _coninpfh  HANDLE -1
-     _confh     HANDLE -1, _NFILE_ - 2 dup(-1)
+ldq macro m
+ifdef _WIN64
+    mov rax,m
+else
+    mov eax,dword ptr m
+    mov edx,dword ptr m[4]
+endif
+endm
+
+ifdef _WIN64
+define _ARGQ <rax>
+else
+define _ARGQ <edx::eax>
+endif
+
+
+    .data
      STDI       IOST {0,0,0,0x8000,0,0,0,0,{0},{0},{0}}
      STDO       IOST {0,0,0,0x8000,0,0,0,0,{0},{0},{0}}
      oupdate    IOUPD 0
-     _errormode UINT 5
-     _nfile     UINT _NFILE_
      crctab UINT \
         000000000h, 077073096h, 0EE0E612Ch, 0990951BAh,
         0076DC419h, 0706AF48Fh, 0E963A535h, 09E6495A3h,
@@ -93,554 +108,6 @@ include doszip.inc
 
     .code
 
-getosfhnd proc private handle:SINT
-
-    mov rax,-1
-    ldr ecx,handle
-    .if ecx < _nfile
-        lea rdx,_osfile
-        .if byte ptr [rdx+rcx] & FH_OPEN
-            lea rdx,_osfhnd
-            mov rax,[rdx+rcx*size_t]
-        .endif
-    .endif
-    ret
-
-getosfhnd endp
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-osopen proc uses rbx file:LPSTR, attrib:UINT, mode:UINT, action:UINT
-
-    .new len:int_t
-    .new h:SINT
-    .new share:SINT = 0
-
-    .if ( mode != M_RDONLY )
-        mov byte ptr _diskflag,1
-    .endif
-    .if ( mode == M_RDONLY )
-        mov share,FILE_SHARE_READ
-    .endif
-
-    xor eax,eax
-    lea rdx,_osfile
-
-    .while ( byte ptr [rdx+rax] & FH_OPEN )
-
-        inc eax
-        .if eax == _nfile
-
-            xor eax,eax
-            mov _doserrno,eax ; no OS error
-            mov errno,EBADF
-            dec rax
-           .return
-        .endif
-    .endw
-    mov h,eax
-    strlen(file)
-    inc eax
-    mov len,eax
-
-    .ifd ( !MultiByteToWideChar(CP_UTF8, 0, file, eax, 0, 0) )
-
-        dec rax
-       .return
-    .endif
-
-    mov ebx,eax
-    add eax,4 ; \\?\
-    add eax,eax
-    alloca(eax)
-    mov ecx,ebx
-    lea rbx,[rax+8]
-    MultiByteToWideChar(CP_UTF8, 0, file, len, rbx, ecx)
-
-    .ifd ( CreateFileW(rbx, mode, share, 0, action, attrib, 0) == -1 )
-
-     ifdef  _WIN95
-        .if ( console & CON_WIN95 )
-
-            .return
-        .endif
-     endif
-
-        osmaperr()
-        .if ( edx != ERROR_FILENAME_EXCED_RANGE )
-
-            .return
-        .endif
-
-        sub rbx,8
-        mov eax,(('\' shl 16) or '\')
-        mov [rbx],eax
-        mov eax,(('?' shl 16) or '\')
-        mov [rbx+4],eax
-        .ifd ( CreateFileW(rbx, mode, share, 0, action, attrib, 0) == -1 )
-            .return osmaperr()
-        .endif
-    .endif
-
-    mov rdx,rax
-    mov eax,h
-    lea rcx,_osfile
-    or  byte ptr [rcx+rax],FH_OPEN
-    lea rcx,_osfhnd
-    mov [rcx+rax*size_t],rdx
-    ret
-
-osopen endp
-
-_close proc handle:int_t
-
-    ldr ecx,handle
-    lea rax,_osfile
-
-    .if ( ecx < 3 || ecx >= _nfile || !( byte ptr [rax+rcx] & FH_OPEN ) )
-
-        mov errno,EBADF
-        mov _doserrno,0
-        xor eax,eax
-
-    .else
-
-        mov byte ptr [rax+rcx],0
-        lea rax,_osfhnd
-        mov rcx,[rax+rcx*size_t]
-
-        .ifd !CloseHandle( rcx )
-
-            osmaperr()
-        .else
-            xor eax,eax
-        .endif
-    .endif
-    ret
-
-_close endp
-
-osread proc h:SINT, b:PTR, size:UINT
-
-  .new retval:UINT = 0
-
-    ldr ecx,h
-    lea rax,_osfhnd
-    mov rcx,[rax+rcx*size_t]
-
-    .ifd !ReadFile(rcx, b, size, &retval, 0)
-
-        osmaperr()
-       .return( 0 )
-    .endif
-    mov eax,retval
-    ret
-
-osread endp
-
-oswrite proc h:SINT, b:PTR, size:UINT
-
-  local NumberOfBytesWritten:dword
-
-    ldr ecx,h
-    lea rax,_osfhnd
-    mov rcx,[rax+rcx*size_t]
-
-    .ifd WriteFile(rcx, b, size, &NumberOfBytesWritten, 0)
-
-        mov eax,NumberOfBytesWritten
-        .if eax != size
-            mov errno,ERROR_DISK_FULL
-            xor eax,eax
-        .endif
-    .else
-        osmaperr()
-        xor eax,eax
-    .endif
-    ret
-
-oswrite endp
-
-_write proc uses rdi rsi rbx h:SINT, b:PTR, l:UINT
-
-  local result, count, lb[1026]:byte
-
-    mov eax,l
-    .return .if !eax
-
-    mov ebx,h
-    .if ebx >= _NFILE_
-
-        xor eax,eax
-        mov _doserrno,eax
-        mov errno,EBADF
-        dec rax
-       .return
-    .endif
-    lea rsi,_osfile
-    mov bl,[rsi+rbx]
-
-    .if bl & FH_APPEND
-
-        _lseek(h, 0, SEEK_END)
-    .endif
-
-    xor eax,eax
-    mov result,eax
-    mov count,eax
-
-    .if bl & FH_TEXT
-
-        .for ( rsi = b :: )
-
-            mov rax,rsi
-            sub rax,b
-            .break .if eax >= l
-
-            lea rdi,lb
-            .for ( :: rsi++, rdi++, count++ )
-
-                lea rdx,lb
-                mov rax,rdi
-                sub rax,rdx
-                .break .if eax >= 1024
-
-                mov rax,rsi
-                sub rax,b
-                .break .if eax >= l
-
-                mov al,[rsi]
-                .if al == 10
-
-                    mov byte ptr [rdi],13
-                    inc rdi
-                .endif
-                mov [rdi],al
-            .endf
-
-            lea rax,lb
-            mov rdx,rdi
-            sub rdx,rax
-            .ifd !oswrite(h, &lb, edx)
-
-                inc result
-               .break
-            .endif
-            lea rcx,lb
-            mov rdx,rdi
-            sub rdx,rcx
-           .break .if eax < edx
-        .endf
-    .else
-
-        .return .ifd oswrite(h, b, l)
-
-        inc result
-    .endif
-
-    mov eax,count
-    .if !eax
-        .if eax == result
-            .if _doserrno == 5 ; access denied
-
-                mov errno,EBADF
-            .endif
-        .else
-
-            mov edx,h
-            lea rcx,_osfile
-            mov dl,[rcx+rdx]
-            .if dl & FH_DEVICE
-
-                mov rbx,b
-               .return .if byte ptr [rbx] == 26
-            .endif
-            mov errno,ENOSPC
-            mov _doserrno,0
-        .endif
-        dec rax
-    .endif
-    ret
-
-_write endp
-
-_lseeki64 proc private handle:SINT, offs:QWORD, pos:UINT
-
-  local lpNewFilePointer:QWORD
-
-    ldr ecx,handle
-    lea rax,_osfhnd
-    mov rcx,[rax+rcx*size_t]
-
-    .ifd !SetFilePointerEx( rcx, offs, &lpNewFilePointer, pos )
-
-        osmaperr()
-ifdef _WIN64
-    .else
-        mov rax,lpNewFilePointer
-else
-        cdq
-    .else
-        mov eax,DWORD PTR lpNewFilePointer
-        mov edx,DWORD PTR lpNewFilePointer[4]
-endif
-    .endif
-    ret
-
-_lseeki64 endp
-
-_lseek proc handle:SINT, offs:size_t, pos:UINT
-
-ifdef _WIN64
-    .if ( r8d == SEEK_SET )
-        mov edx,edx
-    .endif
-    .return( _lseeki64( ecx, rdx, r8d ) )
-else
-    mov eax,offs
-    cdq
-    .if ( pos == SEEK_SET )
-        xor edx,edx
-    .endif
-    .return( _lseeki64( handle, edx::eax, pos ) )
-endif
-
-_lseek endp
-
-getfattr proc uses rsi rdi lpFilename:LPSTR
-
-    .ifd GetFileAttributesA(lpFilename) == -1
-
-        .if !__allocwpath(lpFilename)
-
-            dec rax
-           .return
-        .endif
-        mov rsi,rax
-        .ifd GetFileAttributesW(rsi) == -1
-
-            osmaperr()
-        .endif
-        mov edi,eax
-
-        free(rsi)
-        mov eax,edi
-    .endif
-    ret
-
-getfattr endp
-
-setfattr proc lpFilename:LPTSTR, Attributes:UINT
-
-    .ifd !SetFileAttributes(lpFilename, Attributes)
-
-        osmaperr()
-    .else
-
-        xor eax,eax
-        mov byte ptr _diskflag,2
-    .endif
-    ret
-setfattr endp
-
-_access proc file:LPSTR, mode:UINT
-
-    .ifd ( getfattr(file) == -1 )
-
-;        osmaperr()
-
-    .elseif ( ( mode & 2 ) && ( eax & _A_RDONLY ) )
-
-        mov errno,EACCES
-        mov eax,-1
-    .else
-        xor eax,eax
-    .endif
-    ret
-
-_access endp
-
-filexist proc file:LPSTR
-
-    getfattr(file)
-    inc eax
-    .ifnz
-        dec eax             ; 1 = file
-        and eax,_A_SUBDIR   ; 2 = subdir
-        shr eax,4
-        inc eax
-    .endif
-    ret
-
-filexist endp
-
-_filelength proc handle:SINT
-
-  local FileSize:QWORD
-
-    mov ecx,handle
-    lea rax,_osfhnd
-    mov rcx,[rax+rcx*size_t]
-
-    .ifd GetFileSizeEx( rcx, &FileSize )
-ifdef _WIN64
-        mov rax,FileSize
-else
-        mov edx,dword ptr FileSize[4]
-        mov eax,dword ptr FileSize
-endif
-    .else
-        osmaperr()
-        xor eax,eax
-    .endif
-    ret
-
-_filelength endp
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-getftime proc handle:SINT
-
-  local FileTime:FILETIME
-
-    .ifd getosfhnd(handle) != -1
-
-        mov rcx,rax
-        .ifd !GetFileTime(rcx, 0, 0, &FileTime)
-
-            osmaperr()
-        .else
-            FileTimeToTime(&FileTime)
-        .endif
-    .endif
-    ret
-
-getftime endp
-
-getftime_access proc handle:SINT
-
-  local FileTime:FILETIME
-
-    .ifd getosfhnd(handle) != -1
-
-        mov rcx,rax
-        .ifd !GetFileTime(rcx, 0, &FileTime, 0)
-
-            osmaperr()
-        .else
-            FileTimeToTime(&FileTime)
-        .endif
-    .endif
-    ret
-
-getftime_access endp
-
-getftime_create proc handle:SINT
-
-  local FileTime:FILETIME
-
-    .ifd getosfhnd(handle) != -1
-
-        mov rcx,rax
-        .ifd !GetFileTime(rcx, &FileTime, 0, 0)
-
-            osmaperr()
-        .else
-            FileTimeToTime(&FileTime)
-        .endif
-    .endif
-    ret
-
-getftime_create ENDP
-
-setftime proc uses rbx h:SINT, t:UINT
-
-  local FileTime:FILETIME
-
-    .ifd getosfhnd(h) != -1
-
-        mov rbx,rax
-        .ifd SetFileTime(rbx, 0, 0, TimeToFileTime(t, addr FileTime))
-
-            xor eax,eax
-            mov byte ptr _diskflag,2
-        .else
-            osmaperr()
-        .endif
-    .endif
-    ret
-
-setftime endp
-
-setftime_create proc uses rbx h:SINT, t:UINT
-
-  local FileTime:FILETIME
-
-    .ifd getosfhnd(h) != -1
-
-        mov rbx,rax
-        .ifd SetFileTime(rbx, TimeToFileTime(t, &FileTime), 0, 0)
-
-            xor eax,eax
-            mov byte ptr _diskflag,2
-        .else
-            osmaperr()
-        .endif
-    .endif
-    ret
-
-setftime_create endp
-
-setftime_access proc uses rbx h:SINT, t:UINT
-
-  local FileTime:FILETIME
-
-    .ifd getosfhnd(h) != -1
-
-        mov rbx,rax
-        .ifd SetFileTime(rbx, 0, TimeToFileTime(t, addr FileTime), 0)
-
-            xor eax,eax
-            mov byte ptr _diskflag,2
-        .else
-            osmaperr()
-        .endif
-    .endif
-    ret
-
-setftime_access endp
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-remove proc file:LPSTR
-
-    .ifd DeleteFileA(file)
-
-        xor eax,eax
-        mov _diskflag,1
-    .else
-        osmaperr()
-    .endif
-    ret
-
-remove endp
-
-rename proc Oldname:LPSTR, Newname:LPSTR
-
-    .ifd MoveFileA(Oldname, Newname)
-
-        xor eax,eax
-        mov _diskflag,1
-
-    .else
-        osmaperr()
-    .endif
-    ret
-
-rename endp
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
     assume rbx:PIOST
 
 ioinit proc uses rsi rdi rbx io:PIOST, bsize:DWORD
@@ -705,7 +172,7 @@ ioopen proc uses rbx io:PIOST, file:LPSTR, mode:DWORD, bsize:DWORD
         .ifd !ioinit(rbx, bsize)
 
             _close([rbx].file)
-            ermsg(0, _sys_errlist[ENOMEM*size_t])
+            ermsg(0, _sys_err_msg(ENOMEM))
             xor eax,eax
         .else
             mov eax,[rbx].file
@@ -1066,7 +533,7 @@ endif
         mov edi,eax
         .ifd ( oupdate(rbx) == 0 )
 
-            osmaperr()
+            _dosmaperr( GetLastError() )
             or [rbx].flag,IO_ERROR
             xor edi,edi
         .endif
@@ -1333,37 +800,6 @@ oungetc proc uses rbx
 oungetc endp
 
 
-oprintf proc __Cdecl uses rsi rbx format:LPSTR, argptr:VARARG
-
-    mov ebx,ftobufin(format, &argptr)
-    mov rsi,rdx
-
-    .while 1
-
-        lodsb
-        movzx eax,al
-        .break .if !eax
-
-        .if ( eax == 10 )
-
-            mov eax,STDO.file
-            lea rcx,_osfile
-            .if ( byte ptr [rcx+rax] & FH_TEXT )
-
-                .ifd !oputc(13)
-
-                    .break
-                .endif
-                inc ebx
-            .endif
-            mov eax,10
-        .endif
-        .break .ifd !oputc(eax)
-    .endw
-    .return(ebx)
-
-oprintf endp
-
 openfile proc fname:LPSTR, mode:uint_t, action:uint_t
 
     .ifd osopen(fname, _A_NORMAL, mode, action) == -1
@@ -1381,7 +817,7 @@ ogetouth proc filename:LPSTR, mode:uint_t
 
         .return
     .endif
-    .if ( errno != EEXIST )
+    .if ( _get_errno(NULL) != EEXIST )
         .return eropen(filename)
     .endif
 
@@ -1397,7 +833,7 @@ ogetouth proc filename:LPSTR, mode:uint_t
     .case CONFIRM_DELETEALL
         and confirmflag,not CFDELETEALL
     .case CONFIRM_DELETE
-        setfattr(filename, 0)
+        _wsetfattr(_utftows(filename), 0)
         .return openfile(filename, mode, A_TRUNC)
     .endsw
     .return( -1 )
@@ -1852,31 +1288,5 @@ endif
     ret
 
 osearch endp
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-_ioinit proc private
-
-    mov _coninpfh, GetStdHandle( STD_INPUT_HANDLE )
-    mov _confh,    GetStdHandle( STD_OUTPUT_HANDLE )
-    mov _errormode,SetErrorMode( SEM_FAILCRITICALERRORS )
-    ret
-
-_ioinit endp
-
-_ioexit proc private uses rsi rdi
-
-    .for ( rdi = &_osfile, esi = 3 : esi < _NFILE_ : esi++ )
-
-        .if ( byte ptr [rdi+rsi] & FH_OPEN )
-            _close(esi)
-        .endif
-    .endf
-    ret
-
-_ioexit endp
-
-.pragma init(_ioinit, 1)
-.pragma exit(_ioexit, 100)
 
     end

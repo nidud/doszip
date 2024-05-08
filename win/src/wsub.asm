@@ -1,5 +1,5 @@
 include malloc.inc
-include string.inc
+include dzstr.inc
 include io.inc
 include direct.inc
 include time.inc
@@ -8,10 +8,12 @@ include wsub.inc
 include config.inc
 include conio.inc
 include errno.inc
+include syserr.inc
 include doszip.inc
 include filter.inc
 include progress.inc
 include confirm.inc
+include winnls.inc
 
 ZSUB    STRUC
 wsub    WSUB <>
@@ -203,7 +205,7 @@ wscopyffwf proc private uses rsi rdi ff:PWIN32_FIND_DATAA, wf:PWIN32_FIND_DATAW
         .return( 0 )
     .endif
     mov ecx,eax
-    WideCharToMultiByte(CP_UTF8, 0, rsi, ecx, rdi, ecx, NULL, NULL)
+    WideCharToMultiByte(CP_UTF8, 0, rsi, ecx, rdi, MAX_PATH, NULL, NULL)
 
     add rdi,MAX_PATH
     add rsi,MAX_PATH*2
@@ -211,7 +213,7 @@ wscopyffwf proc private uses rsi rdi ff:PWIN32_FIND_DATAA, wf:PWIN32_FIND_DATAW
     .if ( eax && eax <= 14 )
 
         mov ecx,eax
-        WideCharToMultiByte(CP_UTF8, 0, rsi, ecx, rdi, ecx, NULL, NULL)
+        WideCharToMultiByte(CP_UTF8, 0, rsi, ecx, rdi, 14, NULL, NULL)
     .endif
     mov eax,1
     ret
@@ -237,7 +239,7 @@ wsfindnext proc private ff:PWIN32_FIND_DATA, handle:HANDLE
             .return( 0 )
         .endif
     .endw
-    osmaperr()
+    _dosmaperr( GetLastError() )
     ret
 
 wsfindnext endp
@@ -566,9 +568,11 @@ wsfblk endp
 wsfindfirst proc uses rbx fmask:LPSTR, ff:PWIN32_FIND_DATA, attrib:UINT
 
    .new wf:WIN32_FIND_DATAW
+   .new len:int_t
     ;
     ; @v3.31 - single file fails in FindFirstFileW
     ;
+if 0
     ldr rax,fmask
     mov ax,[rax]
 
@@ -577,7 +581,12 @@ ifdef _WIN95
 else
     .if ah == ':'
 endif
-        .ifd ( !MultiByteToWideChar(CP_UTF8, 0, fmask, -1, 0, 0) )
+endif
+    .ifd strlen(fmask)
+
+        inc eax
+        mov len,eax
+        .ifd !MultiByteToWideChar(CP_UTF8, 0, fmask, eax, 0, 0)
 
             dec rax
         .else
@@ -587,12 +596,12 @@ endif
             alloca(eax)
             mov ecx,ebx
             mov rbx,rax
-            MultiByteToWideChar(CP_UTF8, 0, fmask, ecx, rbx, ecx)
+            MultiByteToWideChar(CP_UTF8, 0, fmask, len, rbx, ecx)
 
             .ifd ( FindFirstFileW(rbx, &wf) != -1 )
 
                 mov rbx,rax
-                .ifd ( !wscopyffwf(ff, &wf) )
+                .ifd !wscopyffwf(ff, &wf)
 
                     FindClose( rbx )
                     mov rbx,-1
@@ -600,8 +609,10 @@ endif
                 mov rax,rbx
             .endif
         .endif
+if 0
     .else
         FindFirstFileA(fmask, ff)
+endif
     .endif
 
     .if ( eax != -1 )
@@ -615,7 +626,7 @@ endif
         mov _attrib,eax
         mov rax,rbx
     .else
-        osmaperr()
+        _dosmaperr( GetLastError() )
     .endif
     ret
 
@@ -627,7 +638,7 @@ wscloseff proc handle:HANDLE
     .if FindClose(handle)
         xor eax,eax
     .else
-        osmaperr()
+        _dosmaperr( GetLastError() )
     .endif
     ret
 
@@ -659,7 +670,7 @@ wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
             inc eax
             .if !( byte ptr [rdi] & _A_SUBDIR )
 
-                cmpwarg( &[rdi].WIN32_FIND_DATA.cFileName, [rbx].WSUB.mask )
+                strwild( [rbx].WSUB.mask, &[rdi].WIN32_FIND_DATA.cFileName )
             .endif
 
             .if eax
@@ -747,7 +758,7 @@ wsread endp
 wscopyremove proc file:LPSTR
 
     ioclose(&STDO)
-    remove(file)
+    _wremove(_utftows(file))
     or eax,-1
     ret
 
@@ -755,7 +766,7 @@ wscopyremove endp
 
 wscopyopen proc srcfile:LPSTR, outfile:LPSTR
 
-    mov errno,0
+    _set_errno(0)
     .if !ioopen(&STDO, outfile, M_WRONLY, OO_MEM64K)
         mov copy_jump,1
     .elseif eax != -1
@@ -1351,15 +1362,20 @@ wedit endp
 
     option proc:private
 
-zip_renametemp proc
+zip_renametemp proc uses rbx
+
+   .new wbuf[2048]:wchar_t
 
     ioclose(&STDI)
     ioclose(&STDO)
 
-    .if ( filexist(rdi) == 1 ) ; 1 file, 2 subdir
+    wcscpy(&wbuf, _utftows(rsi))
+    mov rbx,_utftows(rdi)
 
-        remove(rsi)
-        rename(rdi, rsi) ; 0 or -1
+    .ifd ( _wfilexist(rbx) == 1 ) ; 1 file, 2 subdir
+
+        _wremove(&wbuf)
+        _wrename(rbx, &wbuf) ; 0 or -1
     .else
         mov eax,-1
     .endif
@@ -1818,7 +1834,7 @@ wzipread proc public uses rsi rdi rbx wsub:PWSUB
         mov fblk,rax
         mov cl,[rax]
         .if !( cl & _A_SUBDIR )
-            .if !cmpwarg(&[rax].FBLK.name, [rdi].WSUB.mask)
+            .ifd !strwild([rdi].WSUB.mask, &[rax].FBLK.name)
 
                 free(fblk)
                .continue
@@ -1926,8 +1942,7 @@ if 1
                    .endc
 endif
                 .default
-                    ermsg(&cp_warning, "%s\n'%02X'",
-                        _sys_errlist[ENOSYS*size_t], zip_local.method)
+                    ermsg(&cp_warning, "%s\n'%02X'", _sys_err_msg(ENOSYS), zip_local.method)
                     mov esi,ERROR_INVALID_FUNCTION
                 .endsw
             .until 1
@@ -1965,7 +1980,8 @@ wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     mov esi,eax
     .if ( wzipfindentry(rbx, eax) == 0 )
         _close(esi)
-        ermsg(_sys_errlist[ENOENT*size_t], &[rbx].FBLK.name)
+        mov rcx,_sys_err_msg(ENOENT)
+        ermsg(rcx, &[rbx].FBLK.name)
        .return(ER_FIND)
     .endif
     .if ( progress_set(&[rbx].FBLK.name, out_path, [rbx].FBLK.size) != 0 )
@@ -1985,17 +2001,19 @@ wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     mov zip_attrib,ecx
     mov rc,zip_unzip(esi, eax)
     _close(esi)
+    mov rsi,_utftows(rdi)
+
     .if ( rc == 0 )
 
         setftime(handle, [rbx].FBLK.time)
         _close(handle)
-        mov eax,[rbx].FBLK.flag
-        and eax,_A_FATTRIB
-        setfattr(rdi, eax)
+        mov ebx,[rbx].FBLK.flag
+        and ebx,_A_FATTRIB
+        _wsetfattr(rsi, ebx)
        .return( 0 )
     .endif
     _close(handle)
-    remove(rdi)
+    _wremove(rsi)
     mov eax,rc
     .switch eax
     .case ER_USERABORT
@@ -2003,15 +2021,15 @@ wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
        .endc
     .case ER_DISK
     .case ER_MEM
-        ermsg(_sys_errlist[ENOMEM*size_t], rdi)
+        ermsg(_sys_err_msg(ENOMEM), rdi)
        .endc
     .default
-        mov rdx,_sys_errlist[EIO*size_t]
-        mov ecx,errno
-        .if ( ecx )
-            lea rdx,_sys_errlist
-            mov rdx,[rdx+rcx*size_t]
+        .if ( _get_errno(NULL) )
+            _sys_err_msg(eax)
+        .else
+            _sys_err_msg(EIO)
         .endif
+        mov rdx,rax
         ermsg(&cp_emarchive, "%s\n\n%s", rdi, rdx)
     .endsw
     .return(rc)
@@ -2050,24 +2068,27 @@ wzipcopypath proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
     mov rsi,rbx
     mov rbx,fblk
-    strfcat(rsi, out_path, &[rbx].FBLK.name)
+    mov rbx,_utftows(strfcat(rsi, out_path, &[rbx].FBLK.name))
 
-    .if ( _mkdir(rsi) != -1 )
+    .ifd ( _wmkdir(rbx) != -1 )
 
-        .if ( setfattr(rsi, 0) == 0 )
+        mov _diskflag,1
+        .ifd ( _wsetfattr(rbx, 0) == 0 )
 
             mov rax,fblk
             mov eax,[rax].FBLK.flag
             and eax,_A_FATTRIB
             and eax,not _A_SUBDIR
-            setfattr(rsi, eax)
+
+            _wsetfattr(rbx, eax)
         .endif
     .endif
 
-    .if !progress_set(&[rbx].FBLK.name, out_path, 0)
+    mov rbx,fblk
+    .ifd !progress_set(&[rbx].FBLK.name, out_path, 0)
 
         xor ebx,ebx
-        .if ( wzipread(rdi) > 1 )
+        .ifd ( wzipread(rdi) > 1 )
 
             wssort(rdi)
             .if ( [rdi].WSUB.maxfb == [rdi].WSUB.count )
@@ -2330,8 +2351,8 @@ initentry proc
     pop rax
     strcpy(rax, __outpath)
     .if !( esi & _A_SUBDIR )
-        mov rbx,unixtodos(rax)
-        dostounix(strfcat(rbx, 0, strfn(__srcfile)))
+        mov rbx,strdos(rax)
+        strunix(strfcat(rbx, 0, strfn(__srcfile)))
     .endif
     strlen(rax)
     mov zip_local.fnsize,ax
@@ -2408,34 +2429,33 @@ endif
 
 zip_setprogress endp
 
-zip_displayerror proc
+zip_displayerror proc uses rsi rdi rbx
 
-    mov rax,_sys_errlist[ENOSPC*size_t]
-    mov rcx,_sys_errlist[ENOMEM*size_t]
+    mov rbx,_sys_err_msg(ENOSPC)
+    mov rdi,_sys_err_msg(ENOMEM)
 
     .if !( STDO.flag & IO_ERROR )
 
-        mov edx,errno
-        mov rax,rcx
-        .if ( edx != ENOMEM )
+        mov rbx,rdi
+        mov esi,_get_errno(NULL)
 
-            lea rax,cp_emarchive
-            mov rcx,_sys_errlist[EIO*size_t]
-            .if ( edx )
+        .if ( esi != ENOMEM )
 
-                lea rcx,_sys_errlist
-                mov rcx,[rcx+rdx*size_t]
+            lea rbx,cp_emarchive
+            mov rdi,_sys_err_msg(EIO)
+            .if ( esi )
+                mov rdi,_sys_err_msg(esi)
             .endif
         .endif
     .endif
-    ermsg(rcx, rax)
+    ermsg(rdi, rbx)
     ret
 
 zip_displayerror endp
 
 zip_mkarchivetmp proc watcall buffer:LPSTR
 
-    setfext(strcpy(rax, __outfile), &cp_ziptemp)
+    strfxcat(strcpy(rax, __outfile), &cp_ziptemp)
     ret
 
 zip_mkarchivetmp endp
@@ -2452,10 +2472,12 @@ wzipadd proc uses rsi rdi rbx fsize:uint64_t, ftime:uint_t, fattrib:uint_t
   .new offset_local:uint_t
   .new deflate_begin:uint_t
 
+    _set_errno(0)
+
     movzx edi,word ptr ftime+2
     mov esi,fattrib
+
     xor eax,eax
-    mov errno,eax
 if USE_DEFLATE
     mov file_method,al
 endif
@@ -2659,7 +2681,7 @@ error_2:
 error_1:
     ioclose(&STDO)
     ioclose(&ocentral)
-    remove(entryname)
+    _wremove(_utftows(entryname))
     mov eax,-1
     jmp toend
 error_4:
@@ -2685,7 +2707,7 @@ wsmkzipdir proc uses rbx wsub:PWSUB, directory:LPSTR
 
     strfcat(__outfile, [rbx].WSUB.path, [rbx].WSUB.file)
     strfcat(__outpath, [rbx].WSUB.arch, directory)
-    dostounix(strcat(rax, "/"))
+    strunix(strcat(rax, "/"))
     wzipadd(0, clock(), _A_SUBDIR)
     ret
 
@@ -2784,7 +2806,7 @@ wzipopen proc uses rsi rdi rbx
                 .endif
             .endif
             ioclose(&ocentral)
-            remove(rsi)
+            _wremove(_utftows(rsi))
         .endif
         wscopyremove(rdi)
         xor eax,eax
@@ -2858,10 +2880,10 @@ wzipclose proc uses rsi rdi rbx
     mov rsi,__outfile
     cmp filexist(rdi),1     ; 1 file, 2 subdir
     jne error_1
-    remove(rsi)             ; remove the <archive>.zip file
+    _wremove(_utftows(rsi)) ; remove the <archive>.zip file
     rename(rdi, rsi)        ; rename <achive>.$$$ to <achive>.zip
 toend:
-    remove(entryname)       ; remove the <centtmp.$$$> file
+    _wremove(_utftows(entryname)) ; remove the <centtmp.$$$> file
     ret
 
 error_2:
@@ -2901,9 +2923,9 @@ wzipdel proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
             .break .if eax == -1 ; -1: Cancel
 
             strfcat(__srcfile, [rbx].path, [rbx].file)
-            setfext(strcpy(__outfile, rax), &cp_ziptemp)
+            strfxcat(strcpy(__outfile, rax), &cp_ziptemp)
             strfcat(__outpath, [rbx].arch, &[rdi].name)
-            dostounix(rax)
+            strunix(rax)
 
             .if ( [rdi].flag & _A_SUBDIR )
                 strcat(rax, "/")

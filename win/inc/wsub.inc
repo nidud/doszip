@@ -3,7 +3,7 @@ define __WSUB_INC
 
 include io.inc
 include zip.inc
-include kernel32.inc
+include winbase.inc
 
 define WMAXPATH		2048		; the max length is 8000h..
 define MAXFBLOCK	5000

@@ -228,7 +228,7 @@ endif
         .endif
 
         UpdateMemoryStatus(rsi)
-        __coreleft()
+        _coreleft()
         mov q.q_h,0
 
         mov edi,ecx

@@ -2,7 +2,6 @@ include wsub.inc
 include string.inc
 include filter.inc
 include time.inc
-include kernel32.inc
 
     .data
      filter PFILTER 0
@@ -25,17 +24,42 @@ binary proc watcall private date:uint_t, attrib:uint_t, size:size_t
 
 binary endp
 
+
+_wildcards proc private uses rdi wild:LPSTR, path:LPSTR
+
+    ldr rdi,wild
+
+    .repeat
+
+        .if strchr(rdi, ' ')
+
+            mov rdi,rax
+            mov byte ptr [rdi],0
+            strwild(rax, path)
+            mov byte ptr [rdi],' '
+            inc rdi
+        .else
+
+            strwild(rdi, path)
+           .break
+        .endif
+    .until eax
+    ret
+
+_wildcards endp
+
+
 string proc private file:string_t
 
     .if ( [rsi].FILTER.minclude )
 
-        .ifd !cmpwargs( file, &[rsi].FILTER.minclude )
+        .ifd !_wildcards( &[rsi].FILTER.minclude, file )
             .return
         .endif
     .endif
     .if ( [rsi].FILTER.mexclude )
 
-        .ifd cmpwargs( file, &[rsi].FILTER.mexclude )
+        .ifd _wildcards( &[rsi].FILTER.mexclude, file )
             .return( 0 )
         .endif
     .endif

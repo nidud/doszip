@@ -2,13 +2,17 @@
 ; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
 
 include doszip.inc
+include stdlib.inc
 include errno.inc
+include winnls.inc
 
     .code
 
 cmmkdir proc uses rsi rdi rbx
 
-  local path[512]:byte
+   .new wbuf[_MAX_PATH]:wchar_t
+   .new path[_MAX_PATH]:char_t
+   .new size:int_t
 
     lea rbx,path
     mov rax,cpanel
@@ -17,25 +21,31 @@ cmmkdir proc uses rsi rdi rbx
 
     .if !( edi & _W_ROOTDIR )
 
-	.if panel_state(rax)
+        .if panel_state(rax)
 
-	    mov byte ptr [rbx],0
-	    .ifd tgetline("Make directory", rbx, 40, 512)
+            mov byte ptr [rbx],0
+            .ifd tgetline("Make directory", rbx, 40, _MAX_PATH)
 
-		xor eax,eax
-		.if [rbx] != al
+                .ifd strlen(rbx)
 
-		    .if edi & _W_ARCHZIP
+                    inc eax
+                    mov size,eax
+                    .ifd MultiByteToWideChar(_consolecp, 0, rbx, size, &wbuf, _MAX_PATH)
 
-			wsmkzipdir(rsi, rbx)
+                        mov ecx,eax
+                        .ifd WideCharToMultiByte(CP_UTF8, 0, &wbuf, ecx, rbx, _MAX_PATH, NULL, NULL)
 
-		    .elseif _mkdir(rbx)
-
-			ermkdir(rbx)
-		    .endif
-		.endif
-	    .endif
-	.endif
+                            mov _diskflag,1
+                            .if ( edi & _W_ARCHZIP )
+                                wsmkzipdir(rsi, rbx)
+                            .elseifd _wmkdir(&wbuf)
+                                ermkdir(rbx)
+                            .endif
+                        .endif
+                    .endif
+                .endif
+            .endif
+        .endif
     .endif
     ret
 

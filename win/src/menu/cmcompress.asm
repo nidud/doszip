@@ -4,7 +4,7 @@
 include doszip.inc
 include io.inc
 include config.inc
-include string.inc
+include dzstr.inc
 
     .data
      default_arc char_t "default.7z", 128-11 dup(0)
@@ -83,7 +83,7 @@ cmcompress proc uses rsi rdi rbx
 
                 .if CFGetSectionID(rax, 2)
 
-                    setfext(rsi, rax)
+                    strfxcat(rsi, rax)
                 .endif
 
                 .if rsopen(IDD_DZCopy)

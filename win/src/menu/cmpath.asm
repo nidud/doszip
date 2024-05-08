@@ -2,7 +2,7 @@
 ; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
 
 include doszip.inc
-include string.inc
+include dzstr.inc
 include stdlib.inc
 include config.inc
 

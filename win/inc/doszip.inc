@@ -11,9 +11,9 @@ include conio.inc
 include time.inc
 include helpid.inc
 
-DOSZIP_VERSION	equ 0x0372
+DOSZIP_VERSION	equ 0x0373
 DOSZIP_MINVERS	equ 0x0349
-DOSZIP_VSTRING	equ <"3.72">
+DOSZIP_VSTRING	equ <"3.73">
 ifdef _WIN64
 DOSZIP_VSTRPRE	equ <" Win64">
 else
@@ -516,6 +516,9 @@ define _COPY_RECURSIV	0x80	; recursive error
 externdef		copy_jump:dword
 externdef		copy_flag:byte
 externdef		copy_fast:byte
+externdef		_diskflag:UINT
+externdef		envtemp:LPSTR
+externdef		_pgmpath:string_t
 
 init_copy		proto :PFBLK, :UINT
 copyfile		proto :qword, :UINT, :UINT
@@ -523,5 +526,22 @@ fp_copyfile		proto :LPSTR, :PWIN32_FIND_DATA
 fp_copydirectory	proto :LPSTR
 cpyevent_filter		proto
 UpdateWindowSize	proto :COORD
+readword		proto :LPSTR
+
+recursive		proto __cdecl :LPSTR, :LPSTR, :LPSTR
+
+__xtoi			proto __cdecl :string_t
+__xtoi64		proto __cdecl :string_t
+__xtol			proto __cdecl :string_t
+
+mkbstring		proto __cdecl :LPSTR, :QWORD
+searchp			proto __cdecl :LPSTR, :LPSTR
+expenviron		proto __cdecl :LPSTR
+SaveEnvironment		proto __cdecl :LPSTR
+ReadEnvironment		proto __cdecl :LPSTR
+CreateBatch		proto __cdecl :LPSTR, :SINT, :SINT
+
+GetEnvironmentTEMP	proto __cdecl
+GetEnvironmentPATH	proto __cdecl
 
 endif

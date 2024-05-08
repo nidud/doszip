@@ -13,7 +13,13 @@ include malloc.inc
 include direct.inc
 include stdlib.inc
 include config.inc
-include kernel32.inc
+include winbase.inc
+
+externdef _diskflag:int_t
+externdef envtemp:string_t
+
+    .data
+     _errormode UINT 5
 
     .code
 
@@ -22,7 +28,6 @@ process proc private uses rsi rdi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlag
   local PI:PROCESS_INFORMATION, SINFO:STARTUPINFO, ConsoleMode:dword
 
     xor eax,eax
-    mov errno,eax
     lea rdi,PI
     mov rsi,rdi
     mov ecx,PROCESS_INFORMATION
@@ -32,7 +37,7 @@ process proc private uses rsi rdi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlag
     rep stosb
     lea rdi,SINFO
     mov SINFO.cb,STARTUPINFO
-
+    _set_errno(eax)
     SetErrorMode(_errormode)
     GetConsoleMode(_coninpfh, &ConsoleMode)
 
@@ -44,7 +49,7 @@ process proc private uses rsi rdi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlag
     xor eax,eax
     mov edi,CreateProcess(lpProgram, lpCommand, rax, rax, eax, edx, rax, rax, rdi, rsi)
     mov rsi,PI.hProcess
-    osmaperr()
+    _dosmaperr( GetLastError() )
 
     .if edi
         .if !( CreationFlags & _P_NOWAIT )
@@ -58,7 +63,8 @@ process proc private uses rsi rdi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlag
     mov _coninpfh,GetStdHandle(STD_INPUT_HANDLE)
     SetConsoleMode(rax, ConsoleMode)
     SetErrorMode(SEM_FAILCRITICALERRORS)
-    mov byte ptr _diskflag,3
+    mov _diskflag,3
+
     mov eax,edi
     ret
 
@@ -127,10 +133,10 @@ CreateBatch proc uses rbx cmd:string_t, CallBatch:int_t, UpdateEnviron:int_t
   local batch[_MAX_PATH]:char_t, argv0[_MAX_PATH]:char_t
 
     strfcat( &batch, envtemp, "dzcmd.bat" )
-
     .return .ifd ( osopen(rax, 0, M_WRONLY, A_CREATETRUNC) == -1 )
 
     mov ebx,eax
+    mov _diskflag,1
     oswrite(ebx, "@echo off\r\n", 11)
     .if CallBatch
         oswrite(ebx, "call ", 5)

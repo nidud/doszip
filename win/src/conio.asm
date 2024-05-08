@@ -8,12 +8,17 @@ include conio.inc
 include stdio.inc
 include stdlib.inc
 include malloc.inc
-include string.inc
+include dzstr.inc
 include time.inc
 include errno.inc
+include syserr.inc
 include ltype.inc
 include process.inc
 include doszip.inc
+include winuser.inc
+include winnls.inc
+
+public time_id
 
 .template BoxChars
     Vertical    dw ?
@@ -38,6 +43,7 @@ include doszip.inc
      _scrmin        COORD <80,25>
      _scrmax        COORD <80,25>
      _scrrc         RECT <0,0,0,0>
+     _consolecp     UINT 0
      _shift         UINT 0
      _focus         UINT 1
      keyshift       LPDWORD _shift
@@ -285,23 +291,24 @@ scputs proc uses rsi rdi rbx x:uint_t, y:uint_t, a:uint_t, maxlen:uint_t, string
         dec ebx
     .endif
 
-    .for ( edi = x, rsi = string : ebx && byte ptr [rsi] : ebx--, rsi++, edi++ )
+    .for ( edi = x, rsi = string : ebx && byte ptr [rsi] : ebx--, edi++ )
 
-        movzx ecx,byte ptr [rsi]
-        .if ( ecx == 10 )
+        _utftow(rsi)
+        add rsi,rcx
+        .if ( eax == 10 )
 
             inc y
             mov edi,x
             dec edi
            .continue
-        .elseif ( ecx == 9 )
+        .elseif ( eax == 9 )
 
             add edi,4
             and edi,-4
             dec edi
            .continue
         .endif
-        scputc(edi, y, 1, cx)
+        scputc(edi, y, 1, ax)
         .if ( byte ptr a )
 
             scputa(edi, y, 1, a)
@@ -313,9 +320,9 @@ scputs proc uses rsi rdi rbx x:uint_t, y:uint_t, a:uint_t, maxlen:uint_t, string
 
 scputs endp
 
-scputf proc __Cdecl x:uint_t, y:uint_t, a:uint_t, l:uint_t, f:LPSTR, p:VARARG
+scputf proc __Cdecl x:int_t, y:int_t, a:int_t, l:int_t, format:LPSTR, argptr:vararg
 
-    ftobufin(f, &p)
+    vsprintf( &_bufin, format, &argptr )
     scputs(x, y, a, l, &_bufin)
     ret
 
@@ -408,121 +415,96 @@ scenter proc uses rsi x:uint_t, y:uint_t, l:uint_t, s:LPSTR
 scenter endp
 
 
-__scpath proc private x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
+scpath proc uses rsi rbx x:int_t, y:int_t, maxlen:int_t, string:LPSTR
 
-   .new b[16]:byte
+   .new b[8]:byte
    .new count:int_t = 0
 
+    ldr esi,maxlen
     ldr rbx,string
-    strlen(rbx)
-    mov edx,maxlen
-    .if ( eax > edx )
+
+    .ifd ( _utfslen(rbx) > esi )
 
         mov ecx,[rbx]
-        add rbx,rax
-        sub rbx,rdx
         lea rdx,b
-        mov eax,'\..\'
+        add eax,4
+        mov count,4
 
         .if ( ch == ':' )
 
             mov [rdx],cx
-            mov [rdx+2],eax
-            mov edx,6
-        .else
-            mov [rdx],eax
-            mov edx,4
+            add rdx,2
+            add eax,2
+            add count,2
         .endif
+        mov ecx,'\..\'
+        mov [rdx],ecx
+        sub eax,esi
+        .for ( rdx = &_lookuptrailbytes : eax : eax-- )
 
-        mov b[rdx],0
-        add rbx,rdx
-        mov count,edx
-        mov ecx,x
-        add x,edx
-        scputs( ecx, y, 0, 0, &b )
+            movzx ecx,byte ptr [rbx]
+            movzx ecx,byte ptr [rdx+rcx]
+            lea rbx,[rbx+rcx+1]
+        .endf
+        scputs( x, y, 0, count, &b )
+        add x,count
+        sub esi,eax
     .endif
-    mov eax,count
-    ret
-
-__scpath endp
-
-
-scpath proc uses rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
-ifdef _WIN64
-   .new count:int_t = __scpath()
-else
-   .new count:int_t = __scpath(x, y, maxlen, string)
-endif
-
-    scputs( x, y, 0, 0, rbx )
+    scputs( x, y, 0, esi, rbx )
     add eax,count
     ret
 
 scpath endp
 
 
-scpathu proc uses rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
-ifdef _WIN64
-    .new count:int_t = __scpath()
-else
-    .new count:int_t = __scpath(x, y, maxlen, string)
-endif
+scpathl proc uses rsi rdi rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
+
+   .new pcx:int_t = 0
+   .new len:int_t
+   .new lbuf[TIMAXSCRLINE]:wchar_t
+
+    ldr     rbx,string
+    movzx   esi,byte ptr maxlen
+    mov     eax,' '
+    lea     rdi,lbuf
+    mov     rdx,rdi
+    mov     ecx,esi
+    rep     stosw
+    mov     rdi,rdx
+
+    .ifd _utfslen(rbx) > esi
+
+        mov ecx,[rbx]
+        add eax,4
+
+        .if ch == ':'
+
+            mov [rdi],cl
+            mov [rdi+2],ch
+            add rdi,4
+            add eax,2
+        .endif
+        mov ecx,eax
+        mov ax,'.\'
+        mov [rdi],al
+        mov [rdi+2],ah
+        mov [rdi+4],ah
+        mov [rdi+6],al
+        add rdi,8
+        sub ecx,esi
+        .for ( rdx = &_lookuptrailbytes : ecx : ecx-- )
+
+            movzx eax,byte ptr [rbx]
+            movzx eax,byte ptr [rdx+rax]
+            lea rbx,[rbx+rax+1]
+        .endf
+    .endif
+
     .while ( byte ptr [rbx] )
 
         _utftow(rbx)
         add rbx,rcx
-        inc count
-        scputc(x, y, 1, eax)
-        inc x
-    .endw
-    mov eax,count
-    ret
-
-scpathu endp
-
-
-scpathl proc uses rsi rdi rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
-
-   .new pcx:int_t = 0
-   .new lbuf[TIMAXSCRLINE]:char_t
-
-    movzx esi,byte ptr maxlen
-    mov al,' '
-    lea rdi,lbuf
-    mov rbx,rdi
-    mov ecx,esi
-    rep stosb
-    ldr rdi,string
-
-    .ifd strlen(rdi) > esi
-
-        mov ecx,[rdi]
-        add rdi,rax
-        sub rdi,rsi
-        add rdi,4
-
-        .if ch == ':'
-
-            mov [rbx],cl
-            mov [rbx+1],ch
-            add rdi,2
-            add rbx,2
-        .endif
-        mov ax,'.\'
-        mov [rbx],al
-        mov [rbx+1],ah
-        mov [rbx+2],ah
-        mov [rbx+3],al
-        add rbx,4
-    .endif
-
-    .while 1
-
-        mov al,[rdi]
-        .break .if !al
-        mov [rbx],al
-        inc rdi
-        inc rbx
+        stosw
     .endw
 
     movzx eax,byte ptr x
@@ -530,7 +512,7 @@ scpathl proc uses rsi rdi rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
     shl   edx,16
     mov   dx,ax
 
-    WriteConsoleOutputCharacter(_confh, &lbuf, esi, edx, &pcx)
+    WriteConsoleOutputCharacterW(_confh, &lbuf, esi, edx, &pcx)
     mov eax,pcx
     ret
 
@@ -921,53 +903,6 @@ rcopen proc rc:TRECT, flag:uint_t, attrib:uint_t, title:string_t, p:ptr
 
 rcopen endp
 
-rcclose proc rc:TRECT, flag:uint_t, p:PCHAR_INFO
-
-    ldr eax,flag
-    .if eax & _D_DOPEN
-
-        .if eax & _D_ONSCR
-
-            rchide(rc, eax, p)
-            mov eax,flag
-        .endif
-
-        .if !( eax & _D_MYBUF )
-
-            free(p)
-        .endif
-    .endif
-    mov eax,flag
-    and eax,_D_DOPEN
-    ret
-
-rcclose endp
-
-rcmove proc pRECT:PTRECT, p:PCHAR_INFO, flag:uint_t, x:uint_t, y:uint_t
-
-   .new rc:TRECT
-
-    ldr rcx,pRECT
-    mov eax,[rcx]
-    mov rc,eax
-
-    .ifd rchide(eax, flag, p)
-
-        mov eax,rc
-        mov rcx,pRECT
-        mov al,byte ptr x
-        mov ah,byte ptr y
-        mov [rcx],eax
-        mov rc,eax
-        mov edx,flag
-        and edx,not _D_ONSCR
-
-        rcshow(eax, edx, p)
-    .endif
-    mov eax,rc
-    ret
-
-rcmove endp
 
 rcmoveu proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, flag:uint_t
 
@@ -1434,33 +1369,6 @@ rcpush proc private lines:UINT
 
 rcpush endp
 
-rcxyrow proc rc:TRECT, x, y
-
-    mov al,byte ptr y
-    mov ah,byte ptr x
-    mov dl,rc.x
-    mov dh,rc.y
-
-    .repeat
-        .if ah >= dl && al >= dh
-            add dl,rc.col
-            .if ah < dl
-                mov ah,dh
-                add dh,rc.row
-                .if al < dh
-                    sub al,ah
-                    inc al
-                    movzx eax,al
-                    .break
-                .endif
-            .endif
-        .endif
-        xor eax,eax
-    .until 1
-    ret
-
-rcxyrow endp
-
 rcunzip proc private uses rsi rdi rbx rc:TRECT, dst:PCHAR_INFO, src:ptr
 
    .new count:int_t
@@ -1799,7 +1707,7 @@ wcpushst proc uses rbx wc:PCHAR_INFO, cp:LPSTR
     mov rbx,wc
     mov word ptr [rbx+18*4],U_LIGHT_VERTICAL
     add rbx,4
-    wcputs(rbx, _scrcol, _scrcol, cp)
+    wcputs(rbx, _scrcol, cp)
     mov rax,wc
     wcstline()
     mov wcvisible,1
@@ -1837,91 +1745,8 @@ wcputw proc p:PCHAR_INFO, l:uint_t, w:uint_t
 
 wcputw endp
 
-__wputs proc private
 
-    push rsi
-    push rdi
-    push rbx
-    mov  rbx,rdi
-
-    and  eax,0x0000FF00
-    shl  eax,8
-
-    .if !cl
-        dec cl
-    .endif
-
-    .while cl
-
-        lodsb
-        .switch al
-        .case 0
-            .break
-        .case 10
-            add rbx,rdx
-            mov rdi,rbx
-            .continue
-        .case 9
-            add rdi,16
-           .continue
-        .case '&'
-            .if ch
-                mov [rdi+2],ch
-                lodsb
-                mov [rdi],ax
-                add rdi,4
-                .break .if !al
-               .continue
-            .endif
-        .default
-            .if eax & 0x00FF0000
-                stosd
-            .else
-                mov [rdi],ax
-                add rdi,4
-            .endif
-            .endc
-        .endsw
-        dec cl
-    .endw
-    mov rax,rsi
-    pop rbx
-    pop rdi
-    pop rsi
-    sub rax,rsi
-    ret
-
-__wputs endp
-
-wcputs proc uses rsi rdi p:PCHAR_INFO, l:uint_t, m:uint_t, string:LPSTR
-
-    ldr     rsi,string
-    ldr     rdi,p
-    ldr     edx,l
-    ldr     ecx,m
-
-    movzx   edx,dl
-    shl     edx,2
-
-    movzx   ecx,cx
-    mov     ah,ch
-    mov     ch,[rdi+2]
-    and     ch,0xF0
-
-    .if ch == at_background[B_Menus]
-        or  ch,at_foreground[F_MenusKey]
-    .elseif ch == at_background[B_Dialog]
-        or  ch,at_foreground[F_DialogKey]
-    .else
-        xor ch,ch
-    .endif
-    __wputs()
-    ret
-
-wcputs endp
-
-
-wcpututf proc uses rsi rdi rbx p:PCHAR_INFO, m:uint_t, string:LPSTR
+wcputs proc uses rsi rdi rbx p:PCHAR_INFO, m:uint_t, string:LPSTR
 
     ldr rsi,string
     ldr rdi,p
@@ -1944,12 +1769,12 @@ wcpututf proc uses rsi rdi rbx p:PCHAR_INFO, m:uint_t, string:LPSTR
     .endw
     ret
 
-wcpututf endp
+wcputs endp
 
-wcputf proc __Cdecl b:PCHAR_INFO, l:uint_t, m:uint_t, format:LPSTR, argptr:VARARG
+wcputf proc __Cdecl b:PCHAR_INFO, m:uint_t, format:LPSTR, argptr:VARARG
 
-    ftobufin(format, addr argptr)
-    wcputs(b, l, m, addr _bufin)
+    vsprintf( &_bufin, format, &argptr )
+    wcputs(b, m, addr _bufin)
     ret
 
 wcputf endp
@@ -2333,8 +2158,9 @@ event_toend proc
     .if !getline()
         .return(_TE_CMFAILED)
     .endif
-    stripend(rax)
-    .if ecx
+
+    .ifd stripend(rax)
+
         mov eax,[rdx].cols
         dec eax
         .ifs ecx <= eax
@@ -2954,15 +2780,15 @@ ClipEvent endp
 
 putline proc uses rsi rdi rbx
 
-  local ci[MAXCOLS]:dword, bz:COORD, rc:SMALL_RECT
+  local ci[MAXCOLS]:dword, bz:COORD, rc:SMALL_RECT, cols:int_t
 
     setcursor()
 
     lea rdi,ci
     mov rdx,TI
-    mov ebx,[rdx].cols
+    mov ecx,[rdx].cols
     mov eax,[rdx].clrc
-    mov ecx,ebx
+    mov cols,ecx
     rep stosd
 
     mov rsi,[rdx].base
@@ -2973,15 +2799,16 @@ putline proc uses rsi rdi rbx
 
         mov edi,[rdx].boffs
         add rsi,rdi
-        lea rdi,ci
-        mov ecx,ebx
-        .repeat
-            mov al,[rsi]
-            .break .if !al
-            mov [rdi],al
-            inc rsi
-            add rdi,4
-        .untilcxz
+
+        .for ( rdi = &ci, ebx = 0 : byte ptr [rsi] && ebx < cols : ebx++, rsi++, rdi+=4 )
+
+            .ifd !MultiByteToWideChar(_consolecp, 0, rsi, 1, rdi, 1)
+
+                mov al,[rsi]
+                mov [rdi],al
+            .endif
+        .endf
+        mov rdx,TI
     .endif
 
     mov edi,[rdx].boffs
@@ -2991,9 +2818,9 @@ putline proc uses rsi rdi rbx
 
         sub ecx,edi
         xor eax,eax
-        .if ecx >= ebx
+        .if ecx >= cols
 
-            mov ecx,ebx
+            mov ecx,cols
         .endif
         .if [rdx].clip_so >= edi
 
@@ -3017,7 +2844,7 @@ putline proc uses rsi rdi rbx
         .endif
     .endif
 
-    mov ecx,ebx
+    mov ecx,cols
     mov bz.X,cx
     mov eax,[rdx].xpos
     mov rc.Left,ax
@@ -4529,57 +4356,6 @@ dlscreen proc dobj:PDOBJ, attrib
 
 dlscreen endp
 
-togetbitflag proc uses rbx tobj:PTOBJ, count, flag
-
-    mov     ebx,flag
-    mov     eax,count
-    mov     ecx,eax
-    dec     eax
-    imul    edx,eax,TOBJ
-    add     rdx,tobj
-    xor     eax,eax
-
-    .while ecx
-        .if bx & [rdx]
-            or al,1
-        .endif
-        shl eax,1
-        sub rdx,TOBJ
-        dec ecx
-    .endw
-    shr eax,1
-    ret
-
-togetbitflag endp
-
-tosetbitflag proc uses rsi rbx tobj:PTOBJ, count, flag, bitflag
-
-    mov rbx,tobj
-    mov edx,bitflag
-    mov esi,flag
-    mov ecx,count
-    mov eax,esi
-    not eax
-
-    .while ecx
-        ;
-        ; Remove the flag from Object
-        ;
-        and [rbx].TOBJ.flag,ax
-        ;
-        ; Max 32 object flags
-        ;
-        shr edx,1
-        .ifc
-            or [rbx].TOBJ.flag,si
-        .endif
-        add rbx,TOBJ
-        dec ecx
-    .endw
-    ret
-
-tosetbitflag endp
-
 scroll_delay proc
 
     tupdate()
@@ -5552,7 +5328,7 @@ msgbox endp
 
 ermsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
 
-    ftobufin(format, &argptr)
+    vsprintf( &_bufin, format, &argptr )
     mov rax,wtitle
     .if !rax
         lea rax,@CStr("Error")
@@ -5565,7 +5341,7 @@ ermsg endp
 
 stdmsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
 
-    ftobufin(format, &argptr)
+    vsprintf( &_bufin, format, &argptr )
     msgbox(wtitle, _D_STDDLG, &_bufin)
     xor eax,eax
     ret
@@ -5574,16 +5350,14 @@ stdmsg endp
 
 notsup proc
 
-    ermsg(0, _sys_errlist[ENOSYS*4])
+    ermsg(0, _sys_err_msg(ENOSYS))
     ret
 
 notsup endp
 
 errnomsg proc etitle:LPSTR, format:LPSTR, file:LPSTR
 
-    mov eax,errno
-    lea rdx,_sys_errlist
-    mov rcx,[rdx+rax*size_t]
+    mov rcx,_sys_err_msg(_get_errno(NULL))
     ermsg(etitle, format, file, rcx)
     mov eax,-1
     ret
@@ -5710,6 +5484,7 @@ __initcon proc private
    .new size:COORD
 
     mov tgetevent,&getevent
+    mov _consolecp,GetConsoleCP()
 
     GetConsoleMode(_coninpfh, &OldConsoleMode)
     GetWindowRect(GetConsoleWindow(), &_scrrc)
@@ -5783,7 +5558,7 @@ __exitcon proc private
 
 __exitcon endp
 
-.pragma init(__initcon, 7)
-.pragma exit(__exitcon, 3)
+.pragma init(__initcon, 22)
+.pragma exit(__exitcon, 9)
 
     end

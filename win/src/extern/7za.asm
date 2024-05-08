@@ -12,7 +12,6 @@ include stdio.inc
 include stdlib.inc
 include process.inc
 include time.inc
-include kernel32.inc
 
 include doszip.inc
 include config.inc
@@ -394,7 +393,7 @@ warcread PROC USES rsi rdi rbx wsub:PWSUB
                     mov fattrib,eax
                     and eax,_A_SUBDIR
                     .ifz
-                        cmpwarg( name, [rsi].WSUB.mask )
+                        strwild( [rsi].WSUB.mask, name )
                     .endif
 
                     .if ( eax )

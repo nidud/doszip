@@ -2,7 +2,7 @@
 ; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
 
 include doszip.inc
-include string.inc
+include dzstr.inc
 include malloc.inc
 include io.inc
 include errno.inc
@@ -10,7 +10,6 @@ include stdlib.inc
 include process.inc
 include time.inc
 include config.inc
-include kernel32.inc
 include progress.inc
 
     .data
@@ -260,7 +259,7 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
             lea rdi,[rdi+rax*4]
             .repeat
 
-                wcputs(rdi, col, col, "Name")
+                wcputs(rdi, col, "Name")
                 add rdi,rsi
 
                 rcframe(xlrc, dlwp, col, type)
@@ -284,20 +283,20 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
             mov al,prect.col
             add al,2
             .if al != rect.col
-                wcputs(rdi, col, col, "Name")
+                wcputs(rdi, col, "Name")
             .endif
             .endc
 
           .case 2
             sub eax,[rbx].S_PRECT.p_name
             lea rax,[rdi+rax*4]
-            wcputs(rax, col, col, "Name")
+            wcputs(rax, col, "Name")
             mov ecx,col
             lea rax,[rdi+rcx*4-(7*4)]
-            wcputs(rax, ecx, ecx, "Date")
+            wcputs(rax, ecx, "Date")
             mov ecx,col
             lea rax,[rdi+rcx*4-(17*4)]
-            wcputs(rax, ecx, ecx, "Size")
+            wcputs(rax, ecx, "Size")
             sub xlrc.col,9
             rcframe(xlrc, dlwp, col, type)
             sub xlrc.col,11
@@ -306,16 +305,16 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
           .case 3
             sub eax,[rbx].S_PRECT.p_name
             lea rax,[rdi+rax*4]
-            wcputs(rax, col, col, "Name")
+            wcputs(rax, col, "Name")
             mov ecx,col
             lea rax,[rdi+rcx*4-(5*4)]
-            wcputs(rax, ecx, ecx, "Time")
+            wcputs(rax, ecx, "Time")
             mov ecx,col
             lea rax,[rdi+rcx*4-(13*4)]
-            wcputs(rax, ecx, ecx, "Date")
+            wcputs(rax, ecx, "Date")
             mov ecx,col
             lea rax,[rdi+rcx*4-(23*4)]
-            wcputs(rax, ecx, ecx, "Size")
+            wcputs(rax, ecx, "Size")
             sub xlrc.col,6
             rcframe(xlrc, dlwp, col, type)
             sub xlrc.col,9
@@ -1768,12 +1767,12 @@ fbputdate proc uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, updTime:BOOL, color:UIN
         shr eax,16
         mov [rsi+6],eax
     .endif
-    wcputs(wp, 0, ebx, rsi)
+    wcputs(wp, ebx, rsi)
     .if updTime
         SystemTimeToStringA(&Time, &SystemTime)
         add wp,9*4
         mov Time[5],0
-        wcputs(wp, 0, ebx, &Time)
+        wcputs(wp, ebx, &Time)
     .endif
     ret
 
@@ -1799,18 +1798,18 @@ fbputsize proc uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT, color:UINT
         or  edx,esi
 
         .if ( [rbx].FBLK.flag & _FB_UPDIR )
-            wcputs( &[rdi+2*4], esi, edx, "UP-DIR")
+            wcputs( &[rdi+2*4], edx, "UP-DIR")
         .elseif ( [rbx].FBLK.flag & _A_VOLID )
             mov eax,dword ptr [rbx].FBLK.size
-            wcputf( &[rdi+2*4], esi, edx, "VOL-%02u", eax )
+            wcputf( &[rdi+2*4], edx, "VOL-%02u", eax )
         .else
-            wcputs( &[rdi+2*4], esi, edx, "SUBDIR")
+            wcputs( &[rdi+2*4], edx, "SUBDIR")
         .endif
     .else
         mov edx,esi
         mov dh,at_foreground[F_Subdir]
         or  dh,at_background[B_Panel]
-        wcputf( rdi, esi, edx, "%10lu", [rbx].FBLK.size )
+        wcputf( rdi, edx, "%10lu", [rbx].FBLK.size )
     .endif
     ret
 
@@ -1852,7 +1851,7 @@ fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     .if cl > 8
         mov cl,8
     .endif
-    wcpututf(rdi, ecx, &[rbx].FBLK.name)
+    wcputs(rdi, ecx, &[rbx].FBLK.name)
 
     .if ( len > 8 )
 
@@ -1878,7 +1877,7 @@ fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         mov edx,color
         shr edx,8
         mov dl,3
-        wcpututf( &[rdi+9*4], edx, rax)
+        wcputs( &[rdi+9*4], edx, rax)
     .endif
     ret
 
@@ -1895,7 +1894,7 @@ fbputll proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     mov color,fbcolor(rbx)
     lea ecx,[rsi-1]
     mov ch,al
-    wcpututf(rdi, ecx, &[rbx].FBLK.name)
+    wcputs(rdi, ecx, &[rbx].FBLK.name)
 
     .ifd ( strlen(&[rbx].FBLK.name) > esi )
 
@@ -1993,7 +1992,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
             mov cl,al
         .endif
     .endif
-    wcpututf(rdi, ecx, rdx)
+    wcputs(rdi, ecx, rdx)
 
     mov rax,ext
     .if rax
@@ -2004,7 +2003,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         mov dl,byte ptr fext
         mov ecx,maxf
         add ecx,2
-        wcpututf( &[rdi+rcx*4], edx, rax)
+        wcputs( &[rdi+rcx*4], edx, rax)
     .endif
     ret
 
@@ -2072,7 +2071,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
             mov cl,al
         .endif
     .endif
-    wcpututf(rdi, ecx, rdx)
+    wcputs(rdi, ecx, rdx)
 
     mov rax,ext
     .if rax
@@ -2082,7 +2081,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         mov dl,3
         mov ecx,maxf
         add ecx,2
-        wcpututf(&[rdi+rcx*4], edx, rax)
+        wcputs(&[rdi+rcx*4], edx, rax)
     .endif
     ret
 
@@ -2749,14 +2748,15 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
 
                     .if !( pe.pe_flag & _FB_ROOTDIR )
 
-                        strfcat(addr pe.pe_path, [rdi].path, pe.pe_name)
-                        .ifd SetCurrentDirectory(rax)
+                        _utftows(strfcat(&pe.pe_path, [rdi].path, pe.pe_name))
+                        .ifd SetCurrentDirectoryW(rax)
 
-                            GetCurrentDirectory(WMAXPATH, [rdi].path)
+                            strnzcpy([rdi].path, &pe.pe_path, WMAXPATH)
+                            ;GetCurrentDirectory(WMAXPATH, [rdi].path)
                         .endif
                         .if !eax
 
-                            osmaperr()
+                            _dosmaperr( GetLastError() )
                             error_directory(&pe.pe_path)
                            .endc
                         .endif
@@ -2834,7 +2834,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             ; case file
             ;
             lea rbx,pe.pe_file
-            .ifd __isexec(strfcat(rbx, [rdi].path, pe.pe_name))
+            .ifd _aisexec(strfcat(rbx, [rdi].path, pe.pe_name))
                 ;
                 ; case .EXE, .COM, .BAT, .CMD
                 ;
@@ -2992,13 +2992,13 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
             mov edx,selected
 
             .if edx
-                wcputf(rcx, 0, 0, "%d file(s) to", edx)
+                wcputf(rcx, 0, "%d file(s) to", edx)
             .else
                 mov dl,rect.col
                 dec dl
                 mov rax,fblk
                 add rax,FBLK.name
-                wcpututf(rcx, edx, rax)
+                wcputs(rcx, edx, rax)
             .endif
 
             mov dlflag,_D_DMOVE or _D_CLEAR or _D_COLOR or _D_DOPEN

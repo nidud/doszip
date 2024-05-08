@@ -5,9 +5,10 @@ include doszip.inc
 include tview.inc
 include malloc.inc
 include io.inc
-include string.inc
+include dzstr.inc
 include stdio.inc
 include errno.inc
+include syserr.inc
 include wsub.inc
 include FileSearch.inc
 include progress.inc
@@ -211,7 +212,7 @@ CallbackFile proc private uses rsi rdi rbx directory:string_t, wfblk:PWIN32_FIND
 
             .if !eax
                 .if directory
-                    .ifd cmpwarg(rdi, fp_maskp)
+                    .ifd strwild(fp_maskp, rdi)
                         inc esi
                     .endif
                 .else
@@ -554,7 +555,7 @@ FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
     mov readbuf,rax
 
     .if ( edi )
-        _aesc2str(&replace, &replacestring)
+        stresc(&replace, &replacestring)
     .else
         strlen(strcpy(&replace, &replacestring))
     .endif
@@ -573,10 +574,11 @@ FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
             .break
         .endif
         mov srchandle,eax
-        .ifd ( osopen(setfext(tmpfile, ".$$$"), 0, M_WRONLY, A_CREATETRUNC) == -1 )
+        .ifd ( osopen(strfxcat(tmpfile, ".$$$"), 0, M_WRONLY, A_CREATETRUNC) == -1 )
             _close(srchandle)
             .break
         .endif
+        mov _diskflag,1
         mov tmphandle,eax
         xor esi,esi
 
@@ -623,7 +625,7 @@ FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
         _close(srchandle)
         _close(tmphandle)
         .if ( backup )
-            remove(setfext(bakfile, ".bak"))
+            remove(strfxcat(bakfile, ".bak"))
             rename(curfile, bakfile)
         .else
             remove(curfile)
@@ -1107,7 +1109,7 @@ FileSearch::FileSearch proc uses rsi rdi rbx directory:string_t
 
     .if !malloc( FileSearch + FileSearchVtbl + FFMAXHIT * size_t + size_t )
 
-        ermsg(0, _sys_errlist[ENOMEM*size_t])
+        ermsg(0, _sys_err_msg(ENOMEM))
        .return 0
     .endif
 
@@ -1147,7 +1149,7 @@ FileSearch::FileSearch proc uses rsi rdi rbx directory:string_t
     .if eax == NULL
 
         [rbx].Release()
-        ermsg(0, _sys_errlist[ENOMEM*4])
+        ermsg(0, _sys_err_msg(ENOMEM))
        .return 0
     .endif
 

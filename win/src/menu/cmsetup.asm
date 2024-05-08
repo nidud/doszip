@@ -9,6 +9,7 @@ include errno.inc
 include stdio.inc
 include malloc.inc
 include config.inc
+include winuser.inc
 
 define __AT__
 

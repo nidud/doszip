@@ -205,7 +205,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
 
             lea rdi,[strfn(rbx)-FBLK.name]
 
-            .ifd __isexec(rbx)
+            .ifd _aisexec(rbx)
 
                 jmp isexec
             .endif
@@ -261,7 +261,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
 
          isexec:
 
-            .ifd __isexec(rbx)
+            .ifd _aisexec(rbx)
 
                 .if CFAddSection("Load")
 
