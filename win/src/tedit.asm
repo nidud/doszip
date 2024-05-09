@@ -737,6 +737,7 @@ tiflush proc uses rsi rdi rbx ti:PTINFO
 
         .ifs eax > 0
 
+            mov _diskflag,1
             mov ecx,[rsi].TINFO.lcount
             dec ecx
 

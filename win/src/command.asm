@@ -96,7 +96,7 @@ comshow proc
     mov eax,com_info.ypos
 
     lea rcx,prect_b
-    .if ( [rcx].DOBJ.flag & _D_ONSCR )
+    .if !( [rcx].DOBJ.flag & _D_ONSCR )
 
         lea rcx,prect_a
     .endif
