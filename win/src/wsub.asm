@@ -687,7 +687,7 @@ wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
                 FileTimeToTime(rax)
                 mov edx,[rdi].WIN32_FIND_DATA.dwFileAttributes
                 and edx,_A_FATTRIB
-                .if ( edx == _A_NORMAL )
+                .if ( edx == _FA_NORMAL )
                     xor edx,edx
                 .endif
                 lea rcx,[rdi].WIN32_FIND_DATA.cFileName
@@ -715,7 +715,7 @@ wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
 
 wsreadwf endp
 
-define _A_STDFILES (_A_ARCH or _A_RDONLY or _A_SYSTEM or _A_SUBDIR or _A_NORMAL)
+define _A_STDFILES (_A_ARCH or _A_RDONLY or _A_SYSTEM or _A_SUBDIR or _FA_NORMAL)
 define _A_ALLFILES (_A_STDFILES or _A_HIDDEN)
 
 wsread proc uses rbx wsub:PWSUB

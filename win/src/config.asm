@@ -256,7 +256,7 @@ INIRead proc uses rsi rdi rbx ini:LPINI, file:LPSTR
 
   local i_fh, i_bp:LPSTR, i_i, i_c, o_bp:LPSTR, o_i, o_c
 
-    .ifd osopen(file, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+    .ifd osopen(file, _FA_NORMAL, M_RDONLY, A_OPEN) != -1
 
         mov i_fh,eax
         mov i_bp,alloca(_PAGESIZE_*2)

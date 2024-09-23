@@ -62,7 +62,7 @@ zipadd proc private uses rsi rdi rbx archive:LPSTR, path:LPSTR, file:LPSTR
     strcpy(__outpath, rdi)
     strcpy(__outfile, rsi)
 
-    .ifd ( osopen(rbx, _A_NORMAL, M_RDONLY, A_OPEN) != -1 )
+    .ifd ( osopen(rbx, _FA_NORMAL, M_RDONLY, A_OPEN) != -1 )
 
         mov esi,eax
         .ifd _filelength(eax)

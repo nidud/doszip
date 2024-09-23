@@ -802,7 +802,7 @@ oungetc endp
 
 openfile proc fname:LPSTR, mode:uint_t, action:uint_t
 
-    .ifd osopen(fname, _A_NORMAL, mode, action) == -1
+    .ifd osopen(fname, _FA_NORMAL, mode, action) == -1
 
         eropen(fname)
     .endif
@@ -813,7 +813,7 @@ openfile endp
 
 ogetouth proc filename:LPSTR, mode:uint_t
 
-    .ifd osopen(filename, _A_NORMAL, mode, A_CREATE) != -1
+    .ifd osopen(filename, _FA_NORMAL, mode, A_CREATE) != -1
 
         .return
     .endif
@@ -868,7 +868,7 @@ ogetl proc filename:LPSTR, buffer:LPSTR, bsize
 
     memset(&STDI, 0, sizeof(IOST))
 
-    .ifd osopen(filename, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+    .ifd osopen(filename, _FA_NORMAL, M_RDONLY, A_OPEN) != -1
 
         mov STDI.file,eax
         .if malloc(OO_MEM64K)

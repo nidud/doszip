@@ -337,7 +337,7 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
         ;
         ; Read the new environment block
         ;
-        .ifd osopen(FileName, _A_NORMAL, M_RDONLY, A_OPEN) != -1
+        .ifd osopen(FileName, _FA_NORMAL, M_RDONLY, A_OPEN) != -1
 
             mov edi,eax
             mov ebx,_filelength(eax)
@@ -425,7 +425,7 @@ SaveEnvironment proc uses rsi rdi rbx FileName:LPSTR
         mov rsi,rax
         mov rbx,rax
 
-        .ifd osopen(FileName, _A_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
+        .ifd osopen(FileName, _FA_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
 
             mov edi,eax
             mov _diskflag,1

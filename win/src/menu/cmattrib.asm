@@ -120,7 +120,7 @@ cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
                     _wsetfattr(rsi, edi)
                 .endif
 
-                .ifd ( osopen(name, _A_NORMAL, M_WRONLY, A_OPEN) != -1 )
+                .ifd ( osopen(name, _FA_NORMAL, M_WRONLY, A_OPEN) != -1 )
 
                     mov esi,eax
                     mov _diskflag,1
