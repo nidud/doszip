@@ -122,7 +122,7 @@ cmsavebmp proc uses rsi rdi rbx
 
     .ifs ( ioopen(&STDO, &file, M_WRONLY, 0x10000) > 0 )
 
-        mov cscr.flag,_D_MYBUF
+        mov cscr.flag,0x8000
         mov cscr.count,0
         mov cscr.index,0
 if 0

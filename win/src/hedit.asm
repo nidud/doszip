@@ -382,7 +382,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
 
                 lea rax,@CStr("%010u  ")
                 .if flags & _HEXOFFSET
-                    lea rax,@CStr("%p    ")
+                    lea rax,@CStr("%010X  ")
                 .endif
                 mov rdx,lptr
                 movzx edi,[rdx+rbx*4].LINE.boffs
