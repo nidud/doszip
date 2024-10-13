@@ -73,6 +73,7 @@ MENUS_FILE MOBJ \
     { cmmkdir,      @CStr("Make directory") },
     { cmdelete,     @CStr("Delete") },
     { cmattrib,     @CStr("Edit file property") },
+    { cmhexedit,    @CStr("Hex Edit") },
     { cmcompress,   @CStr("Compress") },
     { cmdecompress, @CStr("Decompress") },
     { cmmkzip,      @CStr("Create archive") },

@@ -376,6 +376,7 @@ cmachdrv		PROTO
 cmrename		PROTO
 cmview			PROTO
 cmedit			PROTO
+cmhexedit		PROTO
 cmtmodal		PROTO
 cmcopy			PROTO
 cmmove			PROTO

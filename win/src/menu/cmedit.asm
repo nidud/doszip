@@ -136,6 +136,15 @@ cmedit proc
 
 cmedit endp
 
+cmhexedit proc
+
+    mov rax,keyshift
+    or  byte ptr [rax],KEY_CTRL
+    cmedit()
+    ret
+
+cmhexedit endp
+
 
 cmwindowlist proc
 
