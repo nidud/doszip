@@ -81,7 +81,7 @@ bin=objdump -M intel -b binary -D -m i386:x86-64 !.! > $!.asm
 1=&Obj List,obj.mif@%n.obj \\\n
 
 [AltF3]
-asm=asmc -Fl -Sg
+asm=asmc -c -Fl -Sg
 [AltF4]
 asm=ml -c -Fl -Sg
 [AltF9]
@@ -92,9 +92,9 @@ mak=make -f
 cmd=!.!
 
 [ShiftF1]
-asm=asmc64 -Cs -D_CRTBLD -Fl -Sg -Sx
+asm=asmc64 -c -Cs -D_CRTBLD -Fl -Sg -Sx
 [ShiftF2]
-asm=asmc /coff /Cs /Fl /Sx /Sg !:\!\\!.!
+asm=asmc /c /coff /Cs /Fl /Sx /Sg !:\!\\!.!
 
 [Compress]
 0=7-Zip

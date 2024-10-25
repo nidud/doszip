@@ -14,8 +14,8 @@ endif
 
 dz.exe:
         del *.obj
-        $(asmc)\bin\asmc $(flags) -Cs -D__BMP__ -Iinc -r src\*.asm
-        $(asmc)\bin\asmc $(flags) $(model) -idd src\res\en\*.idd
+        $(asmc)\bin\asmc -c $(flags) -Cs -D__BMP__ -Iinc -r src\*.asm
+        $(asmc)\bin\asmc -c $(flags) $(model) -idd src\res\en\*.idd
         $(asmc)\bin\linkw @<<
 name    $@
 libpath $(asmc)\lib\$(libdir)
