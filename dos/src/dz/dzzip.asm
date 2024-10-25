@@ -5138,12 +5138,12 @@ local	zs:S_ZSUB
 	.endif
 	push	ds
 	push	si
-	add	si,.size S_PATH.wp_file
+	add	si,sizeof(S_PATH.wp_file)
 	invoke	strlen,ds::si
 	add	ax,si
 	mov	zs.zs_off_file,ax
 	call	strlen
-	sub	si,.size S_PATH.wp_file
+	sub	si,sizeof(S_PATH.wp_file)
 	add	ax,si
 	mov	zs.zs_off_path,ax
 	les	bx,fblk
