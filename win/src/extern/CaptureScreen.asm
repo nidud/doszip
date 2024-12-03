@@ -116,7 +116,7 @@ read_screen proc uses rsi rdi rbx
 
 read_screen endp
 
-cmsavebmp proc uses rsi rdi rbx
+cmsavebmp proc
 
    .new p:PCHAR_INFO
 
@@ -125,13 +125,7 @@ cmsavebmp proc uses rsi rdi rbx
         mov cscr.flag,0x8000
         mov cscr.count,0
         mov cscr.index,0
-if 0
-        movzx eax,cscr.rc.row
-        mul cscr.rc.col
-        shl eax,2
-        add eax,DOBJ
-        mov cscr.size,ax
-endif
+
         .if iowrite(&STDO, &cscr, sizeof(cscr))
 
             .if rcalloc(cscr.rc, 0)
@@ -192,6 +186,7 @@ CSIdle proc
             mov active,1
             MakeBMP()
         .endif
+        xor eax,eax
     .else
         mov active,0
         idleh()

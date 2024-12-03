@@ -67,6 +67,7 @@ bin=objdump -M intel -b binary -D -m i386:x86-64 !.! > $!.asm
 4=&Program Files,%PROGRAMFILES%
 5=<>
 6=&Temp Directory,%TEMP%
+7=&Linux wsl,\\wsl.localhost\Ubuntu
 
 [Tools]
 0=&Add tool,%edit% %dz%\dz.ini

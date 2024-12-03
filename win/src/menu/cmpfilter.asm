@@ -65,8 +65,8 @@ PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
 
             mov ebx,atol([rdi].TOBJ.data[ID_READCOUNT])
 
-            strcpy([rdi].TOBJ.data[ID_DIRECTORY], [rsi].WSUB.path)
-            strcpy([rdi].TOBJ.data[ID_READMASK], [rsi].WSUB.mask)
+            strcpy([rsi].WSUB.path, [rdi].TOBJ.data[ID_DIRECTORY])
+            strcpy([rsi].WSUB.mask, [rdi].TOBJ.data[ID_READMASK])
             dlclose(rdi)
 
             .if ( ebx != [rsi].WSUB.maxfb && ebx > 10 && ebx < WMAXFBLOCK && [rsi].WSUB.fcb )

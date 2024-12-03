@@ -655,17 +655,17 @@ wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
 
         mov rsi,rax
         xor eax,eax
-        mov edx,'.'
-
-        .while ( byte ptr [rdi] & _A_VOLID ||
-                 word ptr [rdi].WIN32_FIND_DATA.cFileName == dx ||
-                 word ptr [rdi].WIN32_FIND_DATA.cFileName[1] == dx )
-
-            .break .if wsfindnext(rdi, rsi)
-            mov edx,'.'
-        .endw
 
         .while !eax
+
+            mov edx,'.'
+            .while ( byte ptr [rdi] & _A_VOLID ||
+                     word ptr [rdi].WIN32_FIND_DATA.cFileName == dx ||
+                     word ptr [rdi].WIN32_FIND_DATA.cFileName[1] == dx )
+
+                .break( 1 ) .ifd wsfindnext(rdi, rsi)
+                mov edx,'.'
+            .endw
 
             inc eax
             .if !( byte ptr [rdi] & _A_SUBDIR )

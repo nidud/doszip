@@ -692,6 +692,8 @@ CFReadFileName proc uses rsi rdi rbx ini:LPINI, index:PVOID, file_flag:UINT
         ExpandEnvironmentStrings(rsi, strcpy(&buffer, rsi), 1024)
 
         lea rsi,buffer
+        mov eax,'\\'
+        .break .if ( ax == [rsi] )
         .ifd filexist(rsi) == file_flag
 
             mov rdi,_strdup(rsi)

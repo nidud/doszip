@@ -70,7 +70,7 @@ _disk_valid proc private drive:SINT
 
 _disk_valid endp
 
-_disk_type proc uses rdx rcx disk:UINT
+_disk_type proc disk:UINT
 
   local path[2]:dword
 
@@ -115,16 +115,18 @@ _disk_init proc uses rdi disk:UINT
 
 _disk_init endp
 
-_disk_exist proc uses rdx disk:UINT
+_disk_exist proc disk:UINT
 
-    mov eax,DISK
-    mov edx,disk
-    dec edx
-    mul edx
-    lea rdx,drvinfo
-    add rdx,rax
-    xor eax,eax
-    .if [rdx].DISK.flag != eax
+    ldr eax,disk
+    .if ( eax == 0 || eax > MAXDRIVES )
+        .return( 0 )
+    .endif
+    dec  eax
+    imul eax,eax,DISK
+    lea  rdx,drvinfo
+    add  rdx,rax
+    xor  eax,eax
+    .if ( eax != [rdx].DISK.flag )
         mov rax,rdx
     .endif
     ret
@@ -286,27 +288,28 @@ _disk_select endp
 
 _disk_read proc uses rsi rdi rbx
 
-    mov esi,clock()
+   .new d:dword = clock()
+
     mov edi,GetLogicalDrives()
     lea rbx,drvinfo
-    mov ecx,1
-    .repeat
-        xor eax,eax
-        mov [rbx].DISK.flag,eax
-        shr edi,1
+
+    .for ( esi = 0 : esi < MAXDRIVES : esi++, rbx += DISK )
+
+        mov [rbx].DISK.flag,0
+        bt  edi,esi
         .ifc
-            .ifd _disk_type(ecx) > 1
+            lea ecx,[rsi+1]
+            .ifd ( _disk_type(ecx) > 1 )
+
                 mov edx,_FB_ROOTDIR or _A_VOLID
                 .if eax == DRIVE_CDROM
                     or edx,_FB_CDROOM
                 .endif
                 mov [rbx].DISK.flag,edx
             .endif
-            mov [rbx].DISK.time,esi
+            mov [rbx].DISK.time,d
         .endif
-        add rbx,DISK
-        inc ecx
-    .until ecx == MAXDRIVES+1
+    .endf
     ret
 
 _disk_read endp

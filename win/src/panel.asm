@@ -1105,11 +1105,14 @@ panel_openmsg endp
 
 wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
 
-  local disk, index, VolumeID[32]:char_t
+   .new disk:int_t
+   .new index:int_t = 0
+   .new VolumeID[32]:char_t
 
     ldr rbx,wsub
+
     wsfree(rbx)
-    mov index,0
+
     mov eax,[rbx].WSUB.flag
     and eax,not (_W_ARCHIVE or _W_NETWORK)
     or  eax,_W_ROOTDIR
@@ -1122,7 +1125,7 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
         mov rdi,rax
         mov rax,[rbx].WSUB.path
         mov eax,[rax]
-        .if al && ah == ':'
+        .if ( al && ah == ':' )
 
             and al,not 20h
             mov cp_disk,al
@@ -1141,15 +1144,18 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
     xor edi,edi
     xor esi,esi
     mov rbx,[rbx].WSUB.fcb
-    .while esi < MAXDRIVES
+
+    .while ( esi < MAXDRIVES )
 
         inc esi
         .continue .ifd !_disk_exist(esi)
+
         lea rcx,[rax].DISK.name
         .break .if !fballoc(rcx, [rax].DISK.time, [rax].DISK.size, [rax].DISK.flag)
         mov [rbx+rdi*size_t],rax
         inc edi
-        .if esi == disk
+
+        .if ( esi == disk )
 
             lea eax,[rdi-1]
             mov index,eax
@@ -1171,14 +1177,19 @@ wsub_read proc private uses rsi rdi wsub:PWSUB
 
     mov eax,[rdi].WSUB.flag
     and eax,_W_ARCHIVE
+
     .if eax
+
         mov rsi,rsp
         strfcat(alloca(WMAXPATH), [rdi].WSUB.path, [rdi].WSUB.file)
         filexist(rax)
+
         mov rsp,rsi
         xor esi,esi
-        .if eax == 1
-            .if [rdi].WSUB.flag & _W_ARCHZIP
+
+        .if ( eax == 1 )
+
+            .if ( [rdi].WSUB.flag & _W_ARCHZIP )
                 wzipread(rdi)
             .else
                 warcread(rdi)
@@ -2732,7 +2743,6 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
 
                         and [rdi].flag,not (_W_ARCHIVE or _W_ROOTDIR)
                     .else
-
                         reduce_path(rcx)
                     .endif
                 .else
@@ -2779,6 +2789,12 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                         .if strrchr(addr [rdi+2], '\')
 
                             reduce_path(rdi)
+                        .else
+
+                            mov rdi,[rsi].wsub
+                            .if ( [rdi].flag & _W_NETWORK )
+                                or [rdi].flag,_W_ROOTDIR
+                            .endif
                         .endif
                     .else
                         mov rdx,pe.pe_fblk
