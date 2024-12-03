@@ -57,7 +57,7 @@ define CON_UBEEP	0x0001	; Use Beep
 define CON_MOUSE	0x0002	; Use Mouse
 define CON_IOSFN	0x0004	; Use Long File Names
 define CON_CLIPB	0x0008	; Use System Clipboard
-define CON_ASCII	0x0010	; Use Ascii symbol
+define CON_NETCFG	0x0010	; Use Network Config
 define CON_NTCMD	0x0020	; Use NT Prompt
 define CON_CMDENV	0x0040	; CMD Compatible Mode
 define CON_IMODE	0x0080	; Init screen mode on startup

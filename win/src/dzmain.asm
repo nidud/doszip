@@ -44,7 +44,10 @@ test_path proc
     .if cl
         .if cx == '\\'
 
-            inc eax
+            .if ( console & CON_NETCFG )
+                inc eax
+            .endif
+
         .elseif ch == ':'
 
             movzx eax,cl

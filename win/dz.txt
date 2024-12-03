@@ -2,9 +2,9 @@ DZ.TXT--
 Copyright (C) 2024 Doszip Developers.
 
 DOSZIP COMMANDER
-Version 3.76
+Version 3.77
 
-Welcome to Doszip Commander Version 3.76!
+Welcome to Doszip Commander Version 3.77!
 =========================================
 
 
@@ -661,8 +661,8 @@ Welcome to Doszip Commander Version 3.76!
 	[x] Use Mouse
 	[ ] Use Short File Names
 	[x] Use System Clipboard
-	[ ] Use Ascii Symbols
-	    - for system fonts
+	[ ] Use Network Config
+	    - add and use \\network paths to dz.ini
 	[x] Use NT Prompt
 	    - Use [Comspec] if set
 	    - runs assosiated programs on Enter if set

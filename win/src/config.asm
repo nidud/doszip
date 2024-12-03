@@ -693,7 +693,9 @@ CFReadFileName proc uses rsi rdi rbx ini:LPINI, index:PVOID, file_flag:UINT
 
         lea rsi,buffer
         mov eax,'\\'
-        .break .if ( ax == [rsi] )
+        .if ( ax == [rsi] && !( console & CON_NETCFG ) )
+            .continue
+        .endif
         .ifd filexist(rsi) == file_flag
 
             mov rdi,_strdup(rsi)
@@ -1348,7 +1350,8 @@ historysave proc uses rsi
     mov edx,[rax].WSUB.flag
     xor eax,eax
 
-    .if !( edx & _W_ARCHIVE or _W_ROOTDIR )
+    .if !( ( edx & _W_ARCHIVE or _W_ROOTDIR ) ||
+           ( edx & _W_NETWORK && !( console & CON_NETCFG ) ) )
 
         lea rsi,_bufin
 
