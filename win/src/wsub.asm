@@ -1897,7 +1897,11 @@ zip_unzip proc watcall private uses rsi zip_handle:int_t, out_handle:int_t
 
     .repeat
         .repeat
-            .break .if !ioinit(&STDO, WSIZE)
+            mov edx,WSIZE
+            .if ( zip_local.method == 9 )
+                mov edx,OO_MEM64K
+            .endif
+            .break .if !ioinit(&STDO, edx)
             .if !ioinit(&STDI, OO_MEM64K)
                 iofree(&STDO)
                 .break
@@ -1927,10 +1931,12 @@ endif
                     dec esi
                    .endc
                 .case 9
+if 0
                     mov esi,ER_ZIP
                     .if ( zip_local.fsize > 0x8000 )
                         .endc .ifd !rsmodal(IDD_Deflate64)
                     .endif
+endif
                 .case 8
                     zip_inflate()
                     mov esi,eax

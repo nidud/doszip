@@ -17,7 +17,6 @@ define BMAX  16         ; Maximum bit length of any code (16 for explode)
 define N_MAX 288        ; Maximum number of codes in any set
 define OSIZE 0x8000
 
-.pragma pack(push, size_t)
 ;
 ; Huffman code lookup table entry--this entry is four bytes for machines
 ;   that have 16-bit pointers (e.g. PC's in the small or medium model).
@@ -27,42 +26,40 @@ define OSIZE 0x8000
 ;   an unused code.  If a code with e == 99 is looked up, this implies an
 ;   error in the data.
 ;
-HUFT        struct
-e       db ?        ; number of extra bits or operation
-b       db ?        ; number of bits in this code or subcode
+HUFT        struct size_t
+e           db ?        ; number of extra bits or operation
+b           db ?        ; number of bits in this code or subcode
 union
- n      dw ?        ; literal, length base, or distance base
- t      PVOID ?     ; pointer to next level of table
+ n          dd ?        ; literal, length base, or distance base
+ t          PVOID ?     ; pointer to next level of table
 ends
 HUFT        ends
 PHUFT       typedef ptr HUFT
 
-.pragma pack(pop)
 
     .data
 
 ; Tables for deflate from PKZIP's appnote.txt
 
-border dd \
-    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
-
 cplens dw \
      3, 4, 5, 6, 7, 8, 9,10, 11, 13, 15, 17, 19, 23, 27, 31,
-     35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0
+     35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227
+lens32 dw 258, 0, 0 ; 64: 3,0,0
 
 cplext dw \ ; Extra bits for literal codes 257..285
     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
-    3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 99, 99 ; 99==invalid
+    3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5
+lext32 dw 0, 99, 99 ; 99==invalid, 64: 16,77,74
 
-cpdist dw \ ; Copy offsets for distance codes 0..29
+cpdist dw \ ; Copy offsets for distance codes 0..29 64: 31
     1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
     257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
-    8193, 12289, 16385, 24577
+    8193, 12289, 16385, 24577, 32769, 49153
 
 cpdext dw \ ; Extra bits for distance codes
     0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
     7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
-    12, 12, 13, 13
+    12, 12, 13, 13, 14, 14 ; 64: 14, 14
 
 ; Tables for length and distance for explode
 
@@ -98,6 +95,8 @@ cpdist8 dw \
     4225,4353,4481,4609,4737,4865,4993,5121,5249,5377,5505,
     5633,5761,5889,6017,6145,6273,6401,6529,6657,6785,6913,
     7041,7169,7297,7425,7553,7681,7809,7937,8065
+
+border db 16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15
 
 align 4
 ifdef __DEBUG__
@@ -163,6 +162,10 @@ fill_inbuf proc uses rcx
     add     rdx,STDI.base
     movzx   edx,byte ptr [rdx]
     shl     edx,cl
+    mov     eax,1
+    shl     rax,cl
+    dec     rax
+    and     bb,rax
     or      bb,rdx
     add     bk,8
     mov     eax,bk
@@ -509,7 +512,7 @@ endif
                 .else
                     mov r.e,15
                 .endif
-                mov r.n,ax          ; simple code is just the value
+                mov r.n,eax         ; simple code is just the value
                 add rbx,4           ;
 
             .else
@@ -517,11 +520,11 @@ endif
                 mov ecx,[rbx]       ; non-simple--look up in lists
                 sub ecx,s
                 mov rdx,e
-                mov al,[rdx+rcx*2]
+                movzx eax,byte ptr [rdx+rcx*2]
                 mov r.e,al
                 mov rdx,d
                 mov ax,[rdx+rcx*2]
-                mov r.n,ax
+                mov r.n,eax
                 add rbx,4
             .endif
             mov p,rbx
@@ -642,8 +645,7 @@ inflate_codes proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, l:SINT, d:SINT
 
         .if ( esi == 16 ) ; then it's a literal
 
-            movzx eax,[rbx].HUFT.n
-            .ifd !oputc(eax)
+            .ifd !oputc([rbx].HUFT.n)
 
                 .return(ER_DISK)
             .endif
@@ -657,7 +659,7 @@ inflate_codes proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, l:SINT, d:SINT
 
             ; get length of block to copy
 
-            movzx edi,[rbx].HUFT.n
+            mov edi,[rbx].HUFT.n
             add edi,getbits(esi)
 
             ; decode distance of block to copy
@@ -695,7 +697,7 @@ inflate_codes proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, l:SINT, d:SINT
             sub bk,ecx
             shr bb,cl
 
-            movzx ebx,[rbx].HUFT.n
+            mov ebx,[rbx].HUFT.n
             mov edx,getbits(esi)
             mov eax,STDO.index
             sub eax,ebx
@@ -704,8 +706,9 @@ inflate_codes proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, l:SINT, d:SINT
 
             .repeat
 
-                and ebx,OSIZE-1
-                mov ecx,OSIZE
+                mov ecx,STDO.size
+                lea eax,[rcx-1]
+                and ebx,eax
                 mov eax,ebx
                 .if ( eax <= STDO.index )
                     mov eax,STDO.index
@@ -729,7 +732,7 @@ inflate_codes proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, l:SINT, d:SINT
                 rep movsb
                 mov edi,edx
 
-                .if ( eax >= OSIZE )
+                .if ( eax >= STDO.size )
 
                     .ifd !ioflush( &STDO )
 
@@ -776,12 +779,12 @@ inflate_fixed proc uses rdi rbx
         .endif
 
         mov rdx,rdi         ; make an incomplete code set
-        mov ecx,30
+        mov ecx,32
         mov eax,5
         rep stosd
         mov fixed_bd,5
         mov rdi,rdx
-        .ifd huft_build( rdi, 30, 0, &cpdist, &cpdext, &fixed_td, &fixed_bd )
+        .ifd huft_build( rdi, 32, 0, &cpdist, &cpdext, &fixed_td, &fixed_bd )
 
             .if ( eax != 1 )
 
@@ -836,13 +839,13 @@ inflate_dynamic proc uses rsi rdi rbx
     .for ( esi = 0 : esi < nb : esi++ )
 
         getbits(3)
-        mov edx,[rbx+rsi*4]
+        movzx edx,byte ptr [rbx+rsi]
         mov ll[rdx*4],eax
     .endf
 
     .for ( : esi < 19 : esi++ )
 
-        mov eax,[rbx+rsi*4]
+        movzx eax,byte ptr [rbx+rsi]
         mov ll[rax*4],0
     .endf
 
@@ -874,7 +877,7 @@ inflate_dynamic proc uses rsi rdi rbx
         sub     bk,ecx
         shr     bb,cl
 
-        movzx eax,[rbx].HUFT.n
+        mov eax,[rbx].HUFT.n
         .if ( eax < 16 )
 
             mov edi,eax
@@ -1005,6 +1008,18 @@ zip_inflate proc public uses rsi rdi rbx
 
     mov bb,0
     mov bk,0
+    mov lens32,258
+    mov lext32[0],0
+    mov lext32[2],99
+    mov lext32[4],99
+
+    .if ( zip_local.method == 9 )
+
+        mov lens32,3
+        mov lext32[0],16
+        mov lext32[2],77
+        mov lext32[4],74
+    .endif
 
     .while 1
 
@@ -1155,7 +1170,7 @@ explode_docopy proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, xbl:uint_t, xbd:uint_t,
         .return
     .endif
 
-    movzx edx,[rbx].HUFT.n      ; construct offset
+    mov edx,[rbx].HUFT.n      ; construct offset
     mov eax,STDO.index
     sub eax,edi
     sub eax,edx
@@ -1166,7 +1181,7 @@ explode_docopy proc uses rsi rdi rbx tl:PHUFT, td:PHUFT, xbl:uint_t, xbd:uint_t,
         .return
     .endif
 
-    movzx esi,[rbx].HUFT.n      ; get length extra bits
+    mov esi,[rbx].HUFT.n      ; get length extra bits
     .if ( [rbx].HUFT.e )
 
         add esi,getbits(8)
@@ -1252,8 +1267,7 @@ explode_lit proc uses rbx tb:PHUFT, tl:PHUFT, td:PHUFT,
             .ifd decode_huft(tb, xbb)
                 .return
             .endif
-            movzx ecx,[rbx].HUFT.n
-            .ifd ( oputc(ecx) == 0 )
+            .ifd ( oputc([rbx].HUFT.n) == 0 )
                 .return( ER_DISK )
             .endif
 
