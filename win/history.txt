@@ -2,6 +2,10 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
+Changes in 3.78 - 20 Des 2024
+- added support for 64K dictionaries -- UNZIP64
+- added -r to 7ZA command copy
+
 Changes in 3.76 - 3 Des 2024
 - fixed network reading error
 

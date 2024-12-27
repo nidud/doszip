@@ -40,7 +40,7 @@ $PROG  db "7ZA.EXE",0
 ; default value
 
 ARG_01 db '7za l -y',0         ; 01 - Read
-ARG_02 db '7za x -y',0         ; 02 - Copy - e if not include subdir
+ARG_02 db '7za x -r -y',0      ; 02 - Copy - e if not include subdir
 ARG_03 db '7za a -y',0         ; 03 - Add
 ARG_06 db '7za d -y',0         ; 06 - Delete
 ARG_08 db '7za m -e -y',0      ; 08 - Edit
