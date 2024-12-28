@@ -1630,11 +1630,11 @@ deflate_fast proc uses rsi rdi
 
             .if ( eax <= [rbx].max_lazy_match && [rbx].lookahead >= MIN_MATCH )
 
-                .repeat
+                .for ( --match_length : match_length : match_length-- )
+
                     inc [rbx].str_start
                     insert_string()
-                    dec match_length
-                .untilz
+                .endf
                 inc [rbx].str_start
 
             .else
@@ -1684,17 +1684,12 @@ deflate_fast proc uses rsi rdi
 
 deflate_fast endp
 
-deflate proc uses rsi rdi
+deflate_slow proc uses rsi rdi
 
    .new len:int_t
    .new mavailable:int_t = 0
    .new match_length:int_t = MIN_MATCH-1
    .new prev_match:uint_t
-
-    .if ( [rbx].compr_level <= 3 )
-
-        .return deflate_fast()
-    .endif
 
     xor esi,esi
 
@@ -1823,7 +1818,7 @@ deflate proc uses rsi rdi
     flush_block(1)
     ret
 
-deflate endp
+deflate_slow endp
 
 zip_deflate proc public uses rsi rdi rbx level:uint_t
 
@@ -1879,17 +1874,24 @@ zip_deflate proc public uses rsi rdi rbx level:uint_t
         .endif
 
         mov [rbx].lookahead,ioread(&STDI)
-        .if ( eax == 0 )
 
-           .return( 1 )
-        .endif
-        .if ( eax < MIN_LOOKAHEAD )
+        .ifd ( eax == 0 )
 
-            fill_window()
+           inc eax
+        .else
+            .if ( eax < MIN_LOOKAHEAD )
+
+                fill_window()
+            .endif
+            update_hash(0)
+            update_hash(1)
+            .if ( [rbx].compr_level <= 3 )
+                deflate_fast()
+            .else
+                deflate_slow()
+            .endif
         .endif
-        update_hash(0)
-        update_hash(1)
-        mov esi,deflate()
+        mov esi,eax
     .endif
     free(rbx)
     mov eax,esi
