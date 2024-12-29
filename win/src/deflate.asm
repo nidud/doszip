@@ -1417,19 +1417,19 @@ insert_string proc
 
     mov     edx,[rbx].str_start
     add     edx,MIN_MATCH-1
-    mov     rcx,window
-    movzx   ecx,BYTE PTR [rcx+rdx]
-    mov     eax,[rbx].ins_h
-    shl     eax,H_SHIFT
-    xor     eax,ecx
-    and     eax,HASH_MASK
-    mov     [rbx].ins_h,eax
+    mov     rax,window
+    movzx   eax,BYTE PTR [rax+rdx]
+    mov     ecx,[rbx].ins_h
+    shl     ecx,H_SHIFT
+    xor     ecx,eax
+    and     ecx,HASH_MASK
+    mov     [rbx].ins_h,ecx
     sub     edx,MIN_MATCH-1
-    movzx   esi,[rbx].head_buf[rax*2]
-    mov     [rbx].head_buf[rax*2],dx
+    movzx   eax,[rbx].head_buf[rcx*2]
+    mov     [rbx].head_buf[rcx*2],dx
     mov     rcx,[rbx].prev
     and     edx,WMASK
-    mov     [rcx+rdx*2],si
+    mov     [rcx+rdx*2],ax
     ret
 
 insert_string endp
@@ -1438,34 +1438,133 @@ if HASH_BITS lt 8 or MAX_MATCH ne 258
    .err <Code too clever>
 endif
 
-longest_match proc uses rsi rdi rbp ; cur_match:int_t
-
+longest_match proc ; cur_match:int_t
+ifndef _WIN64
+    push    ebp
+endif
     mov     rdi,window
     mov     rsi,rdi
     mov     si,ax                   ; match: window + cur_match
 
     mov     edx,[rbx].str_start
     mov     di,dx                   ; scan: window + start
+ifdef __P686__
+    xor     ecx,ecx
+    sub     edx,MAX_DIST            ; limit: start - MAX_DIST : 0
+    cmovb   edx,ecx
+else
     sub     edx,MAX_DIST            ; limit: start - MAX_DIST : 0
     jae     .0
     xor     edx,edx
 .0:
-    mov     ebp,[rbx].prev_length   ; best_len: prev_length
+endif
+ifdef _WIN64
+    mov         r8d,[rbx].prev_length   ; best_len: prev_length
+    mov         eax,[rbx].max_chain_len
+    cmp         r8d,[rbx].good_match
+    sbb         ecx,ecx
+    and         ecx,2
+    shr         eax,cl
+    mov         [rbx].chain_length,eax
+    mov         r9d,edi
+ifdef __AVX__
+    and         r9d,32-1
+    neg         r9d
+    add         r9d,32
+    vmovups     ymm1,[rdi]
+else
+    and         r9d,16-1
+    neg         r9d
+    add         r9d,16
+    movups      xmm1,[rdi]
+endif
+.1:
+ifdef __AVX__
+    vmovups     ymm0,[rsi]
+    vpcmpeqb    ymm0,ymm0,ymm1
+    vpmovmskb   ecx,ymm0
+    mov         eax,32
+    xor         ecx,-1
+    jz          .5
+    bsf         ecx,ecx
+    lea         eax,[rcx+rax-32]
+else
+    movups      xmm0,[rsi]
+    pcmpeqb     xmm0,xmm1
+    pmovmskb    ecx,xmm0
+    mov         eax,16
+    xor         cx,-1
+    jz          .5
+    bsf         ecx,ecx
+    lea         eax,[rcx+rax-16]
+endif
+.2:
+    cmp         eax,r8d
+    jle         .3
+    mov         word ptr [rbx].match_start,si
+    mov         r8d,eax
+    cmp         eax,[rbx].nice_match
+    jge         .4
+.3:
+    mov         r11,[rbx].prev
+    add         si,si
+    mov         r11w,si
+    mov         si,[r11]
+    dec         [rbx].chain_length
+    jz          .4
+    cmp         si,dx
+    ja          .1
+.4:
+    mov         eax,r8d
+    ret
+.5:
+    mov         eax,r9d
+.6:
+ifdef __AVX__
+    vmovups     ymm0,[rsi+rax]
+    vpcmpeqb    ymm0,ymm0,[rdi+rax]
+    vpmovmskb   ecx,ymm0
+    add         eax,32
+    xor         ecx,-1
+    jnz         .7
+    cmp         eax,MAX_MATCH+32
+    jb          .6
+.7:
+    bsf         ecx,ecx
+    lea         eax,[rcx+rax-32]
+else
+    movups      xmm0,[rsi+rax]
+    pcmpeqb     xmm0,[rdi+rax]
+    pmovmskb    ecx,xmm0
+    add         eax,16
+    xor         cx,-1
+    jnz         .7
+    cmp         eax,MAX_MATCH+16
+    jb          .6
+.7:
+    bsf         ecx,ecx
+    lea         eax,[rcx+rax-16]
+endif
+    mov         ecx,MAX_MATCH
+    cmp         eax,ecx
+    cmova       eax,ecx
+    jmp         .2
 
-    ; Do not waste too much time if we already have a good match:
+else
 
-    mov     eax,[rbx].max_chain_len
-    cmp     ebp,[rbx].good_match
+    mov     ebp,[ebx].prev_length   ; best_len: prev_length
+    mov     eax,[ebx].max_chain_len
+    cmp     ebp,[ebx].good_match
     jb      .1
     shr     eax,2
 .1:
-    mov     rcx,[rbx].prev
-    mov     [rbx].chain_length,eax
-    mov     cx,[rdi]
-    mov     ax,[rdi+rbp-1]
+    mov     ecx,[ebx].prev
+    mov     [ebx].chain_length,eax
+    mov     cx,[edi]
+    mov     ax,[edi+ebp-1]
     add     rdi,2
 .2:
-    cmp     ax,[rsi+rbp-1]
+    cmp     ax,[esi+ebp-1]
     jne     .4
     cmp     cx,[rsi]
     jne     .4
@@ -1481,12 +1580,12 @@ longest_match proc uses rsi rdi rbp ; cur_match:int_t
     inc     eax
     cmp     eax,ebp
     jle     .3
-    mov     word ptr [rbx].match_start,si
+    mov     word ptr [ebx].match_start,si
     mov     ebp,eax
-    cmp     eax,[rbx].nice_match
+    cmp     eax,[ebx].nice_match
     jge     .5
 .3:
-    mov     ax,[rdi+rbp-3]
+    mov     ax,[edi+ebp-3]
 .4:
     add     si,si
     mov     cx,si
@@ -1498,11 +1597,14 @@ longest_match proc uses rsi rdi rbp ; cur_match:int_t
     ja      .2
 .5:
     mov     eax,ebp
+    pop     ebp
     ret
+endif
 
 longest_match endp
 
-fill_window proc uses rsi rdi
+
+fill_window proc
 
     .while 1
 
@@ -1577,36 +1679,30 @@ fill_window proc uses rsi rdi
 fill_window endp
 
 
-deflate_fast proc uses rsi rdi
+deflate_fast proc
 
-   .new match_length:int_t
+   .new flush:int_t
+   .new match_length:int_t = 0
+   .new prev_length:int_t = 0
 
-    xor esi,esi
-    mov match_length,esi
     mov [rbx].prev_length,MIN_MATCH-1
 
-    .while 1 ; deflate while lookahead
+    .while ( [rbx].lookahead ) ; deflate while lookahead
 
-        xor eax,eax
-        mov ecx,[rbx].lookahead
-        .if ( ecx == eax )
+        .if ( [rbx].lookahead >= MIN_MATCH )
 
-            .break
-        .endif
-        .if ( ecx >= MIN_MATCH )
-
-            insert_string()
+            mov prev_length,insert_string()
         .endif
 
+        mov eax,prev_length
         mov ecx,[rbx].str_start
-        sub ecx,esi
-        .if ( esi && ecx <= MAX_DIST )
+        sub ecx,eax
+        .if ( eax && ecx <= MAX_DIST )
 
-            mov eax,[rbx].lookahead
-            .if ( [rbx].nice_match > eax )
-                mov [rbx].nice_match,eax
+            mov ecx,[rbx].lookahead
+            .if ( [rbx].nice_match > ecx )
+                mov [rbx].nice_match,ecx
             .endif
-            mov eax,esi
             longest_match()
             mov edx,[rbx].lookahead
             .if ( eax > edx )
@@ -1615,25 +1711,21 @@ deflate_fast proc uses rsi rdi
             mov match_length,eax
         .endif
 
-        mov eax,match_length
-        .if ( eax >= MIN_MATCH )
+        .if ( match_length >= MIN_MATCH )
 
             mov eax,[rbx].str_start
             sub eax,[rbx].match_start
             mov edx,match_length
             sub edx,MIN_MATCH
-            ct_tally(eax, edx)
-
-            mov edi,eax
-            mov eax,match_length
-            sub [rbx].lookahead,eax
+            mov flush,ct_tally(eax, edx)
+            sub [rbx].lookahead,match_length
 
             .if ( eax <= [rbx].max_lazy_match && [rbx].lookahead >= MIN_MATCH )
 
                 .for ( --match_length : match_length : match_length-- )
 
                     inc [rbx].str_start
-                    insert_string()
+                    mov prev_length,insert_string()
                 .endf
                 inc [rbx].str_start
 
@@ -1658,12 +1750,12 @@ deflate_fast proc uses rsi rdi
             mov ecx,[rbx].str_start
             add rcx,window
             movzx edx,BYTE PTR [rcx]
-            mov edi,ct_tally(0, edx)
+            mov flush,ct_tally(0, edx)
             dec [rbx].lookahead
             inc [rbx].str_start
         .endif
 
-        .if ( edi )
+        .if ( flush )
 
             .ifd !flush_block(0)
 
@@ -1684,42 +1776,36 @@ deflate_fast proc uses rsi rdi
 
 deflate_fast endp
 
-deflate_slow proc uses rsi rdi
+deflate_slow proc
 
    .new len:int_t
+   .new flush:int_t
    .new mavailable:int_t = 0
    .new match_length:int_t = MIN_MATCH-1
    .new prev_match:uint_t
+   .new prev_length:int_t = 0
 
-    xor esi,esi
+    .while ( [rbx].lookahead )
 
-    .while 1
+        .if ( [rbx].lookahead >= MIN_MATCH )
 
-        xor eax,eax
-        mov ecx,[rbx].lookahead
-        .if ( !ecx )
-
-            .break
-        .endif
-        .if ( ecx >= MIN_MATCH )
-
-            insert_string()
+            mov prev_length,insert_string()
         .endif
 
         mov prev_match,[rbx].match_start
-        mov [rbx].prev_length,match_length
+        mov edx,match_length
+        mov [rbx].prev_length,edx
         mov match_length,MIN_MATCH-1
+        mov eax,prev_length
         mov ecx,[rbx].str_start
-        sub ecx,esi
+        sub ecx,eax
 
-        .if ( esi && eax < [rbx].max_lazy_match && ecx <= MAX_DIST )
+        .if ( eax && edx < [rbx].max_lazy_match && ecx <= MAX_DIST )
 
-            mov eax,[rbx].lookahead
-            .if ( [rbx].nice_match >= eax )
-                mov [rbx].nice_match,eax
+            mov ecx,[rbx].lookahead
+            .if ( [rbx].nice_match >= ecx )
+                mov [rbx].nice_match,ecx
             .endif
-
-            mov eax,esi
             longest_match()
             .if ( eax >= [rbx].lookahead )
                 mov eax,[rbx].lookahead
@@ -1748,7 +1834,7 @@ deflate_slow proc uses rsi rdi
             sub ax,word ptr prev_match
             mov edx,[rbx].prev_length
             sub edx,MIN_MATCH
-            mov edi,ct_tally(eax, edx)
+            mov flush,ct_tally(eax, edx)
 
             mov eax,[rbx].prev_length
             dec eax
@@ -1759,7 +1845,7 @@ deflate_slow proc uses rsi rdi
             .repeat
                 inc [rbx].str_start
                 .if ( [rbx].str_start <= len )
-                    insert_string()
+                    mov prev_length,insert_string()
                 .endif
                 dec [rbx].prev_length
             .untilz
@@ -1768,7 +1854,7 @@ deflate_slow proc uses rsi rdi
             mov mavailable,eax
             mov match_length,MIN_MATCH-1
 
-            .if ( edi )
+            .if ( flush )
 
                 .ifd !flush_block(0)
 
@@ -1820,7 +1906,10 @@ deflate_slow proc uses rsi rdi
 
 deflate_slow endp
 
+
 zip_deflate proc public uses rsi rdi rbx level:uint_t
+
+    .new retval:int_t = 0
 
     .if !malloc(DEFLATE+2*0x10000)
 
@@ -1852,7 +1941,6 @@ zip_deflate proc public uses rsi rdi rbx level:uint_t
     xor eax,eax
     rep stosd
 
-    xor esi,esi
     .ifd ct_init()
 
         mov eax,[rbx].compr_level
@@ -1891,10 +1979,10 @@ zip_deflate proc public uses rsi rdi rbx level:uint_t
                 deflate_slow()
             .endif
         .endif
-        mov esi,eax
+        mov retval,eax
     .endif
     free(rbx)
-    mov eax,esi
+    mov eax,retval
     ret
 
 zip_deflate endp
