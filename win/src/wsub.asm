@@ -63,19 +63,27 @@ define ZIP_ENDSENTRID       0x06054B50 ; signature end central
 
 fballoc proc uses rbx fname:LPSTR, ftime:dword, fsize:qword, flag:dword
 
-    .if malloc(&[strlen(fname)+FBLK])
+    ldr ebx,flag
+    ldr rcx,fname
 
+    lea ecx,[strlen(rcx)+FBLK+1]
+    .if ( ebx & _FB_ARCHIVE )
+        add ecx,ZINF
+    .endif
+    .if malloc( rcx )
+
+        lea rcx,[rax+FBLK]
+        .if ( ebx & _FB_ARCHIVE )
+            add rcx,ZINF
+        .endif
+        mov [rax].FBLK.name,rcx
+        mov [rax].FBLK.flag,ebx
         mov rbx,rax
-        add rax,FBLK.name
-        strcpy(rax, fname)
-        mov eax,flag
-        mov [rbx].FBLK.flag,eax
-        mov eax,ftime
-        mov [rbx].FBLK.time,eax
-        mov eax,dword ptr fsize[0]
-        mov dword ptr [rbx].FBLK.size,eax
-        mov eax,dword ptr fsize[4]
-        mov dword ptr [rbx].FBLK.size[4],eax
+        strcpy(rcx, fname)
+        xor eax,eax
+        mov [rbx].FBLK.next,rax
+        mov [rbx].FBLK.time,ftime
+        mov [rbx].FBLK.size,fsize
         mov rax,rbx
     .endif
     ret
@@ -83,7 +91,7 @@ fballoc proc uses rbx fname:LPSTR, ftime:dword, fsize:qword, flag:dword
 fballoc endp
 
 
-fbffirst proc private fcb:PVOID, count:UINT
+fbffirst proc private fcb:PFBLK, count:UINT
 
     xor edx,edx
     xor eax,eax
@@ -100,9 +108,10 @@ fbffirst proc private fcb:PVOID, count:UINT
 
 fbffirst endp
 
+
 fbinvert proc fblk:PFBLK
 
-    mov rax,fblk
+    ldr rax,fblk
     .if ![rax].FBLK.flag & _FB_UPDIR
         xor [rax].FBLK.flag,_FB_SELECTED
     .else
@@ -112,9 +121,10 @@ fbinvert proc fblk:PFBLK
 
 fbinvert endp
 
+
 fbselect proc fblk:PFBLK
 
-    mov rax,fblk
+    ldr rax,fblk
     .if !( [rax].FBLK.flag & _FB_UPDIR )
         or [rax].FBLK.flag,_FB_SELECTED
     .else
@@ -124,7 +134,8 @@ fbselect proc fblk:PFBLK
 
 fbselect endp
 
-fbupdir proc flag
+
+fbupdir proc flag:dword
 
   local ts:SYSTEMTIME
 
@@ -137,13 +148,14 @@ fbupdir proc flag
 
 fbupdir endp
 
+
 fbcolor proc uses rsi rdi fp:PFBLK
 
-    mov rsi,fp
+    ldr rsi,fp
     .while 1
 
         .if !( [rsi].FBLK.flag & _A_SUBDIR )
-            lea rdi,[rsi].FBLK.name
+            mov rdi,[rsi].FBLK.name
             .if strext(rdi)
                 lea rdi,[rax+1]
             .endif
@@ -196,6 +208,7 @@ wscopyffwf proc private uses rsi rdi ff:PWIN32_FIND_DATAA, wf:PWIN32_FIND_DATAW
 
     ldr rdi,ff
     ldr rsi,wf
+
     mov ecx,WIN32_FIND_DATAA.cFileName / 4
     rep movsd
 
@@ -244,6 +257,7 @@ wsfindnext proc private ff:PWIN32_FIND_DATA, handle:HANDLE
 
 wsfindnext endp
 
+
 scan_directory proc uses rsi rdi rbx flag:UINT, directory:LPSTR
 
    .new result:int_t = 0
@@ -283,6 +297,7 @@ scan_directory proc uses rsi rdi rbx flag:UINT, directory:LPSTR
     ret
 
 scan_directory endp
+
 
 scan_files proc uses rsi rdi rbx directory:LPSTR
 
@@ -351,21 +366,17 @@ wsopen proc uses rsi rdi wsub:PWSUB
         mov [rsi].fcb,rax
         or  [rsi].flag,_W_MALLOC
     .endif
-
     free([rsi].fcb)
-    imul edi,[rsi].maxfb,size_t
-    mov [rsi].fcb,malloc(edi)
-    .if rax
-        memset(rax, 0, edi)
-        mov eax,1
-    .endif
+    mov eax,1
     ret
 
 wsopen endp
 
+
 wssetflag proc private uses rsi rdi wsub:PWSUB
 
     ldr rsi,wsub
+
     mov edi,[rsi].flag
     and edi,not _W_NETWORK
     mov [rsi].flag,edi
@@ -405,9 +416,11 @@ wssetflag proc private uses rsi rdi wsub:PWSUB
 
 wssetflag endp
 
+
 wslocal proc private wsub:PWSUB
 
     ldr rcx,wsub
+
     .if _getcwd([rcx].WSUB.path, WMAXPATH)
         wssetflag(wsub)
     .endif
@@ -415,13 +428,15 @@ wslocal proc private wsub:PWSUB
 
 wslocal endp
 
+
 wsinit proc uses rsi rdi rbx wsub:PWSUB
 
    .new path:DWORD
-    ldr rdi,wsub
-    mov rsi,[rdi].WSUB.path
 
-    .if byte ptr [rsi] == 0
+    ldr rdi,wsub
+
+    mov rsi,[rdi].WSUB.path
+    .if ( byte ptr [rsi] == 0 )
         GetCurrentDirectory(WMAXPATH, rsi)
     .endif
 
@@ -455,75 +470,108 @@ wsinit proc uses rsi rdi rbx wsub:PWSUB
 
 wsinit endp
 
+
 wsfree proc uses rsi rdi rbx wsub:PWSUB
 
-    xor eax,eax
-    ldr rcx,wsub
-    mov edi,[rcx].WSUB.count
-    mov [rcx].WSUB.count,eax
-    mov rsi,[rcx].WSUB.fcb
-    .if rsi
+    ldr rsi,wsub
 
-        mov ebx,edi
+    mov edi,[rsi].count
+    mov rbx,[rsi].fcb
+
+    free([rsi].fcb)
+    xor eax,eax
+    mov [rsi].fcb,rax
+    mov [rsi].count,eax
+    or  [rsi].flag,_W_WSREAD
+
+    .if rbx
+
+        mov esi,edi
         .while edi
 
-            free([rsi])
+            free([rbx])
             xor eax,eax
-            mov [rsi],rax
-            add rsi,size_t
-            dec rdi
+            mov [rbx],rax
+            add rbx,size_t
+            dec edi
         .endw
-        mov eax,ebx
+        mov eax,esi
     .endif
     ret
 
 wsfree endp
 
+
 wsclose proc uses rsi rdi wsub:PWSUB
 
     ldr rsi,wsub
+
     mov edi,wsfree(rsi)
-    free([rsi].fcb)
     .if [rsi].flag & _W_MALLOC
 
         free([rsi].path)
     .endif
-    xor eax,eax
-    mov [rsi].flag,eax
-    mov [rsi].fcb,rax
+    mov [rsi].flag,0
     mov eax,edi
     ret
 
 wsclose endp
 
-wsextend proc uses rsi rdi rbx wsub:PWSUB
+
+wsetfcb proc uses rsi rdi rbx wsub:PWSUB
 
     ldr rsi,wsub
-    mov edi,[rsi].maxfb
-    add edi,edi
 
-    .if malloc( &[rdi*size_t] )
+    .for ( eax = 0, rcx = [rsi].fcb : rcx : rcx = [rcx].FBLK.next, eax++ )
+    .endf
+    mov [rsi].count,eax
 
-        mov rbx,rax
-        lea ecx,[rdi*size_t]
-        mov edx,edi
+    .if malloc( &[rax*size_t] )
+
         mov rdi,rax
-        xor eax,eax
-        rep stosb
+        mov rax,[rsi].fcb
+        mov [rsi].fcb,rdi
+        and [rsi].flag,not _W_WSREAD
 
-        mov edi,edx
-        mov ecx,[rsi].maxfb
+        .for ( ecx = 0 : ecx < [rsi].count : ecx++, rax = [rax].FBLK.next )
 
-        memcpy(rbx, [rsi].fcb, &[rcx*size_t])
-        free([rsi].fcb)
-
-        mov [rsi].fcb,rbx
-        mov [rsi].maxfb,edi
-        mov eax,edi
+            mov [rdi],rax
+            add rdi,size_t
+        .endf
+        mov eax,ecx
     .endif
     ret
 
-wsextend endp
+wsetfcb endp
+
+wsaddfb proc uses rsi rdi rbx ws:PWSUB, fb:PFBLK
+
+    ldr rsi,ws
+    ldr rbx,fb
+
+    mov eax,[rsi].count
+    .if malloc( &[rax*size_t+size_t] )
+
+        mov ecx,[rsi].count
+        inc [rsi].count
+        mov rdx,[rsi].fcb
+        mov [rsi].fcb,rax
+        mov rsi,rdx
+        mov rdi,rax
+ifdef _WIN64
+        rep movsq
+else
+        rep movsd
+endif
+        free(rdx)
+        fballoc([rbx].FBLK.name, [rbx].FBLK.time, [rbx].FBLK.size, [rbx].FBLK.flag)
+        mov [rdi],rax
+        mov eax,1
+    .endif
+    ret
+
+wsaddfb endp
+
 
     assume rsi:nothing
 
@@ -533,7 +581,7 @@ wschdrv proc wsub:PWSUB, drive:UINT
         lpBuffer[512]:sbyte,  ; path buffer
         lpFilePart:LPSTR      ; filename in path
 
-    mov eax,drive
+    ldr eax,drive
     add eax,'.:@'
     mov lpFileName,eax
 
@@ -547,6 +595,7 @@ wschdrv proc wsub:PWSUB, drive:UINT
     ret
 
 wschdrv endp
+
 
 wsfblk proc wsub:PWSUB, index:UINT
 
@@ -564,6 +613,7 @@ wsfblk proc wsub:PWSUB, index:UINT
     ret
 
 wsfblk endp
+
 
 wsfindfirst proc uses rbx fmask:LPSTR, ff:PWIN32_FIND_DATA, attrib:UINT
 
@@ -632,6 +682,7 @@ endif
 
 wsfindfirst endp
 
+
 wscloseff proc handle:HANDLE
 
     memcpy(&_attrib, &_attrib[4], 4 * (MAXFINDHANDLES - 1))
@@ -644,14 +695,18 @@ wscloseff proc handle:HANDLE
 
 wscloseff endp
 
+
 wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
 
-  local path[WMAXPATH]:byte, wf:WIN32_FIND_DATA, fsize:qword
+   .new path[WMAXPATH]:byte
+   .new wf:WIN32_FIND_DATA
+   .new fsize:qword
+   .new fb:PFBLK = NULL
 
     lea rdi,wf
     ldr rbx,wsub
 
-    .ifd wsfindfirst(strfcat(&path, [rbx].WSUB.path, &cp_stdmask), rdi, attrib) != -1
+    .ifd ( wsfindfirst(strfcat(&path, [rbx].WSUB.path, &cp_stdmask), rdi, attrib) != -1 )
 
         mov rsi,rax
         xor eax,eax
@@ -693,24 +748,21 @@ wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
                 lea rcx,[rdi].WIN32_FIND_DATA.cFileName
                 .if ( !( [rbx].WSUB.flag & _W_LONGNAME) &&
                       console & CON_IOSFN && [rdi].WIN32_FIND_DATA.cAlternateFileName )
-
                     lea rcx,[rdi].WIN32_FIND_DATA.cAlternateFileName
                 .endif
                 .break .if !fballoc(rcx, eax, fsize, edx)
-                mov ecx,[rbx].WSUB.count
-                mov rdx,[rbx].WSUB.fcb
-                mov [rdx+rcx*size_t],rax
-                inc ecx
-                mov [rbx].WSUB.count,ecx
-                .if ecx >= [rbx].WSUB.maxfb
-                    .break .if !wsextend(rbx)
+                mov rcx,fb
+                mov fb,rax
+                .if ( rcx == NULL )
+                    mov rcx,[rbx].WSUB.fcb
                 .endif
+                mov [rcx].FBLK.next,rax
             .endif
             wsfindnext(rdi, rsi)
         .endw
         wscloseff(rsi)
     .endif
-    mov eax,[rbx].WSUB.count
+    wsetfcb(rbx)
     ret
 
 wsreadwf endp
@@ -721,8 +773,8 @@ define _A_ALLFILES (_A_STDFILES or _A_HIDDEN)
 wsread proc uses rbx wsub:PWSUB
 
     ldr rbx,wsub
-    wsfree(rbx)
 
+    wsfree(rbx)
     mov rax,[rbx].WSUB.path
     movzx eax,word ptr [rax+2]
     mov edx,_FB_ROOTDIR
@@ -733,9 +785,7 @@ wsread proc uses rbx wsub:PWSUB
 
     .if fbupdir(edx)
 
-        inc [rbx].WSUB.count
-        mov rdx,[rbx].WSUB.fcb
-        mov [rdx],rax
+        mov [rbx].WSUB.fcb,rax
         mov rdx,[rbx].WSUB.mask
         mov eax,'*'
         .if [rdx] == ah
@@ -750,10 +800,10 @@ wsread proc uses rbx wsub:PWSUB
         .endif
         wsreadwf(rbx, eax)
     .endif
-    mov eax,[rbx].WSUB.count
     ret
 
 wsread endp
+
 
 wscopyremove proc file:LPSTR
 
@@ -763,6 +813,7 @@ wscopyremove proc file:LPSTR
     ret
 
 wscopyremove endp
+
 
 wscopyopen proc srcfile:LPSTR, outfile:LPSTR
 
@@ -784,6 +835,7 @@ wscopyopen proc srcfile:LPSTR, outfile:LPSTR
 
 wscopyopen endp
 
+
 compare proc private uses rsi rdi rbx a:PFBLK, b:PFBLK
 
     ldr rax,b
@@ -793,7 +845,8 @@ compare proc private uses rsi rdi rbx a:PFBLK, b:PFBLK
     mov rsi,[rax]
     mov ecx,[rsi].FBLK.flag
 
-    mov eax,dword ptr [rsi].FBLK.name
+    mov rax,[rsi].FBLK.name
+    mov eax,[rax]
     and eax,0x00FFFFFF
 
     cmp eax,'..'
@@ -827,8 +880,8 @@ compare proc private uses rsi rdi rbx a:PFBLK, b:PFBLK
     je  .8
     jmp .N
 .4:
-    mov rbx,strext(&[rdi].FBLK.name)
-    and rax,strext(&[rsi].FBLK.name)
+    mov rbx,strext([rdi].FBLK.name)
+    and rax,strext([rsi].FBLK.name)
     jz  .5
     and rbx,rbx
     jz  .A
@@ -865,13 +918,12 @@ compare proc private uses rsi rdi rbx a:PFBLK, b:PFBLK
     mov eax,1
     jmp .C
 .N:
-    add rdi,FBLK.name
-    add rsi,FBLK.name
-    _stricmp(rsi, rdi)
+    _stricmp([rsi].FBLK.name, [rdi].FBLK.name)
 .C:
     ret
 
 compare endp
+
 
 wssort proc uses rsi rdi rbx wsub:PWSUB
 
@@ -1021,28 +1073,40 @@ endif
 
 wssort endp
 
-wsearch proc uses rsi rdi wsub:PWSUB, string:LPSTR
 
-    ldr rax,wsub
-    mov esi,[rax].WSUB.count
-    mov rdi,[rax].WSUB.fcb
+wsearch proc uses rsi rdi rbx wsub:PWSUB, string:LPSTR
 
-    .repeat
-        mov eax,-1
-        .break .if !esi
-        dec esi
-        mov rax,[rdi]
-        add rax,FBLK.name
-        add rdi,size_t
-        .continue(0) .if _stricmp(string, rax)
-        mov rax,wsub
-        mov eax,[rax].WSUB.count
-        sub eax,esi
-        dec eax
-    .until 1
+    ldr rbx,wsub
+    ldr rsi,string
+
+    .if ( [rbx].WSUB.flag & _W_WSREAD )
+
+        .for ( edi = 0, rbx = [rbx].WSUB.fcb : rbx : rbx = [rbx].FBLK.next, edi++ )
+
+            .ifd !_stricmp( rsi, [rbx].FBLK.name )
+
+                .return( edi )
+            .endif
+        .endf
+    .else
+
+        .for ( edi = 0 : edi < [rbx].WSUB.count : edi++ )
+
+            mov rcx,[rbx].WSUB.fcb
+            mov rcx,[rcx+rdi*size_t]
+
+            .ifd !_stricmp( rsi, [rcx].FBLK.name )
+
+                .return( edi )
+            .endif
+        .endf
+    .endif
+    xor eax,eax
+    dec rax
     ret
 
 wsearch endp
+
 
 ID_CNT      equ 13
 ID_OK       equ ID_CNT
@@ -1063,25 +1127,19 @@ init_list proc uses rsi rdi rbx
 
     mov rbx,o_list
     mov [rbx].LOBJ.numcel,0
-    imul eax,[rbx].LOBJ.index,size_t
-    add rax,[rbx].LOBJ.list
+    mov esi,[rbx].LOBJ.index
     mov rdi,dialog
     mov ebx,[rdi].DOBJ.rc
     add ebx,[rdi].DOBJ.rc[TOBJ]
     mov rdi,[rdi].DOBJ.object
-    mov rsi,rax
 
-    .repeat
+    .for ( : i : i--, esi++ )
 
-        mov rax,[rsi]
-        add rsi,size_t
-        or  [rdi].TOBJ.flag,_O_STATE
-
-        .if rax
+        or [rdi].TOBJ.flag,_O_STATE
+        .if wsfblk(o_wsub, esi)
 
             mov fp,rax
-            mov al,[rax]
-            and al,_A_SUBDIR
+            and cl,_A_SUBDIR
             mov al,at_foreground[F_Dialog]
             .ifnz
                 mov al,at_foreground[F_Inactive]
@@ -1089,20 +1147,19 @@ init_list proc uses rsi rdi rbx
             mov dl,bh
             scputfg(ebx, edx, 28, eax)
             inc bh
-
             mov rax,fp
-            add rax,FBLK.name
+            mov rax,[rax].FBLK.name
             and [rdi].TOBJ.flag,not _O_STATE
             mov rdx,o_list
             inc [rdx].LOBJ.numcel
         .endif
         mov [rdi].TOBJ.data,rax
         add rdi,TOBJ
-        dec i
-    .untilz
+    .endf
     ret
 
 init_list endp
+
 
 event_list proc
 
@@ -1113,6 +1170,7 @@ event_list proc
 
 event_list endp
 
+
 read_wsub proc
 
     xor eax,eax
@@ -1121,7 +1179,10 @@ read_wsub proc
     mov [rdx].LOBJ.count,eax
     mov [rdx].LOBJ.numcel,eax
     wsread(o_wsub)
+    mov rcx,o_wsub
+    mov rcx,[rcx].WSUB.fcb
     mov rdx,o_list
+    mov [rdx].LOBJ.list,rcx
     mov [rdx].LOBJ.count,eax
     .if eax > 1
         wssort(o_wsub)
@@ -1129,6 +1190,7 @@ read_wsub proc
     ret
 
 read_wsub endp
+
 
 event_file proc uses rbx
 
@@ -1155,6 +1217,7 @@ event_file proc uses rbx
 
 event_file endp
 
+
 event_path proc
 
     read_wsub()
@@ -1162,6 +1225,7 @@ event_path proc
    .return(_C_NORMAL)
 
 event_path endp
+
 
 case_files proc uses rsi rdi rbx
 
@@ -1177,9 +1241,7 @@ case_files proc uses rsi rdi rbx
 
         mov rbx,dialog
         mov [rbx].DOBJ.index,ID_FILE
-        lea rax,[rdi].FBLK.name
-        strcpy([rbx].TOBJ.data[O_FILE], rax)
-
+        strcpy([rbx].TOBJ.data[O_FILE], [rdi].FBLK.name)
         .if ( event_file() == _C_RETURN )
             inc eax
         .else
@@ -1217,8 +1279,7 @@ case_files proc uses rsi rdi rbx
         .else
             mov rcx,dialog
             mov [rcx].DOBJ.index,0
-            lea rax,[rdi].FBLK.name
-            strfcat([rbx].WSUB.path, 0, rax)
+            strfcat([rbx].WSUB.path, 0, [rdi].FBLK.name)
             event_path()
             xor eax,eax
         .endif
@@ -1244,7 +1305,6 @@ wdlgopen proc uses rsi rdi rbx path:LPSTR, mask:LPSTR, save:UINT
     rep stosb
 
     mov wsub.flag,eax
-    mov wsub.maxfb,5000
 
     .if wsopen(o_wsub)
 
@@ -1267,8 +1327,6 @@ wdlgopen proc uses rsi rdi rbx path:LPSTR, mask:LPSTR, save:UINT
             mov list.lproc,&event_list
             mov list.dcount,ID_CNT
             mov list.celoff,ID_CNT
-            mov rax,wsub.fcb
-            mov list.list,rax
 
             .if a_open & _WSAVE
 
@@ -1311,6 +1369,7 @@ wdlgopen proc uses rsi rdi rbx path:LPSTR, mask:LPSTR, save:UINT
 
 wdlgopen endp
 
+
 wgetfile proc path:LPSTR, fmask:LPSTR, flag
 
     .if flag & _WLOCAL
@@ -1342,6 +1401,7 @@ wgetfile proc path:LPSTR, fmask:LPSTR, flag
 
 wgetfile endp
 
+
 wedit proc fcb:PFBLK, count:int_t
 
     .while fbffirst(fcb, count)
@@ -1349,8 +1409,7 @@ wedit proc fcb:PFBLK, count:int_t
         and [rax].FBLK.flag,not _FB_SELECTED
         .if !( ecx & _FB_ARCHIVE or _A_SUBDIR )
 
-            add rax,FBLK.name
-           .break .if !topen(rax, 0)
+           .break .if !topen([rax].FBLK.name, 0)
         .endif
     .endw
     panel_redraw(cpanel)
@@ -1383,6 +1442,7 @@ zip_renametemp proc uses rbx
 
 zip_renametemp endp
 
+
 update_keys proc
 
     lea     rcx,crctab
@@ -1408,6 +1468,7 @@ update_keys proc
 
 update_keys endp
 
+
 decryptbyte proc
 
     mov     ecx,key2
@@ -1420,6 +1481,7 @@ decryptbyte proc
     ret
 
 decryptbyte endp
+
 
 init_keys proc uses rsi
 
@@ -1436,6 +1498,7 @@ init_keys proc uses rsi
 
 init_keys endp
 
+
 decrypt proc uses rsi rbx
 
     .for ( rbx = STDI.base, esi = 0 : esi < STDI.cnt  : esi++ )
@@ -1448,6 +1511,7 @@ decrypt proc uses rsi rbx
     ret
 
 decrypt endp
+
 
 test_password proc uses rsi rdi string:LPSTR
 
@@ -1491,6 +1555,7 @@ test_password proc uses rsi rdi string:LPSTR
 
 test_password endp
 
+
 zip_decrypt proc uses rsi rdi
 
   local b[12]:byte
@@ -1501,10 +1566,10 @@ zip_decrypt proc uses rsi rdi
         stosb
     .endf
 
-    .if !test_password(&b)
+    .ifd !test_password(&b)
 
         mov password,al
-        .if tgetline("Enter password", &password, 32, 80)
+        .ifd tgetline("Enter password", &password, 32, 80)
 
             xor eax,eax
             .if al != password
@@ -1516,6 +1581,7 @@ zip_decrypt proc uses rsi rdi
     ret
 
 zip_decrypt endp
+
 
 getendcentral proc wsub:PWSUB, zend:PZEND
 
@@ -1561,23 +1627,24 @@ error:
 
 getendcentral endp
 
+
 zip_allocfblk proc uses rsi rdi rbx
 
     mov edi,eax
     mov rsi,entryname
-    strlen(rsi)
-    add rax,FBLK
-    mov rbx,rax
-    add eax,12
-    .if !malloc(eax)
+
+    .if ( malloc( &[strlen(rsi)+FBLK+ZINF] ) == NULL )
+
         .return
     .endif
-    mov rcx,rbx
     mov rbx,rax
-    movzx eax,zip_central.ext_attrib
+    mov [rbx].FBLK.name,&[rax+FBLK+ZINF]
+    xor eax,eax
+    mov [rbx].FBLK.next,rax
+    mov ax,zip_central.ext_attrib
     and eax,_A_FATTRIB
     or  eax,zip_attrib
-    mov [rbx],eax
+    mov [rbx].FBLK.flag,eax
 
     .if ( edi == 2 )
 
@@ -1585,7 +1652,7 @@ zip_allocfblk proc uses rsi rdi rbx
 
             mov eax,_A_SUBDIR
             or  eax,zip_attrib
-            mov [rbx],eax
+            mov [rbx].FBLK.flag,eax
         .endif
     .else
         mov DWORD PTR [rbx].FBLK.size[4],0
@@ -1593,24 +1660,19 @@ zip_allocfblk proc uses rsi rdi rbx
         mov DWORD PTR [rbx].FBLK.size,eax
     .endif
 
-    mov rdi,rcx
     mov ax,zip_central.date
     shl eax,16
     mov ax,zip_central.time
     mov [rbx].FBLK.time,eax
-    strcpy(&[rbx].FBLK.name, rsi)
-
-    add rdi,rbx
-    mov eax,zip_central.off_local
-    mov [rdi],eax
-    mov eax,zip_central.csize
-    mov [rdi+4],eax
-    mov eax,zip_central.crc
-    mov [rdi+8],eax
+    strcpy([rbx].FBLK.name, rsi)
+    mov [rbx+FBLK].ZINF.offs,zip_central.off_local
+    mov [rbx+FBLK].ZINF.csize,zip_central.csize
+    mov [rbx+FBLK].ZINF.crc,zip_central.crc
     mov rax,rbx
     ret
 
 zip_allocfblk endp
+
 
 zip_readcentral proc uses rsi rdi
 
@@ -1704,6 +1766,7 @@ zip_readcentral proc uses rsi rdi
 
 zip_readcentral endp
 
+
 zip_testcentral proc uses rsi wsub:PWSUB
 
     mov rax,wsub
@@ -1764,11 +1827,12 @@ zip_testcentral proc uses rsi wsub:PWSUB
     mov eax,zip_attrib
     or  ax,zip_central.ext_attrib
     and eax,_A_FATTRIB
-    mov [rdx],eax
+    mov [rdx].FBLK.flag,eax
     xor eax,eax
     ret
 
 zip_testcentral endp
+
 
 zip_findnext proc
 
@@ -1805,9 +1869,10 @@ zip_findnext proc
 
 zip_findnext endp
 
+
 wzipread proc public uses rsi rdi rbx wsub:PWSUB
 
-  local fblk:PFBLK
+  local fblk:PFBLK, fb:PFBLK
 
     xor eax,eax
     mov STDI.index,eax
@@ -1823,71 +1888,57 @@ wzipread proc public uses rsi rdi rbx wsub:PWSUB
 
         .return( -2 )
     .endif
-    fbupdir( _FB_ARCHZIP )
-    mov [rdi].WSUB.count,1
-    mov rdx,[rdi].WSUB.fcb
-    mov [rdx],rax
+    mov fblk,fbupdir( _FB_ARCHZIP )
+    mov [rdi].WSUB.fcb,rax
     oseek(zip_endcent.off_cent, SEEK_SET)
 
     .while zip_findnext()
 
-        mov fblk,rax
+        mov fb,rax
         mov cl,[rax]
         .if !( cl & _A_SUBDIR )
-            .ifd !strwild([rdi].WSUB.mask, &[rax].FBLK.name)
+            .ifd !strwild([rdi].WSUB.mask, [rax].FBLK.name)
 
-                free(fblk)
+                free(fb)
                .continue
             .endif
         .endif
-
+        mov rax,fb
         mov rcx,fblk
-        mov eax,[rdi].WSUB.count
-        mov rdx,[rdi].WSUB.fcb
-        mov [rdx+rax*size_t],rcx
-        inc eax
-        mov [rdi].WSUB.count,eax
-        .continue .if eax < [rdi].WSUB.maxfb
-        .break .if !wsextend(rdi)
+        mov fblk,rax
+        mov [rcx].FBLK.next,rax
     .endw
     ioclose(&STDI)
-    mov eax,[rdi].WSUB.count
+    wsetfcb(rdi)
     ret
 
 wzipread endp
 
+
 wzipfindentry proc uses rsi rdi fblk:PFBLK, ziph:SINT
 
-    mov esi,ziph
-    mov rdi,fblk
-    strlen(&[rdi].FBLK.name)
-    add rax,FBLK
-    add rdi,rax
-    _lseek(esi, [rdi], SEEK_SET)
+    ldr esi,ziph
+    ldr rdi,fblk
+
+    _lseek(esi, [rdi+FBLK].ZINF.offs, SEEK_SET)
     osread(esi, &zip_local, LZIP)
 
-    .if ( eax != LZIP ||
-          zip_local.pkzip != ZIPHEADERID ||
-          zip_local.zipid != ZIPLOCALID )
+    .if ( eax != LZIP || zip_local.pkzip != ZIPHEADERID || zip_local.zipid != ZIPLOCALID )
 
         .return( 0 )
     .endif
-
     mov ax,zip_local.fnsize
     add ax,zip_local.extsize
     _lseek(esi, eax, SEEK_CUR)
     .if ( zip_local.flag & 8 )
-
-        mov rax,fblk
-        mov eax,[rdi+4]
-        mov zip_local.crc,eax
-        mov eax,[rdi+8]
-        mov zip_local.csize,eax
+        mov zip_local.crc,[rdi+FBLK].ZINF.crc
+        mov zip_local.csize,[rdi+FBLK].ZINF.csize
     .endif
     mov eax,1
     ret
 
 wzipfindentry endp
+
 
 zip_unzip proc watcall private uses rsi zip_handle:int_t, out_handle:int_t
 
@@ -1970,6 +2021,7 @@ endif
 
 zip_unzip endp
 
+
 wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
    .new handle:int_t
@@ -1987,16 +2039,16 @@ wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     .if ( wzipfindentry(rbx, eax) == 0 )
         _close(esi)
         mov rcx,_sys_err_msg(ENOENT)
-        ermsg(rcx, &[rbx].FBLK.name)
+        ermsg(rcx, [rbx].FBLK.name)
        .return(ER_FIND)
     .endif
-    .if ( progress_set(&[rbx].FBLK.name, out_path, [rbx].FBLK.size) != 0 )
+    .if ( progress_set([rbx].FBLK.name, out_path, [rbx].FBLK.size) != 0 )
         mov ebx,eax
         _close(esi)
        .return(ebx)
     .endif
     lea rdi,name
-    .ifsd ( ogetouth(strfcat(rdi, out_path, &[rbx].FBLK.name), M_WRONLY) <= 0 )
+    .ifsd ( ogetouth(strfcat(rdi, out_path, [rbx].FBLK.name), M_WRONLY) <= 0 )
         mov ebx,eax
         _close(esi)
        .return(ebx)
@@ -2042,17 +2094,16 @@ wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
 wzipcopyfile endp
 
+
 wzipcopypath proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
   local zs:ZSUB
 
     ldr rsi,wsub
+
     lea rdi,zs.wsub
     mov zs.wsub.flag,_W_SORTSIZE ;or _W_MALLOC
-    mov zs.wsub.maxfb,DC_MAXOBJ
-
     .if !wsopen(rdi)
-
         .return( -1 )
     .endif
 
@@ -2063,7 +2114,7 @@ wzipcopypath proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     lea rcx,[rbx+WMAXPATH]
     mov [rdi].WSUB.arch,rcx
     mov rax,fblk
-    lea rax,[rax].FBLK.name
+    mov rax,[rax].FBLK.name
     mov rdx,[rsi].WSUB.arch
 
     .if ( byte ptr [rdx] )
@@ -2074,7 +2125,7 @@ wzipcopypath proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
     mov rsi,rbx
     mov rbx,fblk
-    mov rbx,_utftows(strfcat(rsi, out_path, &[rbx].FBLK.name))
+    mov rbx,_utftows(strfcat(rsi, out_path, [rbx].FBLK.name))
 
     .ifd ( _wmkdir(rbx) != -1 )
 
@@ -2091,17 +2142,12 @@ wzipcopypath proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     .endif
 
     mov rbx,fblk
-    .ifd !progress_set(&[rbx].FBLK.name, out_path, 0)
+    .ifd !progress_set([rbx].FBLK.name, out_path, 0)
 
         xor ebx,ebx
         .ifd ( wzipread(rdi) > 1 )
 
             wssort(rdi)
-            .if ( [rdi].WSUB.maxfb == [rdi].WSUB.count )
-
-                stdmsg(&cp_warning, &cp_emaxfb, eax, eax)
-            .endif
-
             mov eax,[rdi].WSUB.count
             dec eax
             mov zs.index,eax
@@ -2117,7 +2163,7 @@ wzipcopypath proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
                     mov zs.result,wzipcopypath(rdi, rbx, rsi)
                 .else
-                    .if progress_set(&[rbx].FBLK.name, out_path, [rbx].FBLK.size)
+                    .if progress_set([rbx].FBLK.name, out_path, [rbx].FBLK.size)
 
                         mov zs.result,eax
                        .break
@@ -2143,6 +2189,7 @@ wzipcopypath proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     ret
 
 wzipcopypath endp
+
 
 zip_copylocal proc uses rsi rdi rbx exact_match:DWORD
 
@@ -2229,6 +2276,7 @@ zip_copylocal proc uses rsi rdi rbx exact_match:DWORD
 
 zip_copylocal endp
 
+
 zip_copycentral proc uses rsi rdi rbx loffset:uint_t, lsize:uint_t, exact_match:int_t
 
    .new q:Q64
@@ -2286,6 +2334,7 @@ zip_copycentral proc uses rsi rdi rbx loffset:uint_t, lsize:uint_t, exact_match:
 
 zip_copycentral endp
 
+
 zip_copyendcentral proc watcall uses rsi rdi srcfile:LPSTR, outfile:LPSTR
 
     mov rsi,srcfile
@@ -2339,6 +2388,7 @@ update_local proc
 
 update_local endp
 
+
 initentry proc
                             ; EAX   offset file name buffer
     push rax                ; BX    time
@@ -2367,6 +2417,7 @@ initentry proc
 
 initentry endp
 
+
 compress proc
 
     .if ( zip_local.fsize >= 2 && compresslevel )
@@ -2387,6 +2438,7 @@ endif
 
 compress endp
 
+
 initcrc proc
 if USE_DEFLATE
     movzx eax,file_method
@@ -2401,11 +2453,13 @@ endif
     ret
 initcrc endp
 
+
 popstdi proc
     memcpy(&STDI, rsi, IOST)
     xor eax,eax
     ret
 popstdi endp
+
 
 zip_clearentry proc private
 
@@ -2422,6 +2476,7 @@ zip_clearentry proc private
 
 zip_clearentry endp
 
+
 zip_setprogress proc watcall size:UINT, name:LPSTR
 
     or  STDO.flag,IO_USEUPD or IO_UPDTOTAL
@@ -2434,6 +2489,7 @@ endif
     ret
 
 zip_setprogress endp
+
 
 zip_displayerror proc uses rsi rdi rbx
 
@@ -2459,12 +2515,14 @@ zip_displayerror proc uses rsi rdi rbx
 
 zip_displayerror endp
 
+
 zip_mkarchivetmp proc watcall buffer:LPSTR
 
     strfxcat(strcpy(rax, __outfile), &cp_ziptemp)
     ret
 
 zip_mkarchivetmp endp
+
 
     option proc:public
 
@@ -2705,12 +2763,13 @@ error_3:
 
 wzipadd endp
 
+
 wsmkzipdir proc uses rbx wsub:PWSUB, directory:LPSTR
 
     ldr rbx,wsub
+
     mov rax,__srcfile
     mov byte ptr [rax],0
-
     strfcat(__outfile, [rbx].WSUB.path, [rbx].WSUB.file)
     strfcat(__outpath, [rbx].WSUB.arch, directory)
     strunix(strcat(rax, "/"))
@@ -2719,23 +2778,21 @@ wsmkzipdir proc uses rbx wsub:PWSUB, directory:LPSTR
 
 wsmkzipdir endp
 
+
 wsopenarch proc wsub:PWSUB
 
   local arcname[1024]:byte
 
     mov rdx,wsub
     .if osopen(
-        strfcat(
-            &arcname,
-            [rdx].WSUB.path,
-            [rdx].WSUB.file),
-        _A_ARCH,
-        M_RDONLY, A_OPEN) == -1
+        strfcat(&arcname, [rdx].WSUB.path, [rdx].WSUB.file),
+        _A_ARCH, M_RDONLY, A_OPEN) == -1
         eropen(&arcname)
     .endif
     ret
 
 wsopenarch endp
+
 
 wzipcopy proc private wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
@@ -2749,6 +2806,7 @@ wzipcopy proc private wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     .return wzipcopyfile(rcx, rdx, rax)
 
 wzipcopy endp
+
 
 wsdecomp proc wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
 
@@ -2900,6 +2958,7 @@ error_1:
     jmp toend
 wzipclose endp
 
+
     assume rdi:PFBLK
     assume rbx:PWSUB
 
@@ -2919,7 +2978,7 @@ wzipdel proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
         .if ( !esi )
 
             mov ecx,[rdi].flag
-            lea rax,[rdi].name
+            mov rax,[rdi].name
             .if cl & _A_SUBDIR
                 confirm_delete_sub(rax)
             .else

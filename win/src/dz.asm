@@ -191,9 +191,6 @@ endif
                 "Command line switches\n"
                 " The following switches may be used in the command line:\n"
                 "\n"
-                "  -N<file_count> - Maximum number of files in each panel\n"
-                "     default is 5000.\n"
-                "\n"
                 "  -C<config_path> - Read/Write setup from/to <config_path>\n"
                 "\n"
                 "  -cmd - Start DZ and show only command prompt.\n"
@@ -223,12 +220,6 @@ endif
                 SaveEnvironment(rbx)
                 exit(0)
 
-            .case 'N'
-                inc rbx
-                .ifd strtolx(rbx)
-                    mov numfblock,eax
-                .endif
-                .endc
             .case 'n'
                 .gotosw(1: '?') .if eax != "lon"
                 mov nologo,1

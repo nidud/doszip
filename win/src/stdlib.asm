@@ -39,6 +39,11 @@ public envtemp
 __xtol proc string:LPSTR
 
     ldr rdx,string
+
+    mov eax,[rdx]
+    .if ( ax == 'x0' )
+        add rdx,2
+    .endif
     xor eax,eax
     xor ecx,ecx
 
@@ -67,6 +72,11 @@ __xtol endp
 __xtoi64 proc uses rbx string:LPSTR
 
     ldr rbx,string
+
+    mov eax,[rbx]
+    .if ( ax == 'x0' )
+        add rbx,2
+    .endif
     xor eax,eax
     xor ecx,ecx
 ifndef _WIN64

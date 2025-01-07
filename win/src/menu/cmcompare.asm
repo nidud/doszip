@@ -78,8 +78,8 @@ cmcompoption endp
 
 ComapareFBLK proc private uses rsi rdi rbx a:PFBLK, b:PFBLK, options:compare_options
 
-    mov rsi,a
-    mov rdi,b
+    ldr rsi,a
+    ldr rdi,b
     mov ebx,1
 
     .if ( options & compare_size ) ; Compare File Size
@@ -102,7 +102,7 @@ ComapareFBLK proc private uses rsi rdi rbx a:PFBLK, b:PFBLK, options:compare_opt
     .endif
     .if ( options & compare_name ) ; Compare File name
 
-        .if ( _stricmp(&[rsi].FBLK.name, &[rdi].FBLK.name) )
+        .if ( _stricmp([rsi].FBLK.name, [rdi].FBLK.name) )
             xor ebx,ebx
         .endif
     .endif

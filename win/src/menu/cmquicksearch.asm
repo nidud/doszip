@@ -54,9 +54,9 @@ psearch proc private uses rsi rdi rbx cname:string_t, l:int_t, direction:int_t
 	mov rbx,fcb
 	mov rbx,[rbx+rsi*size_t]
       ifdef SKIPSUBDIR
-	.if !( byte ptr [rbx] & _A_SUBDIR )
+	.if !( [rbx].FBLK.flag & _A_SUBDIR )
       endif
-	.ifd !_strnicmp(cname, &[rbx].FBLK.name, l)
+	.ifd !_strnicmp(cname, [rbx].FBLK.name, l)
 
 	    mov rbx,cpanel
 	    dlclose([rbx].PANEL.xl)

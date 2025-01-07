@@ -89,6 +89,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
 
   local result:SINT
   local p:LPSTR
+  local fb:FBLK
 
     mov __srcfile,malloc(5*WMAXPATH)  ; directory buffers
     add rax,WMAXPATH
@@ -206,8 +207,8 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
 
         .ifd filexist(rbx) == 1
 
-            lea rdi,[strfn(rbx)-FBLK.name]
-
+            mov fb.name,strfn(rbx)
+            lea rdi,fb
             .ifd _aisexec(rbx)
 
                 jmp isexec
@@ -232,7 +233,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
                 or  config.c_apath.flag,eax
                 mov rax,config.c_apath.arch
                 mov byte ptr [rax],0
-                add rdi,FBLK.name
+                mov rdi,fb.name
                 strcpy(config.c_apath.file, rdi)
 
                 .if rdi != rbx
@@ -287,11 +288,8 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
 
     mov thelp,&cmhelp
     mov oupdate,&ioupdate
-    mov eax,numfblock
-    mov wsmaxfbb,eax
-    mov wsmaxfba,eax
 
-;    ConsolePush()
+;   ConsolePush()
     mov tdidle,&ConsoleIdle
 ifdef __CI__
     CodeInfo()

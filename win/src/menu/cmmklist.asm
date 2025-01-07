@@ -364,7 +364,7 @@ mksublist proc private uses rsi rdi zip_list:SINT, path:LPSTR
             .endif
             and [rsi].FBLK.flag,not _FB_SELECTED
             panel_findnext(cpanel)
-        .untilz
+        .until !rax
     .endif
     mov esi,eax
     progress_close()

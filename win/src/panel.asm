@@ -22,10 +22,6 @@ prect_b     DOBJ <_D_CLEAR or _D_COLOR,0,0,<40,1,40,20>,0,0>
 spanela     PANEL <path_a,0,0,0,0,pcell_a,prect_a,0>
 spanelb     PANEL <path_b,0,0,0,0,pcell_b,prect_b,0>
 
-cp_emaxfb   char_t "This subdirectory contains more",10
-            char_t "than %d files/directories.",10
-            char_t "Only %d of the files is read.",0
-
 cp_disk     db "C:\",0
 cp_warning  sbyte "Warning",0
 
@@ -505,7 +501,7 @@ panel_curobj proc fastcall panel:PPANEL
         .if wsfblk([rcx].PANEL.wsub, eax)
 
             mov rdx,rax
-            add rax,FBLK.name
+            mov rax,[rax].FBLK.name
         .endif
     .endif
     ret
@@ -518,7 +514,7 @@ panel_findnext proc fastcall panel:PPANEL
     .if wsffirst([rcx].PANEL.wsub)
 
         mov rdx,rax
-        add rax,FBLK.name
+        mov rax,[rax].FBLK.name
     .endif
     ret
 
@@ -1108,6 +1104,7 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
    .new disk:int_t
    .new index:int_t = 0
    .new VolumeID[32]:char_t
+   .new fb:PFBLK = NULL
 
     ldr rbx,wsub
 
@@ -1143,7 +1140,6 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
     strcpy([rbx].WSUB.file, "home")
     xor edi,edi
     xor esi,esi
-    mov rbx,[rbx].WSUB.fcb
 
     .while ( esi < MAXDRIVES )
 
@@ -1152,18 +1148,21 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
 
         lea rcx,[rax].DISK.name
         .break .if !fballoc(rcx, [rax].DISK.time, [rax].DISK.size, [rax].DISK.flag)
-        mov [rbx+rdi*size_t],rax
+
+        mov rcx,fb
+        mov fb,rax
+        .if ( rcx == NULL )
+            mov [rbx].WSUB.fcb,rax
+        .else
+            mov [rcx].FBLK.next,rax
+        .endif
         inc edi
-
         .if ( esi == disk )
-
             lea eax,[rdi-1]
             mov index,eax
         .endif
     .endw
-    mov rbx,wsub
-    mov [rbx].WSUB.count,edi
-    mov eax,edi
+    wsetfcb(rbx)
     mov edx,index
     ret
 
@@ -1208,9 +1207,6 @@ wsub_read proc private uses rsi rdi wsub:PWSUB
     mov esi,eax
     .if eax > 1 && !( [rdi].WSUB.flag & _W_NOSORT )
         wssort(rdi)
-    .endif
-    .if esi == [rdi].WSUB.maxfb
-        stdmsg(&cp_warning, &cp_emaxfb, esi, esi)
     .endif
     mov eax,esi
     ret
@@ -1343,60 +1339,31 @@ cpanel_setpath endp
 
 cpanel_deselect proc uses rsi rdi rbx fp:PFBLK
 
-    ldr rdx,fp
-    and [rdx].FBLK.flag,not _FB_SELECTED
+    ldr rbx,fp
 
-    .if cflag & _C_VISUALUPDATE
+    and [rbx].FBLK.flag,not _FB_SELECTED
+
+    .if ( cflag & _C_VISUALUPDATE )
 
         mov di,progress_dobj.DOBJ.flag
         and edi,_D_ONSCR
         .ifnz
             dlhide(&progress_dobj)
         .endif
-
-        panel_putitem(cpanel,0)
+        panel_putitem(cpanel, 0)
 
         lea rsi,spanela
         .if rsi == cpanel
-
             lea rsi,spanelb
         .endif
-
-        mov rdx,[rsi].PANEL.wsub
-        mov eax,[rdx].WSUB.maxfb
-        sub eax,2
-
-        .if eax > [rdx].WSUB.count
-
-            mov rax,fp
-            add rax,FBLK.name
-            strlen(rax)
-            add eax,sizeof(FBLK)
-            mov ebx,eax
-            malloc(eax)
-            mov edx,ebx
-
-            .if rax
-
-                mov rdx,memcpy(rax, fp, edx)
-                inc [rsi].PANEL.fcb_count
-                inc [rsi].PANEL.cel_count
-                mov rax,[rsi].PANEL.wsub
-                mov ecx,[rax].WSUB.count
-                inc [rax].WSUB.count
-                mov rax,[rax].WSUB.fcb
-                mov [rax+rcx*size_t],rdx
-
-                panel_event(rsi, KEY_END)
-            .endif
-        .endif
-
+        wsaddfb([rsi].PANEL.wsub, rbx)
+        panel_event(rsi, KEY_END)
         .if edi
-
             dlshow(&progress_dobj)
         .endif
     .endif
     ret
+
 cpanel_deselect endp
 
 
@@ -1417,9 +1384,10 @@ fblk_selectable proc private fp:PFBLK
 
 fblk_selectable endp
 
+
 fblk_invert proc fp:PFBLK
 
-    .if fblk_selectable(fp)
+    .if fblk_selectable( ldr(fp) )
 
         fbinvert(rcx)
     .endif
@@ -1427,15 +1395,17 @@ fblk_invert proc fp:PFBLK
 
 fblk_invert endp
 
+
 fblk_select proc fp:PFBLK
 
-    .if fblk_selectable(fp)
+    .if fblk_selectable( ldr(fp) )
 
         fbselect(rcx)
     .endif
     ret
 
 fblk_select endp
+
 
 clear37 proc fastcall private uses rcx rdx x, y
 
@@ -1447,6 +1417,7 @@ clear37 proc fastcall private uses rcx rdx x, y
     ret
 
 clear37 endp
+
 
 panel_putmini proc private uses rsi rdi rbx panel:PPANEL
 
@@ -1632,20 +1603,17 @@ panel_putmini proc private uses rsi rdi rbx panel:PPANEL
 
                                         inc edi
                                         .if !([rbx].FBLK.flag & _A_SUBDIR)
-ifdef _WIN64
-                                            add rax,[rbx].FBLK.size
-else
-                                            add eax,dword ptr [rbx].FBLK.size
+
+                                            add rax,size_t ptr [rbx].FBLK.size
+ifndef _WIN64
                                             adc edx,dword ptr [rbx].FBLK.size[4]
 endif
                                         .endif
                                     .endif
                                     add rsi,PFBLK
                                 .untilcxz
-ifdef _WIN64
-                                mov FreeBytesAvailable,rax
-else
-                                mov dword ptr FreeBytesAvailable,eax
+                                mov size_t ptr FreeBytesAvailable,rax
+ifndef _WIN64
                                 mov dword ptr FreeBytesAvailable[4],edx
 endif
                                 lea rbx,bstring
@@ -1666,9 +1634,9 @@ endif
 
                         mov rbx,fb
                         mov edi,l
-                        mov len,strlen(&[rbx].FBLK.name)
+                        mov len,strlen([rbx].FBLK.name)
                         mov color,fbcolor(rbx)
-                        scputs(x, y, color, &[rdi-25], &[rbx].FBLK.name)
+                        scputs(x, y, color, &[rdi-25], [rbx].FBLK.name)
 
                         lea ecx,[rdi-26]
                         .if ( len > ecx )
@@ -1841,14 +1809,14 @@ fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     shl fbcolor(rbx),16
     mov color,eax
 
-    lea rax,[rbx].FBLK.name
+    mov rax,[rbx].FBLK.name
     .if word ptr [rax] == '..'
         xor eax,eax
     .else
         strext(rax)
     .endif
     mov ext,rax
-    lea rcx,[rbx].FBLK.name
+    mov rcx,[rbx].FBLK.name
     .if rax
         sub rax,rcx
     .else
@@ -1862,7 +1830,7 @@ fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     .if cl > 8
         mov cl,8
     .endif
-    wcputs(rdi, ecx, &[rbx].FBLK.name)
+    wcputs(rdi, ecx, [rbx].FBLK.name)
 
     .if ( len > 8 )
 
@@ -1905,9 +1873,9 @@ fbputll proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     mov color,fbcolor(rbx)
     lea ecx,[rsi-1]
     mov ch,al
-    wcputs(rdi, ecx, &[rbx].FBLK.name)
+    wcputs(rdi, ecx, [rbx].FBLK.name)
 
-    .ifd ( strlen(&[rbx].FBLK.name) > esi )
+    .ifd ( strlen([rbx].FBLK.name) > esi )
 
         movzx   eax,at_foreground[F_Panel]
         or      al,at_background[B_Panel]
@@ -1965,7 +1933,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     add eax,3
     sub maxf,eax
 
-    .ifd ( strlen(&[rbx].FBLK.name) > maxf )
+    .ifd ( strlen([rbx].FBLK.name) > maxf )
 
         movzx   eax,at_foreground[F_Panel]
         or      al,at_background[B_Panel]
@@ -1985,7 +1953,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         wcputw( &[rdi+rcx*4], 1, eax)
     .endif
 
-    lea rax,[rbx].FBLK.name
+    mov rax,[rbx].FBLK.name
     .if word ptr [rax] == '..'
         xor eax,eax
     .else
@@ -1996,7 +1964,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     mov ecx,color
     shr ecx,8
     mov cl,byte ptr maxf
-    lea rdx,[rbx].FBLK.name
+    mov rdx,[rbx].FBLK.name
     .if rax
         sub rax,rdx
         .if al <= cl
@@ -2044,7 +2012,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     sub maxf,6
     fbputsize(rbx, &[rdi+rcx*4], esi, color)
 
-    .ifd ( strlen(&[rbx].FBLK.name) > maxf )
+    .ifd ( strlen([rbx].FBLK.name) > maxf )
 
         movzx   eax,at_foreground[F_Panel]
         or      al,at_background[B_Panel]
@@ -2064,7 +2032,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         wcputw( &[rdi+rcx*4], 1, eax)
     .endif
 
-    lea rax,[rbx].FBLK.name
+    mov rax,[rbx].FBLK.name
     .if word ptr [rax] == '..'
         xor eax,eax
     .else
@@ -2075,7 +2043,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     mov ecx,color
     shr ecx,8
     mov cl,byte ptr maxf
-    lea rdx,[rbx].FBLK.name
+    mov rdx,[rbx].FBLK.name
     .if rax
         sub rax,rdx
         .if al <= cl
@@ -2748,7 +2716,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 .else
 
                     mov rdx,pe.pe_fblk
-                    add_to_path(rcx, &[rdx].FBLK.name)
+                    add_to_path(rcx, [rdx].FBLK.name)
                 .endif
 
             .else
@@ -2798,7 +2766,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                         .endif
                     .else
                         mov rdx,pe.pe_fblk
-                        add_to_path(rdi, &[rdx].FBLK.name)
+                        add_to_path(rdi, [rdx].FBLK.name)
                     .endif
                 .endif
             .endif
@@ -3013,8 +2981,7 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 mov dl,rect.col
                 dec dl
                 mov rax,fblk
-                add rax,FBLK.name
-                wcputs(rcx, edx, rax)
+                wcputs(rcx, edx, [rax].FBLK.name)
             .endif
 
             mov dlflag,_D_DMOVE or _D_CLEAR or _D_COLOR or _D_DOPEN

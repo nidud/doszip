@@ -6,7 +6,6 @@ include zip.inc
 include winbase.inc
 
 define WMAXPATH		2048		; the max length is 8000h..
-define MAXFBLOCK	5000
 define WMAXFBLOCK	300000
 
 define _FB_SELECTED	0x00010000
@@ -42,6 +41,7 @@ define _W_CDROOM	0x00004000
 define _W_NETWORK	0x00008000
 define _W_REMOVABLE	0x00010000
 define _W_TEDIT		0x00020000
+define _W_WSREAD	0x00040000	; Read mode: count = 0, fcb = first block
 define _W_ARCHZIP	0x00100000
 define _W_ARCHEXT	0x00200000
 define _W_MALLOC	0x01000000
@@ -147,18 +147,37 @@ sptr		LPSTR ?
 IOST		ENDS
 PIOST		typedef ptr IOST
 
+
+; Extra info added to file block
+
+ZINF		union
+ftime		FILETIME <>
+struct
+ csize		dd ? ; compressed size
+ crc		dd ? ; crc
+ z7id		dd ? ; index in 7z.dll archive
+ offs		dd ? ; local offset in zip file or search offset
+ends
+struct
+ base		dd ? ; offset of search base directory
+ size		dd ? ; size of search struct
+ line		dd ? ; search line
+ends
+ZINF		ends
+PZINF		typedef ptr ZINF
+
 FBLK		struct
 flag		dd ?	; _FB_:_A_
 time		dd ?	; date:time
 size		dq ?
-name		sbyte 4 dup(?)
+name		LPSTR ?
+next		PZINF ?
 FBLK		ends
 PFBLK		typedef ptr FBLK
 
 WSUB		struct
 flag		dd ?
 count		dd ?
-maxfb		dd ?
 mask		LPSTR ?
 file		LPSTR ?
 arch		LPSTR ?
@@ -186,7 +205,8 @@ wschdrv		proto __cdecl :PWSUB, :DWORD
 wsearch		proto __cdecl :PWSUB, :LPSTR
 wsfblk		proto __cdecl :PWSUB, :DWORD
 wsffirst	proto __cdecl :PWSUB
-wsextend	proto __cdecl :PWSUB
+wsetfcb		proto __cdecl :PWSUB
+wsaddfb		proto __cdecl :PWSUB, :PFBLK
 
 wsopenarch	proto __cdecl :PWSUB
 wzipread	proto __cdecl :PWSUB
@@ -235,7 +255,6 @@ externdef	scan_fblock:PWIN32_FIND_DATA
 
 externdef	cp_stdmask:SBYTE
 externdef	cp_warning:SBYTE
-externdef	cp_emaxfb:char_t
 
 externdef	__srcpath:LPSTR
 externdef	__outpath:LPSTR

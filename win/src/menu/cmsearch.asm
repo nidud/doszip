@@ -172,7 +172,7 @@ FileSearch::CurFile proc
 
     .if this.CurItem()
 
-        add rax,SBLK.file
+        mov rax,[rax].FBLK.name
     .endif
     ret
 
@@ -290,9 +290,9 @@ CallbackFile proc private uses rsi rdi rbx directory:string_t, wfblk:PWIN32_FIND
                     .endif
 
                     mov fblk,memset(rax, 0, edi)
-                    add rax,SBLK.file
-                    lea rcx,path
-                    strcpy(rax, rcx)
+                    lea rcx,[rax+FBLK+ZINF]
+                    mov [rax].FBLK.name,rcx
+                    strcpy(rcx, &path)
 
                     mov eax,[rbx].ll.count
 ifdef _WIN64
@@ -309,11 +309,12 @@ endif
                     .endif
                     mov [rbx].ll.numcel,edx
                     mov rdx,[rbx].ll.list
+
                     mov rcx,fblk
                     mov [rdx+rax*size_t],rcx
-                    mov [rcx].SBLK.size,edi
-                    mov [rcx].SBLK.line,line
-                    mov [rcx].SBLK.offs,offs
+                    mov [rcx+FBLK].ZINF.size,edi
+                    mov [rcx+FBLK].ZINF.line,line
+                    mov [rcx+FBLK].ZINF.offs,offs
 
                     mov eax,user
                     .if eax ; user abort
@@ -321,11 +322,10 @@ endif
                        .break
                     .endif
 
-
                     strlen([rbx].basedir)
                     mov rcx,fblk
                     inc eax
-                    mov [rcx].SBLK.base,eax
+                    mov [rcx+FBLK].ZINF.base,eax
 
                     .break .if !esi
 
@@ -565,8 +565,8 @@ FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
     .for ( rdi = [rbx].ll.list : index < [rbx].ll.count : index++ )
 
         mov rdx,[rdi]
-        mov offs,[rdx].SBLK.offs
-        lea rax,[rdx].SBLK.file
+        mov offs,[rdx+FBLK].ZINF.offs
+        mov rax,[rdx].FBLK.name
         mov curfile,rax
         strcpy(bakfile, strcpy(tmpfile, rax))
 
@@ -609,8 +609,8 @@ FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
             .if ( ecx < [rbx].ll.count )
 
                 mov rdx,[rdi]
-                mov offs,[rdx].SBLK.offs
-                strcmp(curfile, &[rdx].SBLK.file)
+                mov offs,[rdx+FBLK].ZINF.offs
+                strcmp(curfile, [rdx].FBLK.name)
             .endif
             .if ( eax )
 
@@ -659,6 +659,7 @@ FileSearch::Modal proc uses rbx
 
 FileSearch::Modal endp
 
+    assume rsi:nothing
 
 FileSearch::List proc uses rsi rdi rbx
 
@@ -681,13 +682,13 @@ FileSearch::List proc uses rsi rdi rbx
          rdi += [rbx].ll.list,
          cnt = [rbx].ll.numcel : cnt : y++, cnt--, rdi+=size_t
 
-        mov rcx,[rdi]
-        mov eax,[rcx].SBLK.base
-        scpath(x, y, 25, &[rcx+rax].SBLK.file)
+        mov rsi,[rdi]
+        mov eax,[rsi+FBLK].ZINF.base
+        add rax,[rsi].FBLK.name
+        scpath(x, y, 25, rax)
 
         add eax,x
-        mov rdx,[rdi]
-        mov edx,[rdx].SBLK.line
+        mov edx,[rsi+FBLK].ZINF.line
         .if edx
             inc edx ; append (<line>) to filename
             mov ecx,eax
@@ -697,10 +698,8 @@ FileSearch::List proc uses rsi rdi rbx
         mov eax,x
         add eax,33
         mov i,eax
-
-        mov rcx,[rdi]
-        mov eax,[rcx].SBLK.size
-        lea rsi,[rcx+rax-INFOSIZE]
+        mov eax,[rsi+FBLK].ZINF.size
+        lea rsi,[rsi+rax-INFOSIZE]
 
         .for ( n = 36 : n : n--, i++ )
 
@@ -793,7 +792,7 @@ FileSearch::Release proc uses rdi rbx
                     add eax,[rbx].ll.celoff
                     mov rdi,[rbx].ll.list
                     mov rdi,[rdi+rax*size_t]
-                    add rdi,SBLK.file
+                    mov rdi,[rdi].FBLK.name
 
                     .if strrchr(rdi, '\')
 
@@ -810,6 +809,7 @@ FileSearch::Release proc uses rdi rbx
 
 FileSearch::Release endp
 
+    assume rsi:PDOBJ
 
 FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
 
@@ -829,9 +829,9 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
                        edi = 0 : edi < [rbx].ll.count : edi++ )
 
                     mov rdx,[rsi+rdi*size_t]
-                    mov mklist.offspath,[rdx].SBLK.base
-                    mov mklist.offs,[rdx].SBLK.offs
-                    mklistadd(&[rdx].SBLK.file)
+                    mov mklist.offspath,[rdx+FBLK].ZINF.base
+                    mov mklist.offs,[rdx+FBLK].ZINF.offs
+                    mklistadd([rdx].FBLK.name)
                 .endf
                 _close(mklist.handle)
                 mov eax,_C_NORMAL
@@ -847,7 +847,7 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
         .if [rbx].CurItem()
 
             mov rdi,rax
-            tview(&[rdi].SBLK.file, [rdi].SBLK.offs)
+            tview([rdi].FBLK.name, [rdi+FBLK].ZINF.offs)
         .endif
         .return(_C_NORMAL)
 
@@ -857,7 +857,7 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
             mov rdi,rax
             mov rbx,[rbx].dialog
             dlhide(rbx)
-            tedit(&[rdi].SBLK.file, [rdi].SBLK.line)
+            tedit([rdi].FBLK.name, [rdi+FBLK].ZINF.line)
             dlshow(rbx)
         .endif
         .return(_C_NORMAL)

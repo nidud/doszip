@@ -109,66 +109,54 @@ cmdelete_remove endp
 
     option proc: PUBLIC
 
-cmdelete proc uses rbx
+cmdelete proc uses rsi rbx
 
-    .switch
-    .case !cpanel_findfirst()
-    .case ecx & _FB_ROOTDIR
-        xor eax,eax
-       .endc
-    .case ecx & _FB_ARCHEXT
-        mov rax,cpanel
-        mov rax,[rax].PANEL.wsub
-        mov _diskflag,1
-        warcdelete(rax, rdx)
-        xor eax,eax
-       .endc
-    .case ecx & _FB_ARCHZIP
-        xor eax,eax
-        mov rbx,rdx
-        open_progress()
+    .if ( cpanel_findfirst() == NULL || ecx & _FB_ROOTDIR )
+
+        .return( 0 )
+    .endif
+
+    mov rbx,rdx
+    mov rsi,cpanel
+    open_progress()
+    mov ecx,[rbx].FBLK.flag
+
+    .if ( ecx & _FB_ARCHEXT )
+
+        warcdelete([rsi].PANEL.wsub, rbx)
+
+    .elseif ( ecx & _FB_ARCHZIP )
+
         .repeat
-            mov rax,cpanel
-            .break .ifd wzipdel([rax].PANEL.wsub, rbx)
+            .break .ifd wzipdel([rsi].PANEL.wsub, rbx)
             and [rbx].FBLK.flag,not _FB_SELECTED
-            panel_findnext(cpanel)
+            panel_findnext(rsi)
             mov rbx,rdx
-        .untilz
-        mov _diskflag,1
-        progress_close()
-       .endc
-
-    .default
-
-        mov rbx,rdx
-        mov rax,cpanel
-        mov rdx,[rax].PANEL.wsub
+        .until !rax
+    .else
+        mov rdx,[rsi].PANEL.wsub
         mov rax,[rdx].WSUB.path
         mov __spath,rax
 
         mov fp_maskp,&cp_stdmask
         mov fp_fileblock,&fp_remove_file
         mov fp_directory,&fp_remove_directory
-
-        open_progress()
-        mov rdx,rbx
-        mov ecx,[rdx].FBLK.flag
-        lea rax,[rdx].FBLK.name
+        mov rax,[rbx].FBLK.name
 
         .if !( ecx & _FB_SELECTED )
 
             cmdelete_remove(rax, ecx)
         .else
             .repeat
-
                 .break .ifd cmdelete_remove(rax, ecx)
                 and [rbx].FBLK.flag,not _FB_SELECTED
-                panel_findnext(cpanel)
+                panel_findnext(rsi)
                 mov rbx,rdx
-            .untilz
+            .until !rax
         .endif
-        progress_close()
-    .endsw
+    .endif
+    mov _diskflag,1
+    progress_close()
     ret
 
 cmdelete endp

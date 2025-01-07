@@ -1,10 +1,10 @@
 DZ.TXT--
-Copyright (C) 2024 Doszip Developers.
+Copyright (C) 2025 Doszip Developers.
 
 DOSZIP COMMANDER
-Version 3.78
+Version 3.80
 
-Welcome to Doszip Commander Version 3.78!
+Welcome to Doszip Commander Version 3.80!
 =========================================
 
 
@@ -733,16 +733,26 @@ Welcome to Doszip Commander Version 3.78!
 
 <> Additional Resources
 
-   For more information about DOSZIP, visit the Web site at:
-   http://sourceforge.net/projects/doszip/
+   For more information about Doszip, visit the Web site at:
+   - https://github.com/nidud/doszip
+   - https://sourceforge.net/projects/doszip
 
-   Open Watcom is a project of the open source community to maintain
-   and enhance the Watcom C, C++, and Fortran cross compilers and tools.
-   http://www.openwatcom.org/
+   For tools and libraries to build Doszip from source:
+   - https://github.com/nidud/asmc
 
-   7ZA.EXE is a standalone command line version of 7-Zip.
-   Supported formats: 7z, xz, ZIP, GZIP, BZIP2 and TAR
-   http://sourceforge.net/projects/sevenzip/files/
+   Doszip use 7z.dll for additional support (.7z, .xz, .gz, .tar, ..)
+   For more information about 7-Zip, visit the Web site at:
+   - https://www.7-zip.org
+   - https://github.com/ip7z/7zip
+   - https://sourceforge.net/p/sevenzip
+
+   The formats handled by 7z.dll are defined in dz.ini:
+
+   [7z.dll]
+   <ext>=<id> ; example: rar=0x03
+
+   The <id> value is the Handler GUID
+   - See: https://github.com/ip7z/7zip/blob/main/CPP/7zip/Guid.txt#L166
 
 
 <> Contributors

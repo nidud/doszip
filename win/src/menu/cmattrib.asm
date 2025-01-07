@@ -153,12 +153,9 @@ cmzipattrib proc private uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
             ;
             ; CRC, compressed size and local offset stored at end of FBLK
             ;
-            strlen(&[rdi].FBLK.name)
-            add rax,FBLK
-            add rdi,rax
-            mov zip_central.crc,[rdi+4]
-            mov zip_central.csize,[rdi+8]
-            mov zip_central.off_local,[rdi]
+            mov zip_central.crc,[rdi+FBLK].ZINF.crc
+            mov zip_central.csize,[rdi+FBLK].ZINF.csize
+            mov zip_central.off_local,[rdi+FBLK].ZINF.offs
             ;
             ; seek to and read local offset
             ;

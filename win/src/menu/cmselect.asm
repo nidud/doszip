@@ -27,7 +27,7 @@ cmselect proc uses rsi rdi
 
 		    mov rax,[rdi]
 
-		    .ifd strwild(&cp_selectmask, &[rax].FBLK.name)
+		    .ifd strwild(&cp_selectmask, [rax].FBLK.name)
 
 			fblk_select([rdi])
 		    .endif
@@ -64,9 +64,7 @@ cmdeselect proc uses rsi rdi
 		.while esi
 
 		    mov rax,[rdi]
-		    add rax,FBLK.name
-
-		    .ifd strwild(&cp_selectmask, rax)
+		    .ifd strwild(&cp_selectmask, [rax].FBLK.name)
 
 			mov rax,[rdi]
 			and [rax].FBLK.flag,not _FB_SELECTED

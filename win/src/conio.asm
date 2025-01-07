@@ -5205,7 +5205,7 @@ center_text endp
 
 msgbox proc private uses rsi rdi rbx dname:LPSTR, flag, string:LPSTR
 
-  local dobj:DOBJ, tobj:TOBJ, cols:dword, lcnt:dword, backgr:byte
+  local dobj:DOBJ, tobj:TOBJ, cols:dword, lcnt:dword, foregr:byte, backgr:byte
 
     strlen(dname)
     xor esi,esi
@@ -5218,6 +5218,7 @@ msgbox proc private uses rsi rdi rbx dname:LPSTR, flag, string:LPSTR
     .endif
 
     mov backgr,at_background[B_Title]
+    mov foregr,at_background[F_Title]
     mov rdi,string
     .if byte ptr [rdi]
 
@@ -5287,6 +5288,7 @@ msgbox proc private uses rsi rdi rbx dname:LPSTR, flag, string:LPSTR
 
     .if dobj.flag & _D_STERR
         mov at_background[B_Title],70h
+        mov at_foreground[F_Title],00h
         mov al,at_background[B_Error]
         or  al,7
         or  tobj.flag,_O_DEXIT
@@ -5322,6 +5324,7 @@ msgbox proc private uses rsi rdi rbx dname:LPSTR, flag, string:LPSTR
         wcpbutt(rax, cols, ecx, "&Ok")
 
         mov at_background[B_Title],backgr
+        mov at_background[F_Title],foregr
         mov ecx,cols
         mov eax,lcnt
         mov rbx,dobj.wp

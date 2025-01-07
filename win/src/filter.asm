@@ -80,7 +80,7 @@ filter_fblk proc uses rsi rdi rbx fb:PFBLK
     and eax,0xFFFF0000
     .ifd ( binary(eax, [rdi].FBLK.flag, size_t ptr [rdi].FBLK.size) )
 
-        .return string(&[rdi].FBLK.name)
+        .return string([rdi].FBLK.name)
     .endif
     ret
 

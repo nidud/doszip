@@ -11,9 +11,9 @@ include conio.inc
 include time.inc
 include helpid.inc
 
-DOSZIP_VERSION	equ 0x0379
+DOSZIP_VERSION	equ 0x0380
 DOSZIP_MINVERS	equ 0x0349
-DOSZIP_VSTRING	equ <"3.79">
+DOSZIP_VSTRING	equ <"3.80">
 ifdef _WIN64
 DOSZIP_VSTRPRE	equ <" Win64">
 else
@@ -102,16 +102,8 @@ cmd		DPROC ?
 MSOBJ		ENDS
 PMSOBJ		typedef ptr MSOBJ
 
-SBLK		STRUC
-base		dd ?
-size		dd ?
-line		dd ?
-offs		dd ?
-file		db 4 dup(?)
-SBLK		ENDS
-
 define INFOSIZE	 38
-define BLOCKSIZE (SBLK+INFOSIZE)
+define BLOCKSIZE (FBLK+ZINF+INFOSIZE+1)
 
 _XY_DRVINFO	equ 8
 _XY_CONFIG	equ 7
@@ -123,8 +115,6 @@ _XY_FILE	equ 2
 _XY_INSIDE	equ 1
 _XY_OUTSIDE	equ 0
 
-wsmaxfba	equ <config.c_apath.maxfb>
-wsmaxfbb	equ <config.c_bpath.maxfb>
 flaga		equ <config.c_apath.flag>
 flagb		equ <config.c_bpath.flag>
 
@@ -191,7 +181,6 @@ PHISTORY	typedef ptr HISTORY
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-externdef cp_emaxfb:		char_t
 externdef cp_ziplst:		char_t
 externdef cp_selectmask:	char_t
 
@@ -221,7 +210,6 @@ externdef history:		PHISTORY
 externdef comspec:		LPSTR	; %COMSPEC%
 externdef mainswitch:		DWORD
 externdef dzexitcode:		DWORD
-externdef numfblock:		DWORD	; number of file pointers allocated
 externdef global_key:		DWORD
 
 externdef prect_a:		XCEL
@@ -251,8 +239,8 @@ endif
 
 warcread		PROTO :PWSUB
 warctest		PROTO :PFBLK, :SINT
-warcadd			PROTO :LPSTR, :PWSUB, :PFBLK
-warccopy		PROTO :PWSUB, :PFBLK, :LPSTR, :SINT
+warcadd			PROTO :PWSUB, :PWSUB, :PFBLK
+warccopy		PROTO :PWSUB, :PFBLK, :LPSTR
 warcview		PROTO :PWSUB, :PFBLK
 warcdelete		PROTO :PWSUB, :PFBLK
 

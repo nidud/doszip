@@ -18,7 +18,7 @@ define ER_NOZIP		9
 define ER_FIND		11
 define ER_OPEN		12
 define ER_DISK		50
-define ER_USERABORT	66
+define ER_USERABORT	E_FAIL;66
 define ER_READARCH	(-2)
 
 .pragma pack(push, 1)

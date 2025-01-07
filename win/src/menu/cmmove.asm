@@ -80,7 +80,7 @@ fblk_movefile proc private uses rbx fblk:PFBLK
 
     ldr rbx,fblk
 
-    .ifd !progress_set(addr [rbx].FBLK.name, __outpath, [rbx].FBLK.size)
+    .ifd !progress_set([rbx].FBLK.name, __outpath, [rbx].FBLK.size)
 
         .ifd rename(__srcfile, __outfile)
 
@@ -98,7 +98,7 @@ fblk_movedirectory proc private uses rsi rdi fblk:PFBLK
 
     lea rdi,path
     ldr rsi,fblk
-    add rsi,FBLK.name
+    mov rsi,[rsi].FBLK.name
 
     .ifd !progress_set(rsi, __outpath, 0)
 
@@ -151,7 +151,7 @@ cmmove proc uses rdi
                         .if ecx & _A_SUBDIR
                             fblk_movedirectory(rdi)
                         .else
-                            move_initfiles(&[rdi].FBLK.name)
+                            move_initfiles([rdi].FBLK.name)
                             fblk_movefile(rdi)
                         .endif
                         .break .if eax

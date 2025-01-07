@@ -8,7 +8,6 @@ include string.inc
 
 .enumt DZPanelFilter:TOBJ {
     ID_DZPanelFilter,
-    ID_READCOUNT,
     ID_READMASK,
     ID_DIRECTORY,
     ID_OK,
@@ -43,9 +42,9 @@ event_loadpath endp
 
 PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
 
-
     ldr rbx,panel
     ldr eax,xpos
+
     mov rdi,IDD_DZPanelFilter
     mov [rdi].RIDD.rc.x,al
 
@@ -58,34 +57,14 @@ PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
 
         strcpy(rax, [rsi].WSUB.path)
         strcpy([rdi].TOBJ.data[ID_READMASK], [rsi].WSUB.mask)
-        sprintf([rdi].TOBJ.data[ID_READCOUNT], "%d", [rsi].WSUB.maxfb)
         dlinit(rdi)
 
         .ifd dlevent(rdi)
-
-            mov ebx,atol([rdi].TOBJ.data[ID_READCOUNT])
 
             strcpy([rsi].WSUB.path, [rdi].TOBJ.data[ID_DIRECTORY])
             strcpy([rsi].WSUB.mask, [rdi].TOBJ.data[ID_READMASK])
             dlclose(rdi)
 
-            .if ( ebx != [rsi].WSUB.maxfb && ebx > 10 && ebx < WMAXFBLOCK && [rsi].WSUB.fcb )
-
-                mov edi,[rsi].WSUB.maxfb
-                mov [rsi].WSUB.maxfb,ebx
-
-                .ifd wsopen(rsi)
-
-                    mov eax,1
-                .else
-
-                    mov [rsi].WSUB.maxfb,edi
-                    wsopen(rsi)
-                    xor eax,eax
-                .endif
-            .endif
-
-            mov edi,eax
             mov rbx,panel
             panel_reread(rbx)
 
@@ -93,12 +72,11 @@ PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
 
                 cominit(rsi)
             .endif
-            mov eax,edi
         .else
             dlclose(rdi)
-            xor eax,eax
         .endif
     .endif
+    xor eax,eax
     ret
 
 PanelFilter endp

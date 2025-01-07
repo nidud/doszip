@@ -25,7 +25,6 @@ __CFBase    LPINI 0
 entryname   LPSTR 0
 mainswitch  dd 0            ; program switch
 dzexitcode  dd 0            ; return code (23 if exec)
-numfblock   dd MAXFBLOCK    ; number of file pointers allocated
 
 ;;;;;;;;;-------------------------------
     ; Configuration file (DZCONFIG)
@@ -45,8 +44,8 @@ fcb_indexa      dd 0
 cel_indexa      dd 0
 fcb_indexb      dd 0
 cel_indexb      dd 0
-path_a          WSUB <_W_DEFAULT,0,MAXFBLOCK>
-path_b          WSUB <_W_DEFAULT or _W_PANELID,0,MAXFBLOCK>
+path_a          WSUB <_W_DEFAULT,0>
+path_b          WSUB <_W_DEFAULT or _W_PANELID,0>
 opfilter        FILTER <-1,0,0,0,0,'*.*'>
 at_foreground   db 0x07,0x07,0x0F,0x07,0x08,0x08,0x07,0x07
                 db 0x08,0x07,0x0A,0x0B,0x0F,0x0B,0x0B,0x0B

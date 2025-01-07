@@ -2,6 +2,9 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
+Changes in 3.80 - 7 Jan 2025
+- added support for 7z.dll
+
 Changes in 3.79 - 29 Des 2024
 - fixed bug in compress level 1..3 -- regression from v3.64
 

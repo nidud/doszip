@@ -63,7 +63,7 @@ getcopycount proc private uses rsi rdi rbx
             .if eax & _A_SUBDIR
 
                 inc copy_subdcount
-                .ifd recursive(&[rbx].FBLK.name, __srcpath, __outpath)
+                .ifd recursive([rbx].FBLK.name, __srcpath, __outpath)
 
                     mov copy_flag,_COPY_RECURSIV
                    .break
@@ -150,8 +150,7 @@ confirm_copy proc private uses rsi rdi rbx fblk:PFBLK, docopy:int_t
             scputc(x, y, 1, 0x27)
             inc x
             mov rax,fblk
-            add rax,FBLK.name
-            add x,scpath(x, y, 38, rax)
+            add x,scpath(x, y, 38, [rax].FBLK.name)
             scputs(x, y, 0, 0, "' to")
             mov rax,fblk
             .if !( [rax].FBLK.flag & _A_SUBDIR )
@@ -240,8 +239,7 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
     mov rax,[rax].PANEL.wsub
     strcpy(__srcpath, [rax].WSUB.path)
     mov rax,fblk
-    add rax,FBLK.name
-    strfcat(__srcfile, __srcpath, rax)
+    strfcat(__srcfile, __srcpath, [rax].FBLK.name)
 
     .if copy_flag & _COPY_OARCHIVE
 
@@ -265,9 +263,9 @@ init_copy proc uses rsi rdi rbx fblk:PFBLK, docopy:UINT
 
     .elseif esi & _A_SUBDIR
 
-        add rax,FBLK.name
+        mov rcx,[rax].FBLK.name
         mov copy_subdcount,1    ; copy/move one directory
-        .ifd recursive(rax, __srcpath, rbx)
+        .ifd recursive(rcx, __srcpath, rbx)
             or copy_flag,_COPY_RECURSIV
         .endif
     .else
@@ -404,13 +402,13 @@ fblk_copyfile proc private uses rbx fblk:PFBLK, skip_outfile:UINT
     ldr rbx,fblk
     .ifd filter_fblk(rbx)
 
-        strfcat(__srcfile, __srcpath, &[rbx].FBLK.name)
+        strfcat(__srcfile, __srcpath, [rbx].FBLK.name)
         .if ( !skip_outfile && !( copy_flag & _COPY_OARCHIVE ) )
 
-            strfcat(__outfile, __outpath, &[rbx].FBLK.name)
+            strfcat(__outfile, __outpath, [rbx].FBLK.name)
         .endif
 
-        .ifd !progress_set(&[rbx].FBLK.name, __outpath, [rbx].FBLK.size)
+        .ifd !progress_set([rbx].FBLK.name, __outpath, [rbx].FBLK.size)
 
             mov edx,[rbx].FBLK.flag
             .if edx & _FB_ARCHIVE
@@ -433,6 +431,7 @@ fp_copyfile proc uses rsi rdi rbx directory:LPSTR, wblk:PWIN32_FIND_DATA
    .new q:Q64
 
     ldr rbx,wblk
+
     .ifd filter_wblk(rbx)
 
         strfcat(__srcfile, directory, &[rbx].WIN32_FIND_DATA.cFileName)
@@ -518,7 +517,7 @@ copydirectory proc private uses rsi rdi rbx fblk:PFBLK
 
     mov rsi,rax
     mov rdi,fblk
-    lea rdi,[rdi].FBLK.name
+    mov rdi,[rdi].FBLK.name
     mov rbx,__outpath
     mov _diskflag,1
 
@@ -586,7 +585,7 @@ copyselected proc private
         cpanel_deselect(rdi)
         panel_findnext(cpanel)
         mov rdi,rdx
-    .untilz
+    .until !rax
     mov edi,eax
     panel_getb()
     mov [rax].PANEL.cel_index,esi
@@ -606,26 +605,25 @@ cmcopy proc uses rsi rdi rbx
 
         .ifd init_copy(rcx, 1)
 
+            progress_open("Copy", "Copy")
+
             mov _diskflag,1
             mov al,copy_flag
             .if ( al & _COPY_IEXTFILE )
 
                 mov rbx,cpanel
                 mov rbx,[rbx].PANEL.wsub
-                warccopy(rbx, rdi, __outpath, copy_subdcount)
+                warccopy(rbx, rdi, __outpath)
 
             .elseif ( al & _COPY_OEXTFILE )
 
-                panel_getb()
-                mov rbx,rax
-                mov rcx,[rbx].PANEL.wsub
+                mov rcx,[panel_getb()].PANEL.wsub
                 mov rbx,cpanel
                 mov rbx,[rbx].PANEL.wsub
                 warcadd(rcx, rbx, rdi)
 
             .else
 
-                progress_open("Copy", "Copy")
                 mov fp_fileblock,&fp_copyfile
                 mov fp_directory,&fp_copydirectory
                 .if copy_flag & _COPY_OARCHIVE
@@ -650,9 +648,9 @@ cmcopy proc uses rsi rdi rbx
                 .if copy_flag & _COPY_OZIPFILE && copy_fast
                     wzipclose()
                 .endif
-                done:
-                progress_close()
             .endif
+done:
+            progress_close()
         .endif
     .endif
     mov copy_fast,0

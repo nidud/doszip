@@ -165,14 +165,13 @@ unzip_to_temp proc uses rsi rdi fblk:PFBLK, name_buffer:LPSTR
     .if envtemp
 
         progress_open("Unzip file to TEMP", "Copy")
-        progress_set(addr [rdi].FBLK.name, envtemp, [rdi].FBLK.size)
+        progress_set([rdi].FBLK.name, envtemp, [rdi].FBLK.size)
         mov rax,cpanel
         wsdecomp([rax].PANEL.wsub, rdi, envtemp)
 
         .ifd !progress_close()
 
-            add rdi,FBLK.name
-            strfcat(name_buffer, envtemp, rdi)
+            strfcat(name_buffer, envtemp, [rdi].FBLK.name)
         .else
             xor eax,eax
         .endif

@@ -67,6 +67,10 @@ source          LPSTR 0
 target          LPSTR 0
 flags           dd compare_name or compare_time or compare_size or compare_subdir
 
+cp_emaxfb   char_t "This subdirectory contains more",10
+            char_t "than %d files/directories.",10
+            char_t "Only %d of the files is read.",0
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     .code
@@ -119,16 +123,6 @@ ff_getcurobj proc
 ff_getcurobj endp
 
 
-ff_getcurfile proc
-
-    .if ff_getcurobj()
-        add rax,SBLK.file
-    .endif
-    ret
-
-ff_getcurfile endp
-
-
 ff_alloc proc uses rsi rdi rbx path:LPSTR, fb:PFBLK
 
     ldr rbx,path
@@ -137,8 +131,9 @@ ff_alloc proc uses rsi rdi rbx path:LPSTR, fb:PFBLK
     .if malloc(edi)
 
         mov rsi,rax
-        add rax,FBLK.name
-        strcpy(rax, rbx)
+        lea rcx,[rax+FBLK+ZINF]
+        mov [rax].FBLK.name,rcx
+        strcpy(rcx, rbx)
 
         mov rbx,tdllist
         mov eax,[rbx].LOBJ.count
@@ -304,14 +299,14 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
 
             .if flags & compare_name ; Compare File names
 
-                mov rcx,strfn(&[rcx].FBLK.name)
+                mov rcx,strfn([rcx].FBLK.name)
                .continue .ifd _stricmp(&[rbx].WIN32_FIND_DATA.cFileName, rcx)
                 mov rcx,[rsi]
             .endif
 
             .if flags & compare_data ; Compare File content
 
-                .continue .ifd CompareFileData(&[rcx].FBLK.name, &path)
+                .continue .ifd CompareFileData([rcx].FBLK.name, &path)
                 mov rcx,[rsi]
             .endif
             mov found,1
@@ -746,11 +741,11 @@ event_flip endp
 
 ff_event_edit proc uses rbx
 
-    .if ff_getcurfile()
+    .if ff_getcurobj()
 
         mov rbx,rax
         dlhide(DLG_FindFile)
-        tedit(rbx, [rbx-8])
+        tedit([rbx].FBLK.name, [rbx+FBLK].ZINF.line)
         dlshow(DLG_FindFile)
     .endif
     mov eax,_C_NORMAL
@@ -771,8 +766,8 @@ ff_event_view proc
 
     mov rax,DLG_FindFile
     .if [rax].DOBJ.index < ID_FILE
-        .if ff_getcurfile()
-            tview(rax, [rax-4]) ; .SBLK.offs
+        .if ff_getcurobj()
+            tview([rax].FBLK.name, [rax+FBLK].ZINF.offs) ; .SBLK.offs
         .endif
     .endif
     mov eax,_C_NORMAL
@@ -920,7 +915,7 @@ ff_close_dlg proc uses rsi
                 add eax,[rbx].LOBJ.celoff
                 mov rbx,[rbx].LOBJ.list
                 mov rbx,[rbx+rax*size_t]
-                add rbx,SBLK.file
+                mov rbx,[rbx].FBLK.name
                 .if strrchr(rbx, '\')
                     mov byte ptr [rax],0
                     cpanel_setpath(rbx)

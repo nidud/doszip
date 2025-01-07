@@ -152,7 +152,7 @@ di_SelectedFiles proc private uses rsi rdi s1:LPSTR
             .if ( ecx & _A_SUBDIR )
 
                 mov rdx,[rdx].PANEL.wsub
-               .break .ifd di_ReadDirectory(strfcat(s1, [rdx].WSUB.path, &[rax].FBLK.name))
+               .break .ifd di_ReadDirectory(strfcat(s1, [rdx].WSUB.path, [rax].FBLK.name))
             .else
                 mov edx,dword ptr [rax].FBLK.size[4]
                 mov eax,dword ptr [rax].FBLK.size
