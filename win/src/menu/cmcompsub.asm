@@ -273,7 +273,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
 
             .if flags & compare_create ; Compare File creation time
 
-                .ifd osopen(&[rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
+                .ifd osopen([rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
 
                     mov h,eax
                     mov t,getftime_create(eax)
@@ -286,7 +286,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
 
             .if flags & compare_access ; Compare Last access time
 
-                .ifd osopen(&[rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
+                .ifd osopen([rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
 
                     mov h,eax
                     mov t,getftime_access(eax)
@@ -630,12 +630,11 @@ event_mklist proc uses rsi rdi rbx
 
                 mov rdx,[rsi].LOBJ.list
                 mov rbx,[rdx+rdi*size_t]
-                strfn(&[rbx].FBLK.name)
-                lea rcx,[rbx].FBLK.name
-                sub rax,rcx
+                strfn([rbx].FBLK.name)
+                sub rax,[rbx].FBLK.name
                 mov mklist.offspath,eax
                 mov mklist.offs,0
-                mklistadd(&[rbx].FBLK.name)
+                mklistadd([rbx].FBLK.name)
             .endf
             _close(mklist.handle)
             mov eax,_C_NORMAL
@@ -661,9 +660,8 @@ event_list proc uses rsi rdi rbx
 
     .while esi
         mov rax,[rdi]
-        add rax,FBLK.name
         mov dl,bh
-        scpath(ebx, edx, 68, rax)
+        scpath(ebx, edx, 68, [rax].FBLK.name)
         inc bh
         add rdi,size_t
         dec esi

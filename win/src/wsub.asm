@@ -2989,7 +2989,7 @@ wzipdel proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
             strfcat(__srcfile, [rbx].path, [rbx].file)
             strfxcat(strcpy(__outfile, rax), &cp_ziptemp)
-            strfcat(__outpath, [rbx].arch, &[rdi].name)
+            strfcat(__outpath, [rbx].arch, [rdi].name)
             strunix(rax)
 
             .if ( [rdi].flag & _A_SUBDIR )
