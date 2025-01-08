@@ -246,96 +246,124 @@ include dzstr.inc
     GetNumberOfArchiveProperties    proc :ptr
     GetArchivePropertyInfo          proc :DWORD, :ptr, :ptr, :ptr
    .ends
-    LPIARCHIVE                      typedef ptr IInArchive
+    LPIARCHIVE          typedef ptr IInArchive
 
 
 .comdef IOutArchive : public IUnknown
 
-    UpdateItems                     proc :ptr, :DWORD, :ptr
-    GetFileTimeType                 proc :ptr
+    UpdateItems         proc :ptr, :DWORD, :ptr
+    GetFileTimeType     proc :ptr
    .ends
-    LPOARCHIVE                      typedef ptr IOutArchive
+    LPOARCHIVE          typedef ptr IOutArchive
 
 
 
 .comdef CUnknown : public IUnknown
 
-    refCount        SDWORD ?
+    m_refCount          SDWORD ?
    .ends
 
 
-.comdef Z7Stream : public CUnknown
+.comdef CProgress : public CUnknown
 
-    stHandle        HANDLE ?
-    IsOutStream     BOOL ?
-
-    Read            proc :ptr, :dword, :ptr dword
-    Seek            proc :sqword, :dword, :ptr qword
-    SetSize         proc :qword
-   .ends
-    PZSTREAM        typedef ptr Z7Stream
-
-
-.comdef Z7OpenCallback : public CUnknown
-
-    Z7OpenCallback  proc
-    SetTotal        proc :ptr, :ptr
-    SetCompleted    proc :ptr, :ptr
-   .ends
-
-
-.comdef Z7ExtractCallback : public CUnknown
-
-    Archive             LPIARCHIVE ?
-    OutStream           PZSTREAM ?
-    Index               DWORD ?
-    Result              DWORD ?
-    Base                LPWSTR ?
-    SubDir              PWSUB ?
-    FileBlock           PFBLK ?
-    OutPath             WCHAR WMAXPATH dup(?)
-    ArcPath             WCHAR WMAXPATH dup(?)
-
-    Z7ExtractCallback   proc :LPIARCHIVE, :LPSTR, :PWSUB, :PFBLK
     SetTotal            proc :QWORD
     SetCompleted        proc :ptr QWORD
-    GetStream           proc :DWORD, :PTR PZSTREAM, :SDWORD
+   .ends
+
+
+.comdef CStream : public CUnknown
+
+    m_Handle            HANDLE ?
+    m_IsOutStream       BOOL ?
+
+    Read                proc :ptr, :dword, :ptr dword
+    Seek                proc :sqword, :dword, :ptr qword
+    SetSize             proc :qword
+   .ends
+    PSTREAM             typedef ptr CStream
+
+
+.comdef IArchiveOpenCallback : public CUnknown
+
+    IArchiveOpenCallback proc
+    SetTotal            proc :ptr, :ptr
+    SetCompleted        proc :ptr, :ptr
+   .ends
+
+
+.comdef CArchiveExtractCallback : public CProgress
+
+    m_Archive           LPIARCHIVE ?
+    m_outStream         PSTREAM ?
+    m_curId             DWORD ?
+    m_setResult         DWORD ?
+    m_curFile           PFBLK ?
+    m_outPath           LPSTR ?
+    m_arcPath           LPSTR ?
+    m_outBase           LPWSTR ?
+    m_arcBase           LPWSTR ?
+    m_outPathW          WCHAR WMAXPATH dup(?)
+    m_arcPathW          WCHAR WMAXPATH dup(?)
+
+    CArchiveExtractCallback proc :LPIARCHIVE, :LPSTR, :LPSTR, :PFBLK
+
+    GetStream           proc :DWORD, :PTR PSTREAM, :SDWORD
     PrepareOperation    proc :SDWORD
     SetOperationResult  proc :SDWORD
    .ends
 
 
-.comdef Z7UpdateCallback : public CUnknown
+.enum
+    UpdateDelete = -1,
+    UpdateKeep   =  0,
+    UpdateAdd    =  1
 
-    List                LPSTR ?
-    Count               DWORD ?
-    Index               DWORD ?
-    FileBlock           PFBLK ?
-    Total               QWORD ?
-    SrcBase             LPWSTR ?
-    ArcBase             LPWSTR ?
-    SrcDir              PWSUB ?
-    ArcDir              PWSUB ?
-    SrcPath             WCHAR WMAXPATH dup(?)
-    ArcPath             WCHAR WMAXPATH dup(?)
 
-    Z7UpdateCallback    proc :LPSTR, :DWORD, :PWSUB, :PWSUB
-    SetTotal            proc :QWORD
-    SetCompleted        proc :ptr QWORD
+.comdef IArchiveUpdateCallback : public CProgress
+
     GetUpdateItemInfo   proc :DWORD, :ptr SDWORD, :ptr SDWORD, :ptr DWORD
     GetProperty         proc :DWORD, :PROPID, :ptr PROPVARIANT
-    GetStream           proc :DWORD, :ptr PZSTREAM
+    GetStream           proc :DWORD, :ptr PSTREAM
     SetOperationResult  proc :SDWORD
    .ends
 
 
-.comdef Z7GetPassword : public CUnknown
+.comdef IArchiveUpdateCallback2 : public IArchiveUpdateCallback
+
+    GetVolumeSize       proc :DWORD, :QWORD
+    GetVolumeStream     proc :DWORD, :ptr PSTREAM
+   .ends
+
+
+.comdef CArchiveUpdateCallback : public IArchiveUpdateCallback2
+
+    m_numId             DWORD ?
+    m_newId             DWORD ?
+    m_curId             DWORD ?
+    m_remId             DWORD ?
+    m_idList            LPSTR ?
+    m_curFile           PFBLK ?
+    m_srcPath           LPSTR ?
+    m_arcPath           LPSTR ?
+    m_srcBase           LPWSTR ?
+    m_arcBase           LPWSTR ?
+    m_srcPathW          WCHAR WMAXPATH dup(?)
+    m_arcPathW          WCHAR WMAXPATH dup(?)
+
+    CArchiveUpdateCallback proc
+
+    SetPath             proc :LPSTR, :LPSTR, :PFBLK
+    InitList            proc :LPSTR, :DWORD, :DWORD
+   .ends
+
+
+.comdef CCryptoGetTextPassword : public CUnknown
 
     Password            LPWSTR 128 dup(?)
     PasswordIsDefined   BOOL ?
 
-    Z7GetPassword       proc
-    CGetPassword        proc :ptr BSTR
+    CCryptoGetTextPassword proc
+    CryptoGetTextPassword proc :ptr BSTR
    .ends
 
 define TYPE_7Z  0xAFBC7A37
@@ -344,7 +372,7 @@ define TYPE_BZ2 0x5A42
 define TYPE_CAB 0x4643534D
 define TYPE_XZ  0x587A37FD
 
-OpenStream proto :LPWSTR, :BOOL, :ptr PZSTREAM
+OpenStream proto :LPWSTR, :BOOL, :ptr PSTREAM
 
 CALLBACK(CREATEZ7OBJ, :ptr, :ptr, :ptr)
 
@@ -366,13 +394,17 @@ IsLoaded        DWORD 0
 
 option proc: private
 
-Z7Error proc hr:HRESULT, msg:string_t
+DisplayError proc hr:HRESULT, msg:string_t
 
    .new szMessage:string_t
 
-    ldr edx,hr
-    .if (HRESULT_FACILITY(edx) == FACILITY_WINDOWS)
-        mov hr,HRESULT_CODE(edx)
+    ldr ecx,hr
+
+    .if (SUCCEEDED(ecx))
+        .return( 0 )
+    .endif
+    .if (HRESULT_FACILITY(ecx) == FACILITY_WINDOWS)
+        mov hr,HRESULT_CODE(ecx)
     .endif
     FormatMessage(
             FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM or FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -393,7 +425,7 @@ Z7Error proc hr:HRESULT, msg:string_t
     mov eax,hr
     ret
 
-Z7Error endp
+DisplayError endp
 
 ;-------------------------------------------------------------------------
 ; IUnknown
@@ -414,12 +446,12 @@ CUnknown::QueryInterface proc WINAPI uses rbx riid:LPIID, ppv:ptr ptr
     .if ( eax == 0x0303 || eax == 0x0403 )
 
         mov [rbx],rcx
-        InterlockedIncrement(&[rcx].CUnknown.refCount)
+        InterlockedIncrement(&[rcx].CUnknown.m_refCount)
         xor eax,eax
 
     .elseif ( eax == 0x1005 )
 
-        Z7GetPassword()
+        CCryptoGetTextPassword()
         mov [rbx],rax
         xor eax,eax
     .else
@@ -435,7 +467,7 @@ CUnknown::AddRef proc WINAPI
 
     ldr rcx,this
 
-    InterlockedIncrement(&[rcx].CUnknown.refCount)
+    InterlockedIncrement(&[rcx].CUnknown.m_refCount)
     ret
 
 CUnknown::AddRef endp
@@ -446,7 +478,7 @@ CUnknown::Release proc WINAPI
 
     ldr rcx,this
 
-    .if ( InterlockedDecrement(&[rcx].CUnknown.refCount) == 0 )
+    .if ( InterlockedDecrement(&[rcx].CUnknown.m_refCount) == 0 )
 
         free(rcx)
         xor eax,eax
@@ -459,9 +491,9 @@ CUnknown::Release endp
 ; ICryptoGetTextPassword
 ;-------------------------------------------------------------------------
 
-    assume rbx:ptr Z7GetPassword
+    assume rbx:ptr CCryptoGetTextPassword
 
-Z7GetPassword::CGetPassword proc WINAPI uses rdi rbx pPassword:ptr BSTR
+CCryptoGetTextPassword::CryptoGetTextPassword proc WINAPI uses rdi rbx pPassword:ptr BSTR
 
    .new password[128]:char_t
 
@@ -493,70 +525,77 @@ Z7GetPassword::CGetPassword proc WINAPI uses rdi rbx pPassword:ptr BSTR
     .endif
     ret
 
-Z7GetPassword::CGetPassword endp
+CCryptoGetTextPassword::CryptoGetTextPassword endp
 
 
-Z7GetPassword::Z7GetPassword proc
+CCryptoGetTextPassword::CCryptoGetTextPassword proc
 
-    @ComAlloc(Z7GetPassword)
-    inc [rax].Z7GetPassword.refCount
+    @ComAlloc(CCryptoGetTextPassword)
+    inc [rax].CCryptoGetTextPassword.m_refCount
     ret
 
-Z7GetPassword::Z7GetPassword endp
+CCryptoGetTextPassword::CCryptoGetTextPassword endp
 
 ;-------------------------------------------------------------------------
-; IArchiveOpenCallback
+; IProgress
 ;-------------------------------------------------------------------------
 
-Z7OpenCallback::SetTotal proc WINAPI files:ptr QWORD, bytes:ptr QWORD
-    xor eax,eax
-    ret
-Z7OpenCallback::SetTotal endp
-
-Z7OpenCallback::SetCompleted proc WINAPI files:ptr QWORD, bytes:ptr QWORD
-    xor eax,eax
-    ret
-Z7OpenCallback::SetCompleted endp
-
-Z7OpenCallback::Z7OpenCallback proc
-    @ComAlloc(Z7OpenCallback)
-    ret
-Z7OpenCallback::Z7OpenCallback endp
-
-;-------------------------------------------------------------------------
-; IArchiveExtractCallback
-;-------------------------------------------------------------------------
-
-    assume rbx:ptr Z7ExtractCallback
-
-Z7ExtractCallback::SetTotal proc WINAPI total:QWORD
+CProgress::SetTotal proc WINAPI total:QWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(total)
 
-    ldr rcx,this
-
-    mov rcx,[rcx].Z7ExtractCallback.FileBlock
-    progress_set([rcx].FBLK.name, __outpath, total)
+    progress_set(__srcfile, __outfile, total)
     ret
 
-Z7ExtractCallback::SetTotal endp
+CProgress::SetTotal endp
 
-Z7ExtractCallback::SetCompleted proc WINAPI completeValue:ptr QWORD
+
+CProgress::SetCompleted proc WINAPI completeValue:ptr QWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(completeValue)
 
     ldr rdx,completeValue
-
-    progress_update([rdx])
+    xor eax,eax
+    .if ( rcx )
+        progress_update([rdx])
+    .endif
     ret
 
-Z7ExtractCallback::SetCompleted endp
+CProgress::SetCompleted endp
+
+
+;-------------------------------------------------------------------------
+; IArchiveOpenCallback
+;-------------------------------------------------------------------------
+if 0
+IArchiveOpenCallback::SetTotal proc WINAPI files:ptr QWORD, bytes:ptr QWORD
+    xor eax,eax
+    ret
+IArchiveOpenCallback::SetTotal endp
+
+IArchiveOpenCallback::SetCompleted proc WINAPI files:ptr QWORD, bytes:ptr QWORD
+    xor eax,eax
+    ret
+IArchiveOpenCallback::SetCompleted endp
+
+IArchiveOpenCallback::IArchiveOpenCallback proc
+    @ComAlloc(IArchiveOpenCallback)
+    inc [rax].IArchiveOpenCallback.m_refCount
+    ret
+IArchiveOpenCallback::IArchiveOpenCallback endp
+endif
+
+;-------------------------------------------------------------------------
+; IArchiveExtractCallback
+;-------------------------------------------------------------------------
+
+    assume rbx:ptr CArchiveExtractCallback
 
 define kEmptyFileAlias <L"[Content]">
 
-Z7ExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, outStream:PTR PZSTREAM, askExtractMode:SDWORD
+CArchiveExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, outStream:PTR PSTREAM, askExtractMode:SDWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(index)
@@ -576,23 +615,21 @@ Z7ExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, outStream
     ldr esi,index
     ldr rdi,outStream
 
-    mov [rbx].OutStream,rax
+    mov [rbx].m_outStream,rax
     mov [rdi],rax
-    mov rcx,[rbx].Base
+    mov rcx,[rbx].m_outBase
     mov [rcx],eax
 
-    mov prop.vt,ax ; VT_EMPTY
-    mov prop.wReserved1,ax
-    mov prop.bstrVal,rax
-    mov [rbx].Index,esi
+    mov prop.vt,VT_EMPTY
+    mov [rbx].m_curId,esi
 
-    this.Archive.GetProperty(esi, kpidPath, &prop)
+    this.m_Archive.GetProperty(esi, kpidPath, &prop)
 
     .if ( prop.vt == VT_EMPTY )
 
         .if ( esi == 0 )
 
-            mov rsi,[rbx].FileBlock
+            mov rsi,[rbx].m_curFile
             lea ecx,[strlen([rsi].FBLK.name)+1]
             MultiByteToWideChar(CP_UTF8, 0, [rsi].FBLK.name, ecx, entryname, WMAXPATH/2)
             mov rdx,entryname
@@ -605,12 +642,15 @@ Z7ExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, outStream
         .return ( E_FAIL )
     .endif
 
-    lea rsi,[rbx].ArcPath
+    lea rsi,[rbx].m_arcPathW
     movzx eax,word ptr [rsi]
     .if ( eax )
         .for ( : eax && ax == [rdx] : rdx+=2, rsi+=2, ax = [rsi] )
         .endf
         .if ( eax || word ptr [rdx] != '\' )
+            .if ( prop.vt == VT_BSTR )
+                SysFreeString(prop.bstrVal)
+            .endif
             .return( 0 )
         .endif
         add rdx,2
@@ -622,38 +662,38 @@ Z7ExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, outStream
         mov rdx,p
         movzx eax,word ptr [rdx+rsi]
         .if ( eax == '\' )
-
-            .ifd ( CreateDirectoryW( &[rbx].OutPath, 0 ) == 0 )
-
+            .ifd ( CreateDirectoryW( &[rbx].m_outPathW, 0 ) == 0 )
                 .ifd ( GetLastError() != ERROR_ALREADY_EXISTS )
-
                     .return ( HRESULT_FROM_WIN32(eax) )
                 .endif
             .endif
             mov eax,'\'
         .endif
-        mov rcx,[rbx].Base
+        mov rcx,[rbx].m_outBase
         mov [rcx+rsi],eax
     .endf
-    .if (SUCCEEDED(OpenStream(&[rbx].OutPath, 1, &[rbx].OutStream)))
-        mov [rbx].Result,1
+    .if ( prop.vt == VT_BSTR )
+        SysFreeString(prop.bstrVal)
     .endif
-    mov rcx,[rbx].OutStream
+    .if (SUCCEEDED(OpenStream(&[rbx].m_outPathW, 1, &[rbx].m_outStream)))
+        mov [rbx].m_setResult,1
+    .endif
+    mov rcx,[rbx].m_outStream
     mov [rdi],rcx
     ret
 
-Z7ExtractCallback::GetStream endp
+CArchiveExtractCallback::GetStream endp
 
-Z7ExtractCallback::PrepareOperation proc WINAPI askExtractMode:SDWORD
+CArchiveExtractCallback::PrepareOperation proc WINAPI askExtractMode:SDWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(askExtractMode)
     xor eax,eax
     ret
 
-Z7ExtractCallback::PrepareOperation endp
+CArchiveExtractCallback::PrepareOperation endp
 
-Z7ExtractCallback::SetOperationResult proc WINAPI uses rsi rdi rbx opRes:SDWORD
+CArchiveExtractCallback::SetOperationResult proc WINAPI uses rsi rdi rbx opRes:SDWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(opRes)
@@ -663,14 +703,14 @@ Z7ExtractCallback::SetOperationResult proc WINAPI uses rsi rdi rbx opRes:SDWORD
     ldr rbx,this
 
     xor eax,eax
-    .if ( eax != [rbx].Result )
+    .if ( eax != [rbx].m_setResult )
 
-        mov [rbx].Result,eax
+        mov [rbx].m_setResult,eax
         mov prop.vt,VT_EMPTY
-        this.Archive.GetProperty([rbx].Index, kpidMTime, &prop)
+        this.m_Archive.GetProperty([rbx].m_curId, kpidMTime, &prop)
         .if ( prop.vt == VT_FILETIME )
 
-            .ifd ( CreateFileW( &[rbx].OutPath, GENERIC_WRITE, FILE_SHARE_READ, NULL,
+            .ifd ( CreateFileW( &[rbx].m_outPathW, GENERIC_WRITE, FILE_SHARE_READ, NULL,
                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL) != INVALID_HANDLE_VALUE )
 
                 mov rsi,rax
@@ -679,18 +719,19 @@ Z7ExtractCallback::SetOperationResult proc WINAPI uses rsi rdi rbx opRes:SDWORD
             .endif
         .endif
         mov prop.vt,VT_EMPTY
-        this.Archive.GetProperty([rbx].Index, kpidAttrib, &prop)
+        this.m_Archive.GetProperty([rbx].m_curId, kpidAttrib, &prop)
         .if ( prop.vt != VT_EMPTY )
-            SetFileAttributesW( &[rbx].OutPath, prop.ulVal )
+            SetFileAttributesW( &[rbx].m_outPathW, prop.ulVal )
         .endif
         xor eax,eax
     .endif
     ret
 
-Z7ExtractCallback::SetOperationResult endp
+CArchiveExtractCallback::SetOperationResult endp
 
-Z7ExtractCallback::Z7ExtractCallback proc uses rsi rdi rbx archive:LPIARCHIVE,
-        outPath:LPSTR, ws:PWSUB, fb:PFBLK
+
+CArchiveExtractCallback::CArchiveExtractCallback proc uses rsi rdi rbx archive:LPIARCHIVE,
+        outPath:LPSTR, arcPath:LPSTR, curFile:PFBLK
 
     UNREFERENCED_PARAMETER(archive)
     UNREFERENCED_PARAMETER(outPath)
@@ -698,101 +739,113 @@ Z7ExtractCallback::Z7ExtractCallback proc uses rsi rdi rbx archive:LPIARCHIVE,
     ldr rsi,archive
     ldr rdi,outPath
 
-    mov rbx,@ComAlloc(Z7ExtractCallback)
+    mov rbx,@ComAlloc(CArchiveExtractCallback)
     .if ( rax == NULL )
         .return
     .endif
 
-    mov [rbx].Archive,rsi
-    mov esi,strlen(rdi)
-    MultiByteToWideChar(CP_UTF8, 0, rdi, esi, &[rbx].OutPath, WMAXPATH)
-    lea rcx,[rbx+rsi*2+2].OutPath
-    mov eax,'\'
-    .if ( ax == [rcx-4] )
-        sub rcx,2 ; remove '\' from end of outpath (C:\)
-    .endif
-    mov [rcx-2],eax
-    mov [rbx].Base,rcx
-    mov rdi,ws
-    mov [rbx].SubDir,rdi
-    lea esi,[strlen([rdi].WSUB.arch)+1]
-    MultiByteToWideChar(CP_UTF8, 0, [rdi].WSUB.arch, esi, &[rbx].ArcPath, WMAXPATH)
+    mov [rbx].m_Archive,rsi
+    mov [rbx].m_outPath,rdi
+    mov [rbx].m_arcPath,arcPath
+    mov [rbx].m_curFile,curFile
 
-    mov [rbx].FileBlock,fb
-    .if ( [rax].FBLK.flag & _A_SUBDIR )
+    lea rsi,[rbx].m_outPathW
+    .ifd ( MultiByteToWideChar(CP_UTF8, 0, rdi, -1, &[rbx].m_outPathW, WMAXPATH) > 1 )
 
-        mov rdi,[rax].FBLK.name
-        lea esi,[strlen(rdi)+1]
-        MultiByteToWideChar(CP_UTF8, 0, rdi, esi, [rbx].Base, _MAX_PATH)
-        CreateDirectoryW( &[rbx].OutPath, 0 )
-        add esi,esi
+        lea rsi,[rbx+rax*2].m_outPathW
         mov eax,'\'
-        lea rdi,[rbx].ArcPath
-        .if word ptr [rdi]
-            .while word ptr [rdi]
-                add rdi,2
-            .endw
-            stosw
+        .if ( ax == [rsi-4] )
+            sub rsi,2 ; remove '\' from end of srcpath (C:\)
         .endif
-        mov ecx,esi
-        mov rsi,[rbx].Base
-        add [rbx].Base,rcx
-        rep movsb
-        mov [rdi],cx
-        mov rcx,[rbx].Base
-        mov [rcx-2],eax
+        mov [rsi-2],eax
+    .endif
+    mov [rbx].m_outBase,rsi
+
+    lea rdi,[rbx].m_arcPathW
+    .ifd ( MultiByteToWideChar(CP_UTF8, 0, [rbx].m_arcPath, -1, &[rbx].m_arcPathW, WMAXPATH) > 1 )
+
+        lea rdi,[rbx+rax*2].m_arcPathW
+    .endif
+    mov [rbx].m_arcBase,rdi
+
+    mov rcx,[rbx].m_curFile
+    .if ( [rcx].FBLK.flag & _A_SUBDIR )
+
+        MultiByteToWideChar(CP_UTF8, 0, [rcx].FBLK.name, -1, rsi, _MAX_PATH)
+        mov ecx,eax
+        lea rax,[rbx].m_arcPathW
+        .if ( rdi != rax )
+            mov eax,'\'
+            mov [rdi-2],eax
+        .endif
+        rep movsw
+        CreateDirectoryW( &[rbx].m_outPathW, 0 )
+        mov eax,'\'
+        .if ( ax == [rdi-4] )
+            sub rdi,2
+            sub rsi,2
+        .endif
+        mov [rsi-2],eax
+        mov [rbx].m_arcBase,rdi
+        mov [rbx].m_outBase,rsi
     .endif
     mov rax,rbx
     ret
 
-Z7ExtractCallback::Z7ExtractCallback endp
-
+CArchiveExtractCallback::CArchiveExtractCallback endp
 
 ;-------------------------------------------------------------------------
 ; IArchiveUpdateCallback
 ;-------------------------------------------------------------------------
 
-.enum {
-    UpdateDelete = -1,
-    UpdateKeep   =  0,
-    UpdateAdd    =  1,
-    }
-
-    assume rbx:ptr Z7UpdateCallback
-    assume rcx:ptr Z7UpdateCallback
-
-Z7UpdateCallback::SetTotal proc WINAPI total:QWORD
+IArchiveUpdateCallback::SetOperationResult proc WINAPI operationResult:SDWORD
 
     UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(total)
-
-    ldr rcx,this
-
-    mov [rcx].Total,total
-    mov rdx,[rcx].ArcDir
-    progress_set("", [rdx].WSUB.file, total)
-    ret
-
-Z7UpdateCallback::SetTotal endp
-
-
-Z7UpdateCallback::SetCompleted proc WINAPI completeValue:ptr QWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(completeValue)
-
-    ldr rdx,completeValue
+    UNREFERENCED_PARAMETER(operationResult)
 
     xor eax,eax
-    .if ( rcx )
-        progress_update([rdx])
-    .endif
     ret
 
-Z7UpdateCallback::SetCompleted endp
+IArchiveUpdateCallback::SetOperationResult endp
 
+;-------------------------------------------------------------------------
+; IArchiveUpdateCallback2
+;-------------------------------------------------------------------------
 
-Z7UpdateCallback::GetUpdateItemInfo proc WINAPI uses rsi rdi rbx index:DWORD, newData:ptr SDWORD, newProps:ptr SDWORD, indexInArchive:ptr DWORD
+IArchiveUpdateCallback2::GetVolumeSize proc WINAPI index:DWORD, size:ptr QWORD
+
+    UNREFERENCED_PARAMETER(this)
+    UNREFERENCED_PARAMETER(index)
+    UNREFERENCED_PARAMETER(size)
+    xor eax,eax
+    ret
+
+IArchiveUpdateCallback2::GetVolumeSize endp
+
+IArchiveUpdateCallback2::GetVolumeStream proc WINAPI index:DWORD, volumeStream:ptr PSTREAM
+
+    UNREFERENCED_PARAMETER(this)
+    UNREFERENCED_PARAMETER(index)
+    UNREFERENCED_PARAMETER(volumeStream)
+    xor eax,eax
+    ret
+
+IArchiveUpdateCallback2::GetVolumeStream endp
+
+;-------------------------------------------------------------------------
+; CArchiveUpdateCallback
+;-------------------------------------------------------------------------
+
+; This loop items to keep -- should be preset to DWORD[count]...
+;
+; - smaller if delete only
+; - equal or bigger for adding
+;
+
+    assume rbx:ptr CArchiveUpdateCallback
+    assume rcx:ptr CArchiveUpdateCallback
+
+CArchiveUpdateCallback::GetUpdateItemInfo proc WINAPI uses rsi rdi rbx index:DWORD, newData:ptr SDWORD, newProps:ptr SDWORD, indexInArchive:ptr DWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(index)
@@ -802,40 +855,46 @@ Z7UpdateCallback::GetUpdateItemInfo proc WINAPI uses rsi rdi rbx index:DWORD, ne
 
     ldr rbx,this
     ldr rsi,newData
-    ldr edx,index
     ldr rcx,newProps
+    ldr edi,index
 
-    mov rdi,[rbx].List
-    movsx edi,byte ptr [rdi+rdx]
+    mov rdx,[rbx].m_idList
     xor eax,eax
-    cmp edi,UpdateAdd
+    cmp byte ptr [rdx+rdi],UpdateAdd
     setz al
-    .if ( rcx )
-        mov [rcx],eax
-    .endif
-    .if ( rsi )
-        mov [rsi],eax
-    .endif
-
+    mov [rcx],eax
+    mov [rsi],eax
     mov rcx,indexInArchive
-    .if ( rcx )
+
+    .ifz ; add a new file ?
+
         mov eax,-1
-        .if ( edi == UpdateKeep )
-            mov eax,[rbx].Index
-            inc [rbx].Index
-        .elseif ( edi == UpdateDelete )
-            mov eax,[rbx].Count
-            inc [rbx].Count
-        .endif
-        mov [rcx],eax
+
+    .elseif ( edi < [rbx].m_newId )
+
+        ; next index of file to keep
+
+        .for ( eax = [rbx].m_curId, esi = eax, esi++ : esi < [rbx].m_numId : esi++ )
+            .break .if ( byte ptr [rdx+rsi] == UpdateKeep )
+        .endf
+        mov [rbx].m_curId,esi
+    .else
+
+        ; next index of file to delete
+
+        .for ( eax = [rbx].m_remId, esi = eax, esi++ : esi < [rbx].m_numId : esi++ )
+            .break .if ( byte ptr [rdx+rsi] == UpdateDelete )
+        .endf
+        mov [rbx].m_remId,esi
     .endif
+    mov [rcx],eax ; [new_array] <-- old index
     xor eax,eax
     ret
 
-Z7UpdateCallback::GetUpdateItemInfo endp
+CArchiveUpdateCallback::GetUpdateItemInfo endp
 
 
-Z7UpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, propID:PROPID, value:ptr PROPVARIANT
+CArchiveUpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, propID:PROPID, value:ptr PROPVARIANT
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(index)
@@ -845,7 +904,7 @@ Z7UpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, propID:P
     ldr rbx,this
     ldr edx,index
 
-    .for ( rdi = [rbx].FileBlock : rdi : rdi = [rdi].FBLK.next )
+    .for ( rdi = [rbx].m_curFile : rdi : rdi = [rdi].FBLK.next )
         .break .if ( edx == [rdi+FBLK].ZINF.z7id )
     .endf
 
@@ -862,15 +921,14 @@ Z7UpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, propID:P
            .endc
         .case kpidPath
             mov [rsi].PROPVARIANT.vt,VT_BSTR
-            lea ecx,[strlen([rdi].FBLK.name)+1]
-            mov rdx,[rbx].SrcBase
-            lea rax,[rbx].SrcPath
+            mov rdx,[rbx].m_srcBase
+            lea rax,[rbx].m_srcPathW
             sub rdx,rax
             shr edx,1
-            mov eax,WMAXPATH
-            sub eax,edx
-            MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, ecx, [rbx].SrcBase, eax)
-            mov [rsi].PROPVARIANT.bstrVal,SysAllocString([rbx].SrcBase)
+            mov ecx,WMAXPATH
+            sub ecx,edx
+            MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, [rbx].m_srcBase, ecx)
+            mov [rsi].PROPVARIANT.bstrVal,SysAllocString([rbx].m_srcBase)
            .endc
         .case kpidIsDir
             mov [rsi].PROPVARIANT.vt,VT_BOOL
@@ -893,10 +951,10 @@ Z7UpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, propID:P
     xor eax,eax
     ret
 
-Z7UpdateCallback::GetProperty endp
+CArchiveUpdateCallback::GetProperty endp
 
 
-Z7UpdateCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, inStream:ptr PZSTREAM
+CArchiveUpdateCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, inStream:ptr PSTREAM
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(index)
@@ -906,126 +964,158 @@ Z7UpdateCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, inStream:p
     ldr edx,index
     ldr rsi,inStream
 
-    .for ( rdi = [rbx].FileBlock : rdi : rdi = [rdi].FBLK.next )
+    .for ( rdi = [rbx].m_curFile : rdi : rdi = [rdi].FBLK.next )
         .break .if ( edx == [rdi+FBLK].ZINF.z7id )
     .endf
+
     mov eax,E_FAIL
     .if ( rdi && edx == [rdi+FBLK].ZINF.z7id )
 
-        mov rdx,[rbx].ArcDir
-        progress_set([rdi].FBLK.name, [rdx].WSUB.file, [rbx].Total)
-        lea ecx,[strlen([rdi].FBLK.name)+1]
-        mov rdx,[rbx].SrcBase
-        lea rax,[rbx].SrcPath
+        strfcat(__srcfile, [rbx].m_srcPath, [rdi].FBLK.name)
+        mov rdx,[rbx].m_srcBase
+        lea rax,[rbx].m_srcPathW
         sub rdx,rax
         shr edx,1
-        mov eax,WMAXPATH
-        sub eax,edx
-        MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, ecx, [rbx].SrcBase, eax)
+        mov ecx,WMAXPATH
+        sub ecx,edx
+        MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, [rbx].m_srcBase, ecx)
         mov eax,E_FAIL
         .if ( rsi )
-            OpenStream(&[rbx].SrcPath, 0, rsi)
+            OpenStream(&[rbx].m_srcPathW, 0, rsi)
         .endif
     .endif
     ret
 
-Z7UpdateCallback::GetStream endp
+CArchiveUpdateCallback::GetStream endp
 
 
-Z7UpdateCallback::SetOperationResult proc WINAPI operationResult:SDWORD
+CArchiveUpdateCallback::SetPath proc WINAPI uses rsi rbx arcPath:LPSTR, srcPath:LPSTR, curFile:PFBLK
 
     UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(operationResult)
+    UNREFERENCED_PARAMETER(srcPath)
+    UNREFERENCED_PARAMETER(arcPath)
 
+    ldr rbx,this
+    ldr rdx,arcPath
+    ldr rsi,srcPath
+    ldr rcx,curFile
+
+    mov [rbx].m_arcPath,rdx
+    mov [rbx].m_srcPath,rsi
+    mov [rbx].m_curFile,rcx
+
+    .if ( rdx )
+
+        .ifd ( MultiByteToWideChar(CP_UTF8, 0, rdx, -1, &[rbx].m_arcPathW, WMAXPATH) > 1 )
+
+            lea rcx,[rbx+rax*2+2].m_arcPathW
+            mov eax,'\'
+            .if ( ax == [rcx-4] )
+                sub rcx,2
+            .endif
+            mov [rcx-2],eax
+            mov [rbx].m_arcBase,rcx
+        .endif
+    .endif
+
+    .if ( rsi )
+
+        .ifd ( MultiByteToWideChar(CP_UTF8, 0, rsi, -1, &[rbx].m_srcPathW, WMAXPATH) > 1 )
+
+            lea rcx,[rbx+rax*2].m_srcPathW
+            mov eax,'\'
+            .if ( ax == [rcx-4] )
+                sub rcx,2
+            .endif
+            mov [rcx-2],eax
+            mov [rbx].m_srcBase,rcx
+        .endif
+    .endif
     xor eax,eax
     ret
 
-Z7UpdateCallback::SetOperationResult endp
+CArchiveUpdateCallback::SetPath endp
 
-
-Z7UpdateCallback::Z7UpdateCallback proc uses rsi rdi rbx list:LPSTR, count:DWORD, srcDir:PWSUB, arcDir:PWSUB
+CArchiveUpdateCallback::InitList proc WINAPI uses rbx idList:LPSTR, numId:DWORD, newId:DWORD
 
     UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(list)
-    UNREFERENCED_PARAMETER(count)
-    UNREFERENCED_PARAMETER(srcDir)
-    UNREFERENCED_PARAMETER(arcDir)
+    UNREFERENCED_PARAMETER(idList)
+    UNREFERENCED_PARAMETER(numId)
+    UNREFERENCED_PARAMETER(newId)
 
-    ldr rbx,list
-    ldr edi,count
-    ldr rsi,srcDir
+    ldr rbx,this
+    ldr rdx,idList
+    ldr ecx,numId
+    ldr eax,newId
 
-    .return .if ( @ComAlloc(Z7UpdateCallback) == NULL )
+    mov [rbx].m_numId,ecx   ; src count
+    mov [rbx].m_newId,eax   ; new count
+    mov [rbx].m_idList,rdx  ; del | keep | add
 
-    mov rdx,arcDir
-    mov [rax].Z7UpdateCallback.List,rbx
-    mov [rax].Z7UpdateCallback.Count,edi
-    mov [rax].Z7UpdateCallback.SrcDir,rsi
-    mov [rax].Z7UpdateCallback.ArcDir,rdx
-    .if ( rsi == NULL )
-        .return
-    .endif
-    mov rbx,rax
+    ; first index of file to keep
 
-    mov [rbx].FileBlock,fp_blk
-    mov rcx,[rsi].WSUB.arch
-    .if ( byte ptr [rcx] )
-        mov edi,strlen(rcx)
-        MultiByteToWideChar(CP_UTF8, 0, [rsi].WSUB.arch, edi, &[rbx].ArcPath, WMAXPATH)
-        lea rcx,[rbx+rdi*2+2].ArcPath
-        mov eax,'\'
-        mov [rcx-2],eax
-    .else
-        lea rcx,[rbx].ArcPath
-    .endif
-    mov [rbx].ArcBase,rcx
+    .for ( eax = 0 : eax < ecx : eax++ )
+        .break .if ( byte ptr [rdx+rax] == UpdateKeep )
+    .endf
+    mov [rbx].m_curId,eax
 
-    mov rsi,[rbx].SrcDir
-    mov edi,strlen([rsi].WSUB.path)
-    MultiByteToWideChar(CP_UTF8, 0, [rsi].WSUB.path, edi, &[rbx].SrcPath, WMAXPATH)
-    lea rcx,[rbx+rdi*2+2].SrcPath
-    mov eax,'\'
-    .if ( ax == [rcx-4] )
-        sub rcx,2 ; remove '\' from end of Srcpath (C:\)
-    .endif
-    mov [rcx-2],eax
-    mov [rbx].SrcBase,rcx
-    mov rax,rbx
+    ; first index of file to delete
+
+    .for ( eax = 0 : eax < ecx : eax++ )
+        .break .if ( byte ptr [rdx+rax] == UpdateDelete )
+    .endf
+    mov [rbx].m_remId,eax
+    xor eax,eax
     ret
 
-Z7UpdateCallback::Z7UpdateCallback endp
+CArchiveUpdateCallback::InitList endp
+
+CArchiveUpdateCallback::CArchiveUpdateCallback proc
+
+    .if @ComAlloc(CArchiveUpdateCallback)
+
+        inc [rax].CArchiveUpdateCallback.m_refCount
+        lea rdx,[rax].CArchiveUpdateCallback.m_arcPathW
+        lea rcx,[rax].CArchiveUpdateCallback.m_srcPathW
+        mov [rax].CArchiveUpdateCallback.m_arcBase,rdx
+        mov [rax].CArchiveUpdateCallback.m_srcBase,rcx
+    .endif
+    ret
+
+CArchiveUpdateCallback::CArchiveUpdateCallback endp
 
 ;-------------------------------------------------------------------------
 ; ISequentialInStream, ISequentialOutStream
 ;-------------------------------------------------------------------------
 
-    assume rcx:ptr Z7Stream
-    assume rbx:ptr Z7Stream
+    assume rcx:ptr CStream
+    assume rbx:ptr CStream
 
-Z7Stream::Release proc WINAPI uses rbx
+CStream::Release proc WINAPI uses rbx
 
     UNREFERENCED_PARAMETER(this)
 
    .new hr:HRESULT = S_OK
+
     ldr rbx,this
 
-    .if ( InterlockedDecrement(&[rbx].refCount) == 0 )
+    .if ( InterlockedDecrement(&[rbx].m_refCount) == 0 )
 
-        .if ( [rbx].stHandle != INVALID_HANDLE_VALUE )
-            .ifd ( CloseHandle( [rbx].stHandle ) == 0 )
+        .if ( [rbx].m_Handle != INVALID_HANDLE_VALUE )
+            .ifd ( CloseHandle( [rbx].m_Handle ) == 0 )
                 mov hr,HRESULT_FROM_WIN32(GetLastError())
             .endif
-            mov [rbx].stHandle,INVALID_HANDLE_VALUE
+            mov [rbx].m_Handle,INVALID_HANDLE_VALUE
         .endif
         free( rbx )
     .endif
     mov eax,hr
     ret
 
-Z7Stream::Release endp
+CStream::Release endp
 
 
-Z7Stream::Read proc WINAPI buffer:ptr, size:dword, rdsize:ptr dword
+CStream::Read proc WINAPI buffer:ptr, size:dword, rdsize:ptr dword
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(buffer)
@@ -1035,10 +1125,10 @@ Z7Stream::Read proc WINAPI buffer:ptr, size:dword, rdsize:ptr dword
     ldr rdx,buffer
     ldr rax,rdsize
 
-    .if ( [rcx].IsOutStream )
-        WriteFile([rcx].stHandle, rdx, size, rax, NULL)
+    .if ( [rcx].m_IsOutStream )
+        WriteFile([rcx].m_Handle, rdx, size, rax, NULL)
     .else
-        ReadFile([rcx].stHandle, rdx, size, rax, NULL)
+        ReadFile([rcx].m_Handle, rdx, size, rax, NULL)
     .endif
     test eax,eax
     mov eax,S_OK
@@ -1047,10 +1137,10 @@ Z7Stream::Read proc WINAPI buffer:ptr, size:dword, rdsize:ptr dword
     .endif
     ret
 
-Z7Stream::Read endp
+CStream::Read endp
 
 
-Z7Stream::Seek proc WINAPI liDistanceToMove:sqword, dwMoveMethod:dword, lpNewFilePointer:ptr qword
+CStream::Seek proc WINAPI liDistanceToMove:sqword, dwMoveMethod:dword, lpNewFilePointer:ptr qword
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(dwMoveMethod)
@@ -1060,7 +1150,7 @@ Z7Stream::Seek proc WINAPI liDistanceToMove:sqword, dwMoveMethod:dword, lpNewFil
     ldr rax,lpNewFilePointer
     ldr edx,dwMoveMethod
 
-    SetFilePointerEx([rcx].stHandle, liDistanceToMove, rax, edx)
+    SetFilePointerEx([rcx].m_Handle, liDistanceToMove, rax, edx)
     test eax,eax
     mov eax,S_OK
     .ifz
@@ -1068,22 +1158,39 @@ Z7Stream::Seek proc WINAPI liDistanceToMove:sqword, dwMoveMethod:dword, lpNewFil
     .endif
     ret
 
-Z7Stream::Seek endp
+CStream::Seek endp
 
 
-Z7Stream::SetSize proc WINAPI newSize:qword
+CStream::SetSize proc WINAPI newSize:qword
 
     mov eax,E_NOTIMPL
     ret
 
-Z7Stream::SetSize endp
+CStream::SetSize endp
 
     assume rcx:nothing
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; <Archive>.$$$
 
-OpenStream proc private uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr PZSTREAM
+GetTempArchive proc
+
+    .for ( rcx = &tmpfile, rdx = &arcfile, eax = 1 : eax : rcx+=2, rdx+=2 )
+
+        mov ax,[rdx]
+        mov [rcx],rax
+    .endf
+    mov dword ptr [rcx-2],0x0024002E
+    mov dword ptr [rcx+2],0x00240024
+    mov word ptr [rcx+6],0x0000
+    lea rax,tmpfile
+    ret
+
+GetTempArchive endp
+
+
+OpenStream proc private uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr PSTREAM
 
    .new hr:HRESULT = S_OK
 
@@ -1095,17 +1202,17 @@ OpenStream proc private uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr
     ldr ebx,OutStream
     ldr rdi,Stream
 
-    .if ( @ComAlloc(Z7Stream) == NULL )
+    .if ( @ComAlloc(CStream) == NULL )
         .return( E_OUTOFMEMORY )
     .endif
-    mov [rax].Z7Stream.IsOutStream,ebx
-    inc [rax].Z7Stream.refCount
+    mov [rax].CStream.m_IsOutStream,ebx
+    inc [rax].CStream.m_refCount
     mov rbx,rax
     xor eax,eax
     mov [rdi],rax
     mov edx,GENERIC_READ
     mov eax,OPEN_EXISTING
-    .if ( [rbx].IsOutStream )
+    .if ( [rbx].m_IsOutStream )
         mov edx,GENERIC_WRITE
         mov eax,CREATE_ALWAYS
     .endif
@@ -1114,7 +1221,7 @@ OpenStream proc private uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr
         free(rbx)
         HRESULT_FROM_WIN32(GetLastError())
     .else
-        mov [rbx].stHandle,rax
+        mov [rbx].m_Handle,rax
         mov [rdi],rbx
         xor eax,eax
     .endif
@@ -1125,41 +1232,33 @@ OpenStream endp
     assume rbx:nothing
 
 
-OpenArchive proc private uses rsi rdi ws:PWSUB, pArc:ptr LPIARCHIVE
+OpenArchive proc private uses rdi pArc:ptr LPIARCHIVE
 
    .new pos:QWORD = 0
    .new archive:LPIARCHIVE = 0
-   .new stream:PZSTREAM = 0
+   .new stream:PSTREAM = 0
    .new hr:HRESULT
 
-    ldr rsi,ws
     ldr rdi,pArc
 
     mov hr,CreateObject(&CLSID_Format, &IID_IInArchive, &archive)
-    .if ( FAILED(hr) )
-        .return
+    .if SUCCEEDED(hr)
+        mov hr,OpenStream(&arcfile, 0, &stream)
     .endif
+    .if SUCCEEDED(hr)
 
-    mov hr,OpenStream(&arcfile, 0, &stream)
-    .if ( FAILED(hr) )
+        mov hr,archive.Open(stream, &pos, 0)
 
-        archive.Release()
-        Z7Error(hr, [rsi].WSUB.file)
-       .return( hr )
-    .endif
-    mov hr,archive.Open(stream, &pos, Z7OpenCallback())
-    mov rsi,stream
-    .if ( [rsi].Z7Stream.refCount > 1 )
-        mov [rsi].Z7Stream.refCount,1
-    .endif
-    .if ( FAILED(hr) )
-        archive.Release()
-        .if ( [rsi].Z7Stream.refCount > 0 )
-            stream.Release()
+        ; the ref count should be 2 from ::Open, 1 if failed
+
+        stream.Release()
+        .if SUCCEEDED(hr)
+            mov [rdi],archive
+        .else
+            archive.Release()
         .endif
     .else
-        mov rcx,archive
-        mov [rdi],rcx
+        archive.Release()
     .endif
     mov eax,hr
     ret
@@ -1227,39 +1326,39 @@ fp_addsub proc private uses rsi rdi path:LPSTR, file:LPSTR
 fp_addsub endp
 
 
-FindDuplicate proc private uses rsi rdi rbx archive:LPIARCHIVE, numItems:DWORD, fb:PFBLK
+FindDuplicate proc private uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK
 
    .new prop:PROPVARIANT
 
     ldr rbx,fb
 
-    lea edi,[strlen([rbx].FBLK.name)+1]
-    MultiByteToWideChar(CP_UTF8, 0, [rbx].FBLK.name, edi, entryname, WMAXPATH/2)
-    add edi,edi
+    .ifd ( MultiByteToWideChar(CP_UTF8, 0, [rbx].FBLK.name, -1, entryname, WMAXPATH/2) > 1 )
 
-    .for ( ebx = 0 : ebx < numItems : ebx++ )
+        lea edi,[rax+rax]
+        .for ( ebx = 0 : ebx < numItems : ebx++ )
 
-        mov prop.vt,VT_EMPTY
-        archive.GetProperty(ebx, kpidPath, &prop)
-        .if ( prop.vt == VT_BSTR )
+            mov prop.vt,VT_EMPTY
+            archive.GetProperty(ebx, kpidPath, &prop)
+            .if ( prop.vt == VT_BSTR )
 
-            .ifd ( memcmp(prop.bstrVal, entryname, edi) == 0 )
+                .ifd ( memcmp(prop.bstrVal, entryname, edi) == 0 )
 
-                lea eax,[rbx+1]
-               .return
+                    lea eax,[rbx+1]
+                   .return
+                .endif
+                SysFreeString(prop.bstrVal)
             .endif
-        .endif
-    .endf
+        .endf
+    .endif
     xor eax,eax
     ret
 
 FindDuplicate endp
 
 
-;
 ; Returns 0 if entry not part of basepath,
 ; else _A_ARCH or _A_SUBDIR.
-;
+
 testentryname proc uses rsi rdi rbx wsub:PWSUB, name:LPSTR
 
     ldr rbx,wsub
@@ -1305,7 +1404,7 @@ warcread proc uses rsi rdi rbx ws:PWSUB
    .new archive:LPIARCHIVE = 0
    .new pos:QWORD = 0
    .new prop:PROPVARIANT
-   .new numItems:DWORD = 0
+   .new numItems:SDWORD = 0
    .new ftime:DWORD
    .new curtime:DWORD
    .new fattrib:DWORD
@@ -1316,11 +1415,8 @@ warcread proc uses rsi rdi rbx ws:PWSUB
     strfcat(entryname, [rsi].WSUB.path, [rsi].WSUB.file)
     lea edi,[strlen(entryname)+1]
     MultiByteToWideChar(CP_UTF8, 0, entryname, edi, &arcfile, WMAXPATH)
-    strcat(entryname, ".$$$")
-    add edi,4
-    MultiByteToWideChar(CP_UTF8, 0, entryname, edi, &tmpfile, WMAXPATH)
 
-    .if (SUCCEEDED(OpenArchive(rsi, &archive)))
+    .if SUCCEEDED(OpenArchive(&archive))
 
         wsfree( rsi )
 
@@ -1343,6 +1439,7 @@ warcread proc uses rsi rdi rbx ws:PWSUB
                 .if ( prop.vt == VT_BSTR )
 
                     WideCharToMultiByte(CP_UTF8, 0, prop.bstrVal, -1, name, WMAXPATH, NULL, NULL)
+                    SysFreeString(prop.bstrVal)
 
                 .elseif ( numItems == 1 )
 
@@ -1396,28 +1493,35 @@ warcread endp
 ; Copy
 ;-------------------------------------------------------------------------
 
-warccopy proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, outp:LPSTR
+warccopy proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, outPath:LPSTR
 
    .new archive:LPIARCHIVE = 0
    .new indices[2]:DWORD = {0}
 
-    mov rsi,wsub
-    mov rbx,fblk
-    mov rdi,outp
+    ldr rsi,wsub
+    ldr rbx,fblk
 
-    .if (SUCCEEDED(OpenArchive(rsi, &archive)))
+    .if SUCCEEDED(OpenArchive(&archive))
+
         .repeat
-            .break .if !Z7ExtractCallback(archive, rdi, rsi, rbx)
-            and [rbx].FBLK.flag,not _FB_SELECTED
-            .if ( [rbx].FBLK.flag & _A_SUBDIR )
-                archive.Extract(NULL, -1, 0, rax)
-            .else
-                mov ecx,[rbx+FBLK].ZINF.z7id
-                mov indices,ecx
-                archive.Extract(&indices, 1, 0, rax)
+            .if CArchiveExtractCallback(archive, outPath, [rsi].WSUB.arch, rbx)
+
+                mov rdi,rax
+
+                strfcat(__srcfile, [rsi].WSUB.file, [rsi].WSUB.arch)
+                strfcat(__srcfile, NULL, [rbx].FBLK.name)
+                strfcat(__outfile, outPath, [rbx].FBLK.name)
+                and [rbx].FBLK.flag,not _FB_SELECTED
+                .if ( [rbx].FBLK.flag & _A_SUBDIR )
+                    archive.Extract(NULL, -1, 0, rdi)
+                .else
+                    mov ecx,[rbx+FBLK].ZINF.z7id
+                    mov indices,ecx
+                    archive.Extract(&indices, 1, 0, rdi)
+                .endif
+                panel_findnext(cpanel)
+                mov rbx,rdx
             .endif
-            panel_findnext(cpanel)
-            mov rbx,rdx
         .until !rax
         archive.Release()
     .endif
@@ -1439,14 +1543,16 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
 
    .new archive:LPIARCHIVE = rax
    .new outarch:LPOARCHIVE = rax
-   .new stream:PZSTREAM = rax
+   .new stream:PSTREAM = rax
+   .new callback:ptr CArchiveUpdateCallback = rax
    .new delete:string_t = rax
    .new prop:PROPVARIANT
    .new count:DWORD
    .new blkcount:DWORD
    .new newcount:DWORD
-   .new numItems:DWORD = eax
-   .new hr:HRESULT
+   .new numItems:SDWORD = eax
+   .new tempfile:DWORD = eax
+   .new hr:HRESULT = eax
    .new wb:WIN32_FIND_DATA
 
     ldr rsi,dest
@@ -1486,152 +1592,114 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         .endif
         .if ( eax )
             mov hr,E_FAIL
-            jmp done
+           .break
         .endif
         panel_findnext(cpanel)
         mov rbx,rdx
     .until !rax
 
-    .for ( rbx = fp_blk : rbx : rbx = [rbx].FBLK.next )
-        inc eax
-    .endf
-    mov blkcount,eax
+    .if SUCCEEDED(hr)
+
+        .for ( rbx = fp_blk : rbx : rbx = [rbx].FBLK.next )
+            inc eax
+        .endf
+        mov blkcount,eax
+    .endif
 
     ; Open archive
 
-    mov hr,OpenArchive(rsi, &archive)
-    .if (FAILED(hr))
-        jmp done
-    .endif
-    archive.GetNumberOfItems(&numItems)
-
-    mov ecx,numItems
-    add ecx,blkcount
-    jz done
-
-    mov count,ecx
-    mov newcount,ecx
-    mov delete,malloc(ecx)
-    .if ( !rax )
-        jmp done
+    .if SUCCEEDED(hr)
+        mov hr,OpenArchive(&archive)
     .endif
 
-    mov rbx,rdi
-    mov rdi,rax
-    mov ecx,numItems
-    xor eax,eax
-    rep stosb
-    mov ecx,blkcount
-    inc eax
-    rep stosb
+    .if SUCCEEDED(hr)
 
-    .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next )
-
-        .ifd FindDuplicate(archive, numItems, rdi)
-
-            mov rdx,delete
-            dec byte ptr [rdx+rax-1]
-            dec newcount
-        .endif
-    .endf
-
-    mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
-    .if ( FAILED(eax) )
-        jmp done
-    .endif
-    mov hr,OpenStream(&tmpfile, 1, &stream)
-    .if ( FAILED(eax) )
-        jmp done
-    .endif
-
-    .if ( newcount != count )
-
-        ; Delete duplicated files
-
-        sub eax,newcount
-        mov edx,numItems
-        sub edx,eax
-        mov count,edx
-        mov hr,outarch.UpdateItems(stream, count, Z7UpdateCallback( delete, count, 0, rsi ))
-        SafeRelease(outarch)
-        SafeRelease(archive)
-        stream.Release()
-
-        .if (SUCCEEDED(hr))
-
-            _wremove(&arcfile)
-            _wrename(&tmpfile, &arcfile)
-            .if ( eax )
-                mov hr,E_FAIL
-                jmp done
-            .endif
-        .else
-            _wremove(&tmpfile)
-            jmp done
-        .endif
-
-        ; Reopen archive
-
-        mov hr,OpenArchive(rsi, &archive)
-        .if ( FAILED(eax) )
-            jmp done
-        .endif
         archive.GetNumberOfItems(&numItems)
-
-        mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
-        .if ( FAILED(eax) )
-            jmp done
+        .if ( numItems <= 0 )
+            mov hr,E_BOUNDS
         .endif
-        mov hr,OpenStream(&tmpfile, 1, &stream)
-        .if ( FAILED(eax) )
-            jmp done
-        .endif
+    .endif
 
+    .if SUCCEEDED(hr)
+
+        mov ecx,numItems
+        add ecx,blkcount
+        mov count,ecx
+        mov newcount,ecx
+
+        .if ( malloc(ecx) == NULL )
+            mov hr,E_OUTOFMEMORY
+        .endif
+        mov delete,rax
+    .endif
+
+    .if SUCCEEDED(hr)
+
+        mov rbx,rdi
         mov rdi,delete
         mov ecx,numItems
         xor eax,eax
         rep stosb
+
+        .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next )
+
+            .ifd FindDuplicate(archive, numItems, rdi)
+
+                mov rdx,delete
+                dec byte ptr [rdx+rax-1]
+                dec newcount
+            .endif
+        .endf
+
+        mov edi,numItems
+        mov edx,newcount
+        mov eax,count
+        sub eax,edx
+        sub edi,eax
+        add rdi,delete
         mov ecx,blkcount
-        inc eax
+        sub edx,ecx
+        mov eax,1
         rep stosb
+        .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next, edx++ )
+
+            mov [rdi+FBLK].ZINF.z7id,edx
+        .endf
+        mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
+    .endif
+    .if SUCCEEDED(hr)
+        mov hr,OpenStream(GetTempArchive(), 1, &stream)
+    .endif
+    .if SUCCEEDED(hr)
+        mov callback,CArchiveUpdateCallback()
+        .if ( rax == NULL )
+            mov hr,E_OUTOFMEMORY
+        .endif
+    .endif
+    .if SUCCEEDED(hr)
+
+        inc tempfile
+        sprintf(__srcfile, "%d selected file(s)", blkcount)
+        strfcat(__outfile, [rsi].WSUB.file, [rsi].WSUB.arch)
+        callback.InitList( delete, numItems, newcount )
+        callback.SetPath( [rsi].WSUB.arch, [rbx].WSUB.path, fp_blk )
+        mov hr,outarch.UpdateItems(stream, newcount, callback)
     .endif
 
-    mov edx,numItems
-    .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next, edx++ )
-        mov [rdi+FBLK].ZINF.z7id,edx
-    .endf
-
-    mov eax,numItems
-    add eax,blkcount
-    mov count,eax
-    mov hr,outarch.UpdateItems(stream, count, Z7UpdateCallback( delete, numItems, rbx, rsi ))
-    SafeRelease(outarch)
-    SafeRelease(archive)
-    stream.Release()
-
-    .if (SUCCEEDED(hr))
-
-        _wremove(&arcfile)
-        _wrename(&tmpfile, &arcfile)
-    .else
-        _wremove(&tmpfile)
-    .endif
-
-done:
-
-    mov rbx,fp_blk
-    .while ( rbx )
-        mov rcx,rbx
-        mov rbx,[rbx].FBLK.next
-        free(rcx)
-    .endw
-    SafeRelease(outarch)
-    SafeRelease(archive)
     free(delete)
-    .if ( FAILED(hr) )
-        Z7Error(hr, [rsi].WSUB.file)
+    SafeRelease(outarch)
+    SafeRelease(callback)
+    SafeRelease(stream)
+    SafeRelease(archive)
+    .if ( tempfile )
+        .if (SUCCEEDED(hr))
+            _wremove(&arcfile)
+            _wrename(&tmpfile, &arcfile)
+        .else
+            _wremove(&tmpfile)
+        .endif
     .endif
-    mov eax,hr
+    DisplayError(hr, [rsi].WSUB.file)
     ret
 
 warcadd endp
@@ -1643,140 +1711,167 @@ warcadd endp
 
 warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
-   .new archive:LPIARCHIVE = 0
-   .new outarch:LPOARCHIVE = 0
-   .new stream:PZSTREAM = 0
-   .new delete:string_t = 0
+    UNREFERENCED_PARAMETER(wsub)
+    UNREFERENCED_PARAMETER(fblk)
+    xor eax,eax
+
+   .new archive:LPIARCHIVE = rax
+   .new outarch:LPOARCHIVE = rax
+   .new stream:PSTREAM = rax
+   .new callback:ptr CArchiveUpdateCallback = rax
+   .new delete:string_t = rax
    .new prop:PROPVARIANT
-   .new sublen:DWORD
+   .new sublen:SDWORD
    .new count:DWORD
-   .new numItems:DWORD = 0
+   .new numItems:SDWORD = eax
+   .new tempfile:DWORD = eax
    .new hr:HRESULT
 
     ldr rsi,wsub
     ldr rbx,fblk
 
-    mov hr,OpenArchive(rsi, &archive)
-    .if (FAILED(hr))
-        jmp done
-    .endif
-    archive.GetNumberOfItems(&numItems)
-    .if ( !numItems )
-        jmp done
-    .endif
-    mov delete,malloc(numItems)
-    .if ( !rax )
-        jmp done
+    mov hr,OpenArchive(&archive)
+    .if SUCCEEDED(hr)
+
+        archive.GetNumberOfItems(&numItems)
+        .if ( numItems <= 0 )
+            mov hr,E_BOUNDS
+        .endif
     .endif
 
-    ; Find selected item count
+    .if SUCCEEDED(hr)
 
-    mov rdi,rax
-    mov ecx,numItems
-    xor eax,eax
-    rep stosb
+        .if ( malloc(numItems) == NULL )
+            mov hr,E_OUTOFMEMORY
+        .endif
+        mov delete,rax
+    .endif
 
-    .repeat
+    .if SUCCEEDED(hr)
 
-        and [rbx].FBLK.flag,not _FB_SELECTED
-        .if ( [rbx].FBLK.flag & _A_SUBDIR )
+        ; Find selected item count
 
-            ; Delete subdir
+        mov rdi,delete
+        mov ecx,numItems
+        xor eax,eax
+        rep stosb
 
-            confirm_delete_sub([rbx].FBLK.name)
-            test eax,eax
-            jz done
+        .repeat
 
-            .if ( eax == 1 )
+            and [rbx].FBLK.flag,not _FB_SELECTED
 
-                mov edi,strlen([rbx].FBLK.name)
-                MultiByteToWideChar(CP_UTF8, 0, [rbx].FBLK.name, edi, entryname, WMAXPATH/2)
-                add edi,edi
-                mov sublen,edi
+            .if ( [rbx].FBLK.flag & _A_SUBDIR )
 
-                .for ( edi = 0 : edi < numItems : edi++ )
+                ; Delete subdir
 
-                    mov prop.vt,VT_EMPTY
-                    archive.GetProperty(edi, kpidPath, &prop)
-                    .if ( prop.vt == VT_BSTR )
+                .ifd ( confirm_delete_sub([rbx].FBLK.name) == 0 )
 
-                        .ifd ( memcmp(prop.bstrVal, entryname, sublen) == 0 )
+                    mov hr,E_ABORT
+                   .break
+                .endif
 
-                            mov rcx,prop.bstrVal
-                            mov edx,sublen
-                            movzx eax,word ptr [rcx+rdx]
-                            .if ( eax == '\' || eax == 0 )
+                .if ( eax == 1 )
 
-                                mov rdx,delete
-                                dec byte ptr [rdx+rdi]
+                    mov rcx,strfcat(__srcfile, [rsi].WSUB.arch, [rbx].FBLK.name)
+                    .ifd ( MultiByteToWideChar(CP_UTF8, 0, rcx, -1, entryname, WMAXPATH/2) > 1 )
+
+                        lea eax,[rax+rax-2]
+                        mov sublen,eax
+
+                        .for ( edi = 0 : edi < numItems : edi++ )
+
+                            mov prop.vt,VT_EMPTY
+                            archive.GetProperty(edi, kpidPath, &prop)
+                            .if ( prop.vt == VT_BSTR )
+
+                                .ifd ( memcmp(prop.bstrVal, entryname, sublen) == 0 )
+
+                                    mov rcx,prop.bstrVal
+                                    mov edx,sublen
+                                    movzx eax,word ptr [rcx+rdx]
+                                    .if ( eax == '\' || eax == '/' || eax == 0 )
+
+                                        mov rdx,delete
+                                        dec byte ptr [rdx+rdi]
+                                    .endif
+                                .endif
+                                SysFreeString(prop.bstrVal)
                             .endif
-                        .endif
+                        .endf
                     .endif
-                .endf
-            .endif
+                .endif
 
+            .else ; Delete file
+
+                .ifd ( confirm_delete_file([rbx].FBLK.name, [rbx].FBLK.flag) == 0 )
+
+                    mov hr,E_ABORT
+                   .break
+
+                .elseif ( eax == 1 )
+
+                    mov rdi,delete
+                    mov ecx,[rbx+FBLK].ZINF.z7id
+                    dec byte ptr [rdi+rcx]
+                .endif
+            .endif
+            panel_findnext(cpanel)
+            mov rbx,rdx
+        .until !rax
+    .endif
+
+    .if SUCCEEDED(hr)
+
+        .for ( rdi = delete, eax = 0, ecx = 0 : ecx < numItems : ecx++ )
+            mov dl,[rdi+rcx]
+            and edx,1
+            add eax,edx
+        .endf
+        .if ( eax )
+            mov ecx,numItems
+            sub ecx,eax
+            mov count,ecx
         .else
-
-            ; Delete file
-
-            confirm_delete_file([rbx].FBLK.name, [rbx].FBLK.flag)
-            test eax,eax
-            jz done
-            .if ( eax == 1 )
-
-                mov rdi,delete
-                mov ecx,[rbx+FBLK].ZINF.z7id
-                dec byte ptr [rdi+rcx]
-            .endif
+            mov hr,E_BOUNDS
         .endif
-        panel_findnext(cpanel)
-        mov rbx,rdx
-    .until !rax
+    .endif
 
-    .for ( rdi = delete, eax = 0, ecx = 0 : ecx < numItems : ecx++ )
-
-        .if ( byte ptr [rdi+rcx] != 0 )
-
-            inc eax
+    .if SUCCEEDED(hr)
+        mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
+    .endif
+    .if SUCCEEDED(hr)
+        mov hr,OpenStream(GetTempArchive(), 1, &stream)
+    .endif
+    .if SUCCEEDED(hr)
+        mov callback,CArchiveUpdateCallback()
+        .if ( rax == NULL )
+            mov hr,E_OUTOFMEMORY
         .endif
-    .endf
-    .if ( !eax )
-        jmp done
     .endif
-    mov ecx,numItems
-    sub ecx,eax
-    mov count,ecx
+    .if SUCCEEDED(hr)
 
-    mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
-    .if ( FAILED(eax) )
-        jmp done
+        inc tempfile
+        mov ecx,numItems
+        sub ecx,count
+        sprintf(__outfile, "%d selected file(s)", ecx)
+        strfcat(__srcfile, [rsi].WSUB.file, [rsi].WSUB.arch)
+        callback.InitList( delete, numItems, count )
+        mov hr,outarch.UpdateItems(stream, count, callback)
     .endif
-    mov hr,OpenStream(&tmpfile, 1, &stream)
-    .if ( FAILED(eax) )
-        jmp done
-    .endif
-    mov hr,outarch.UpdateItems(stream, count, Z7UpdateCallback( delete, count, 0, rsi ))
-    SafeRelease(outarch)
-    SafeRelease(archive)
-    stream.Release()
-
-    .if (SUCCEEDED(hr))
-
-        _wremove(&arcfile)
-        _wrename(&tmpfile, &arcfile)
-    .else
-        _wremove(&tmpfile)
-    .endif
-
-done:
-
-    SafeRelease(outarch)
-    SafeRelease(archive)
     free(delete)
-    .if ( FAILED(hr) )
-        Z7Error(hr, [rsi].WSUB.file)
+    SafeRelease(outarch)
+    SafeRelease(callback)
+    SafeRelease(stream)
+    SafeRelease(archive)
+    .if ( tempfile )
+        .if (SUCCEEDED(hr))
+            _wremove(&arcfile)
+            _wrename(&tmpfile, &arcfile)
+        .else
+            _wremove(&tmpfile)
+        .endif
     .endif
-    mov eax,hr
+    DisplayError(hr, [rsi].WSUB.file)
     ret
 
 warcdelete endp
@@ -1795,9 +1890,9 @@ warcview proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
     mov rbx,fblk
     mov rdi,envtemp
 
-    .if (SUCCEEDED(OpenArchive(rsi, &archive)))
+    .if SUCCEEDED(OpenArchive(&archive))
 
-        .if Z7ExtractCallback(archive, rdi, rsi, rbx)
+        .if CArchiveExtractCallback(archive, rdi, [rsi].WSUB.arch, rbx)
 
             mov ecx,[rbx+FBLK].ZINF.z7id
             mov indices,ecx

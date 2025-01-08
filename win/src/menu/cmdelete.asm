@@ -57,8 +57,9 @@ remove_directory proc directory:LPSTR
 
   local path[2048]:byte
 
-    .ifd ( confirm_delete_sub(strfcat(&path, __spath, directory)) == 1 )
-
+    .ifd ( confirm_delete_sub(strfcat(&path, __spath, directory)) == -1 )
+        xor eax,eax
+    .elseif ( eax == 1 )
         scan_directory(0, &path)
     .endif
     ret
