@@ -1668,7 +1668,8 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
     .endif
     .if SUCCEEDED(hr)
-        mov hr,OpenStream(GetTempArchive(), 1, &stream)
+        mov rcx,GetTempArchive()
+        mov hr,OpenStream(rcx, 1, &stream)
     .endif
     .if SUCCEEDED(hr)
         mov callback,CArchiveUpdateCallback()
@@ -1840,7 +1841,8 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
         mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
     .endif
     .if SUCCEEDED(hr)
-        mov hr,OpenStream(GetTempArchive(), 1, &stream)
+        mov rcx,GetTempArchive()
+        mov hr,OpenStream(rcx, 1, &stream)
     .endif
     .if SUCCEEDED(hr)
         mov callback,CArchiveUpdateCallback()
