@@ -206,8 +206,6 @@ cmd=st_BAT
 [7z.dll]
 ;DllFile=%DZ%\7z.dll
 bz2=0x02
-rar=0x03
-arj=0x04
 z=0x05
 lzh=0x06
 7z=0x07

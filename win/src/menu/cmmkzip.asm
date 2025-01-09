@@ -4,6 +4,7 @@
 include doszip.inc
 include io.inc
 include string.inc
+include syserr.inc
 include wsub.inc
 
     .data
@@ -11,46 +12,73 @@ include wsub.inc
 
     .code
 
-cmmkzip proc uses rsi rdi
+cmmkzip proc uses rsi rdi rbx
 
   local path[_MAX_PATH]:byte
 
     lea rdi,path
     .if cpanel_state()
 
-	.ifd tgetline("Create archive", strcpy(rdi, &default_zip), 40, 256 or 8000h)
+        .ifd tgetline("Create archive", strcpy(rdi, &default_zip), 40, 256 or 8000h)
 
-	    .if byte ptr [rdi]
+            .if byte ptr [rdi]
 
-		.ifsd ogetouth(rdi, M_WRONLY) > 0
+                xor ebx,ebx
+                .if strext(rdi)
+                    mov eax,[rax]
+                    or  eax,0x00200000
+                    .if ( eax == 'z7.' )
+                        .ifd ( warctest(NULL, 0xAFBC7A37) == 0 )
+                            .return ermsg(0, _sys_err_msg(ENODEV))
+                        .endif
+                        inc ebx
+                    .endif
+                .endif
 
-		    mov esi,eax
-		    strcpy(&default_zip, rdi)
+                .ifsd ogetouth(rdi, M_WRONLY) > 0
 
-		    mov rax,cpanel
-		    mov rdx,[rax].PANEL.wsub
-		    mov rax,[rdx].WSUB.arch
-		    mov byte ptr [rax],0
-		    mov eax,[rdx].WSUB.flag
-		    and eax,not _W_ARCHIVE
-		    or	eax,_W_ARCHZIP
-		    mov [rdx].WSUB.flag,eax
-		    mov rcx,[rdx].WSUB.file
-		    strcpy(rcx, &path)
+                    mov esi,eax
+                    strcpy(&default_zip, rdi)
 
-		    mov rdx,rdi
-		    mov eax,06054B50h
-		    stosd
-		    xor eax,eax
-		    mov ecx,5
-		    rep stosd
+                    mov rax,cpanel
+                    mov rdx,[rax].PANEL.wsub
+                    mov rax,[rdx].WSUB.arch
+                    mov byte ptr [rax],0
+                    mov eax,[rdx].WSUB.flag
+                    and eax,not _W_ARCHIVE
+                    .if ( ebx )
+                        or eax,_W_ARCHEXT
+                    .else
+                        or eax,_W_ARCHZIP
+                    .endif
+                    mov [rdx].WSUB.flag,eax
+                    mov rcx,[rdx].WSUB.file
+                    strcpy(rcx, rdi)
 
-		    oswrite(esi, rdx, ZEND)
-		    _close(esi)
-		    mov _diskflag,1
-		.endif
-	    .endif
-	.endif
+                    mov rdx,rdi
+                    mov eax,0x06054B50
+                    mov ecx,5
+                    .if ( ebx )
+                        mov ecx,(32-12)/4
+                        mov eax,0xAFBC7A37
+                        stosd
+                        mov eax,0x03001C27
+                        stosd
+                        mov eax,0x0FD59B8D
+                    .endif
+                    stosd
+                    xor eax,eax
+                    rep stosd
+                    mov ecx,ZEND
+                    .if ( ebx )
+                        mov ecx,32
+                    .endif
+                    oswrite(esi, rdx, ecx)
+                    _close(esi)
+                    mov _diskflag,1
+                .endif
+            .endif
+        .endif
     .endif
     ret
 

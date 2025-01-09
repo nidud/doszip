@@ -526,7 +526,7 @@ wsetfcb proc uses rsi rdi rbx wsub:PWSUB
     .endf
     mov [rsi].count,eax
 
-    .if malloc( &[rax*size_t] )
+    .if malloc( &[rax*size_t+size_t] )
 
         mov rdi,rax
         mov rax,[rsi].fcb
@@ -538,6 +538,7 @@ wsetfcb proc uses rsi rdi rbx wsub:PWSUB
             mov [rdi],rax
             add rdi,size_t
         .endf
+        mov [rdi],rax
         mov eax,ecx
     .endif
     ret

@@ -285,7 +285,6 @@ include dzstr.inc
 
 .comdef IArchiveOpenCallback : public CUnknown
 
-    IArchiveOpenCallback proc
     SetTotal            proc :ptr, :ptr
     SetCompleted        proc :ptr, :ptr
    .ends
@@ -362,7 +361,6 @@ include dzstr.inc
     Password            LPWSTR 128 dup(?)
     PasswordIsDefined   BOOL ?
 
-    CCryptoGetTextPassword proc
     CryptoGetTextPassword proc :ptr BSTR
    .ends
 
@@ -393,6 +391,43 @@ IsLoaded        DWORD 0
 .code
 
 option proc: private
+
+
+LoadDll proc uses rsi
+
+   .new dll[_MAX_PATH]:sbyte
+
+    mov eax,IsLoaded
+    .if ( eax == FALSE )
+
+        dec IsLoaded
+        lea rsi,@CStr("7z.dll")
+        .if CFGetSection(rsi)
+            .if INIGetEntry(rax, "DllFile")
+                lea rsi,dll
+                ExpandEnvironmentStrings(rax, rsi, _MAX_PATH - 1)
+            .endif
+        .endif
+        .if ( LoadLibrary(rsi) != NULL )
+
+            mov rsi,rax
+            .if GetProcAddress(rax, "CreateObject")
+
+                mov CreateObject,rax
+                mov eax,TRUE
+                mov IsLoaded,eax
+            .else
+                FreeLibrary(rsi)
+                xor eax,eax
+            .endif
+        .endif
+    .elseif ( eax == -1 )
+        xor eax,eax
+    .endif
+    ret
+
+LoadDll endp
+
 
 DisplayError proc hr:HRESULT, msg:string_t
 
@@ -431,36 +466,6 @@ DisplayError endp
 ; IUnknown
 ;-------------------------------------------------------------------------
 
-CUnknown::QueryInterface proc WINAPI uses rbx riid:LPIID, ppv:ptr ptr
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(riid)
-
-    ldr rcx,this
-    ldr rdx,riid
-    ldr rbx,ppv
-
-    movzx eax,[rdx].GUID.Data4[3]
-    mov ah,[rdx].GUID.Data4[5]
-
-    .if ( eax == 0x0303 || eax == 0x0403 )
-
-        mov [rbx],rcx
-        InterlockedIncrement(&[rcx].CUnknown.m_refCount)
-        xor eax,eax
-
-    .elseif ( eax == 0x1005 )
-
-        CCryptoGetTextPassword()
-        mov [rbx],rax
-        xor eax,eax
-    .else
-        mov eax,E_NOINTERFACE
-    .endif
-    ret
-
-CUnknown::QueryInterface endp
-
 CUnknown::AddRef proc WINAPI
 
     UNREFERENCED_PARAMETER(this)
@@ -486,6 +491,37 @@ CUnknown::Release proc WINAPI
     ret
 
 CUnknown::Release endp
+
+CUnknown::QueryInterface proc WINAPI uses rbx riid:LPIID, ppv:ptr ptr
+
+    UNREFERENCED_PARAMETER(this)
+    UNREFERENCED_PARAMETER(riid)
+
+    ldr rcx,this
+    ldr rdx,riid
+    ldr rbx,ppv
+
+    movzx eax,[rdx].GUID.Data4[3]
+    mov ah,[rdx].GUID.Data4[5]
+
+    .if ( eax == 0x0303 || eax == 0x0403 )
+
+        mov [rbx],rcx
+        InterlockedIncrement(&[rcx].CUnknown.m_refCount)
+        xor eax,eax
+
+    .elseif ( eax == 0x1005 )
+
+        CCryptoGetTextPassword()
+        inc [rax].CUnknown.m_refCount
+        mov [rbx],rax
+        xor eax,eax
+    .else
+        mov eax,E_NOINTERFACE
+    .endif
+    ret
+
+CUnknown::QueryInterface endp
 
 ;-------------------------------------------------------------------------
 ; ICryptoGetTextPassword
@@ -527,14 +563,6 @@ CCryptoGetTextPassword::CryptoGetTextPassword proc WINAPI uses rdi rbx pPassword
 
 CCryptoGetTextPassword::CryptoGetTextPassword endp
 
-
-CCryptoGetTextPassword::CCryptoGetTextPassword proc
-
-    @ComAlloc(CCryptoGetTextPassword)
-    inc [rax].CCryptoGetTextPassword.m_refCount
-    ret
-
-CCryptoGetTextPassword::CCryptoGetTextPassword endp
 
 ;-------------------------------------------------------------------------
 ; IProgress
@@ -579,12 +607,6 @@ IArchiveOpenCallback::SetCompleted proc WINAPI files:ptr QWORD, bytes:ptr QWORD
     xor eax,eax
     ret
 IArchiveOpenCallback::SetCompleted endp
-
-IArchiveOpenCallback::IArchiveOpenCallback proc
-    @ComAlloc(IArchiveOpenCallback)
-    inc [rax].IArchiveOpenCallback.m_refCount
-    ret
-IArchiveOpenCallback::IArchiveOpenCallback endp
 endif
 
 ;-------------------------------------------------------------------------
@@ -802,7 +824,6 @@ IArchiveUpdateCallback::SetOperationResult proc WINAPI operationResult:SDWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(operationResult)
-
     xor eax,eax
     ret
 
@@ -817,7 +838,7 @@ IArchiveUpdateCallback2::GetVolumeSize proc WINAPI index:DWORD, size:ptr QWORD
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(index)
     UNREFERENCED_PARAMETER(size)
-    xor eax,eax
+    mov eax,E_NOTIMPL
     ret
 
 IArchiveUpdateCallback2::GetVolumeSize endp
@@ -827,7 +848,7 @@ IArchiveUpdateCallback2::GetVolumeStream proc WINAPI index:DWORD, volumeStream:p
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(index)
     UNREFERENCED_PARAMETER(volumeStream)
-    xor eax,eax
+    mov eax,E_NOTIMPL
     ret
 
 IArchiveUpdateCallback2::GetVolumeStream endp
@@ -1190,7 +1211,7 @@ GetTempArchive proc
 GetTempArchive endp
 
 
-OpenStream proc private uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr PSTREAM
+OpenStream proc uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr PSTREAM
 
    .new hr:HRESULT = S_OK
 
@@ -1232,7 +1253,7 @@ OpenStream endp
     assume rbx:nothing
 
 
-OpenArchive proc private uses rdi pArc:ptr LPIARCHIVE
+OpenArchive proc uses rdi pArc:ptr LPIARCHIVE
 
    .new pos:QWORD = 0
    .new archive:LPIARCHIVE = 0
@@ -1310,7 +1331,7 @@ fp_addfile proc uses rsi rdi rbx path:LPSTR, wblk:ptr WIN32_FIND_DATA
 fp_addfile endp
 
 
-fp_addsub proc private uses rsi rdi path:LPSTR, file:LPSTR
+fp_addsub proc uses rsi rdi path:LPSTR, file:LPSTR
 
     ldr rbx,path
     ldr rsi,file
@@ -1326,7 +1347,7 @@ fp_addsub proc private uses rsi rdi path:LPSTR, file:LPSTR
 fp_addsub endp
 
 
-FindDuplicate proc private uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK
+FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK
 
    .new prop:PROPVARIANT
 
@@ -1411,6 +1432,10 @@ warcread proc uses rsi rdi rbx ws:PWSUB
    .new name:LPSTR = entryname
 
     ldr rsi,ws
+
+    .ifd ( LoadDll() == FALSE )
+        .return
+    .endif
 
     strfcat(entryname, [rsi].WSUB.path, [rsi].WSUB.file)
     lea edi,[strlen(entryname)+1]
@@ -1615,7 +1640,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
     .if SUCCEEDED(hr)
 
         archive.GetNumberOfItems(&numItems)
-        .if ( numItems <= 0 )
+        .if ( numItems < 0 )
             mov hr,E_BOUNDS
         .endif
     .endif
@@ -1920,72 +1945,33 @@ warcview endp
 
 warctest proc uses rsi rdi rbx fblk:PFBLK, sign:int_t
 
-   .new dll[_MAX_PATH]:sbyte
-
     ldr rbx,fblk
     ldr edi,sign
 
-    .if ( IsLoaded == FALSE )
+    .ifd ( LoadDll() == TRUE )
 
-        dec IsLoaded
-        lea rsi,@CStr("7z.dll")
-        .if CFGetSection(rsi)
-            .if INIGetEntry(rax, "DllFile")
+        .if ( edi == TYPE_7Z ) ; only support .7z ID..
 
-                lea rsi,dll
-                ExpandEnvironmentStrings(rax, rsi, _MAX_PATH - 1)
-            .endif
-        .endif
-        .if ( LoadLibrary(rsi) != NULL )
+            mov eax,kId_7z
 
-            mov rsi,rax
-            .if GetProcAddress(rax, "CreateObject")
+        .elseif CFGetSection("7z.dll")
 
-                mov CreateObject,rax
-                mov IsLoaded,TRUE
-            .else
-                FreeLibrary(rsi)
-               .return( 0 )
-            .endif
-        .endif
-    .endif
-    xor eax,eax
-    .if ( IsLoaded != TRUE )
-        .return
-    .endif
-
-    .switch
-    .case edi == TYPE_CAB
-        mov eax,kId_Cab
-       .endc
-    .case edi == TYPE_XZ
-        mov eax,kId_Xz
-       .endc
-    .case edi == TYPE_7Z
-        mov eax,kId_7z
-       .endc
-    .case di == TYPE_GZ
-        mov eax,kId_GZip
-       .endc
-    .case di == TYPE_BZ2
-        mov eax,kId_BZip2
-       .endc
-    .default
-        .if CFGetSection("7z.dll")
             mov rsi,rax
             .if strext([rbx].FBLK.name)
+
                 inc rax
                 .if INIGetEntry(rsi, rax)
+
                     .ifd ( strtolx(rax) > kId_GZip )
                         xor eax,eax
                     .endif
                 .endif
             .endif
         .endif
-    .endsw
-    .if ( eax )
-        mov CLSID_Format.Data4[5],al
-        mov eax,1
+        .if ( eax )
+            mov CLSID_Format.Data4[5],al
+            mov eax,1
+        .endif
     .endif
     ret
 

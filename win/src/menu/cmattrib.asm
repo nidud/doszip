@@ -257,7 +257,7 @@ cmattrib proc
       .case !panel_curobj(rax)
       .case ecx & _FB_ROOTDIR
         .endc
-      .case ecx & _FB_ARCHIVE
+      .case ecx & _FB_ARCHZIP
         mov rcx,cpanel
         cmzipattrib([rcx].PANEL.wsub, rdx)
        .endc
