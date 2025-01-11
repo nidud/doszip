@@ -2,6 +2,7 @@
 ; Copyright (C) 2015 Doszip Developers -- see LICENSE.TXT
 ;
 ; Change history:
+; 2025-01-11 - added Confirm Delete for Add function
 ; 2025-01-07 - 7z.dll plugin --> removed 7za.exe code
 ;
 include errno.inc
@@ -357,6 +358,8 @@ include dzstr.inc
     Password            LPWSTR 128 dup(?)
     PasswordIsDefined   BOOL ?
 
+    CCryptoGetTextPassword proc
+
     CryptoGetTextPassword proc :ptr BSTR
    .ends
 
@@ -462,6 +465,35 @@ DisplayError endp
 ; IUnknown
 ;-------------------------------------------------------------------------
 
+CUnknown::QueryInterface proc WINAPI uses rbx riid:LPIID, ppv:ptr ptr
+
+    UNREFERENCED_PARAMETER(this)
+    UNREFERENCED_PARAMETER(riid)
+
+    ldr rcx,this
+    ldr rdx,riid
+    ldr rbx,ppv
+
+    movzx eax,[rdx].GUID.Data4[3]
+    mov ah,[rdx].GUID.Data4[5]
+
+    .if ( eax == 0x0303 || eax == 0x0403 )
+
+        mov [rbx],rcx
+        InterlockedIncrement(&[rcx].CUnknown.m_refCount)
+        xor eax,eax
+
+    .elseif ( eax == 0x1005 )
+
+        mov [rbx],CCryptoGetTextPassword()
+        xor eax,eax
+    .else
+        mov eax,E_NOINTERFACE
+    .endif
+    ret
+
+CUnknown::QueryInterface endp
+
 CUnknown::AddRef proc WINAPI
 
     UNREFERENCED_PARAMETER(this)
@@ -487,37 +519,6 @@ CUnknown::Release proc WINAPI
     ret
 
 CUnknown::Release endp
-
-CUnknown::QueryInterface proc WINAPI uses rbx riid:LPIID, ppv:ptr ptr
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(riid)
-
-    ldr rcx,this
-    ldr rdx,riid
-    ldr rbx,ppv
-
-    movzx eax,[rdx].GUID.Data4[3]
-    mov ah,[rdx].GUID.Data4[5]
-
-    .if ( eax == 0x0303 || eax == 0x0403 )
-
-        mov [rbx],rcx
-        InterlockedIncrement(&[rcx].CUnknown.m_refCount)
-        xor eax,eax
-
-    .elseif ( eax == 0x1005 )
-
-        CCryptoGetTextPassword()
-        inc [rax].CUnknown.m_refCount
-        mov [rbx],rax
-        xor eax,eax
-    .else
-        mov eax,E_NOINTERFACE
-    .endif
-    ret
-
-CUnknown::QueryInterface endp
 
 ;-------------------------------------------------------------------------
 ; ICryptoGetTextPassword
@@ -559,6 +560,13 @@ CCryptoGetTextPassword::CryptoGetTextPassword proc WINAPI uses rdi rbx pPassword
 
 CCryptoGetTextPassword::CryptoGetTextPassword endp
 
+CCryptoGetTextPassword::CCryptoGetTextPassword proc
+
+        @ComAlloc(CCryptoGetTextPassword)
+        inc [rax].CCryptoGetTextPassword.m_refCount
+        ret
+
+CCryptoGetTextPassword::CCryptoGetTextPassword endp
 
 ;-------------------------------------------------------------------------
 ; IProgress
@@ -1295,7 +1303,7 @@ fp_addsub proc uses rsi rdi path:LPSTR, file:LPSTR
 fp_addsub endp
 
 
-FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK, arcBase:LPWSTR, arcPath:LPWSTR
+FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK, callback:ptr CArchiveUpdateCallback
 
     UNREFERENCED_PARAMETER(archive)
     UNREFERENCED_PARAMETER(numItems)
@@ -1304,17 +1312,19 @@ FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBL
    .new prop:PROPVARIANT
 
     ldr rbx,fb
-    ldr rdi,arcBase
+    ldr rsi,callback
 
+    mov rdi,[rsi].CArchiveUpdateCallback.m_arcBase
+    lea rsi,[rsi].CArchiveUpdateCallback.m_arcPathW
     mov rax,rdi
-    sub rax,arcPath
+    sub rax,rsi
     shr eax,1
     mov ecx,WMAXPATH
     sub ecx,eax
 
     .ifd ( MultiByteToWideChar(CP_UTF8, 0, [rbx].FBLK.name, -1, rdi, ecx) > 1 )
 
-        sub rdi,arcPath
+        sub rdi,rsi
         lea edi,[rdi+rax*2]
 
         .for ( ebx = 0 : ebx < numItems : ebx++ )
@@ -1323,7 +1333,9 @@ FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBL
             archive.GetProperty(ebx, kpidPath, &prop)
             .if ( prop.vt == VT_BSTR )
 
-                .ifd ( memcmp(prop.bstrVal, arcPath, edi) == 0 )
+                ; _wcsicmp(prop.bstrVal, rsi)
+
+                .ifd ( memcmp(prop.bstrVal, rsi, edi) == 0 )
 
                     lea eax,[rbx+1]
                    .return
@@ -1532,8 +1544,6 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
    .new stream:PSTREAM = rax
    .new callback:ptr CArchiveUpdateCallback = rax
    .new indices:LPDWORD = rax
-   .new arcPath:LPWSTR
-   .new arcBase:LPWSTR
    .new prop:PROPVARIANT
    .new count:DWORD
    .new blkcount:DWORD
@@ -1586,12 +1596,17 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         mov rbx,rdx
     .until !rax
 
+    strfcat(__outfile, [rsi].WSUB.file, [rsi].WSUB.arch)
+
     .if SUCCEEDED(hr)
 
         .for ( rbx = fp_blk : rbx : rbx = [rbx].FBLK.next )
             inc eax
         .endf
         mov blkcount,eax
+        .if ( eax == 0 )
+            mov hr,E_ABORT
+        .endif
     .endif
 
     ; Open archive
@@ -1628,40 +1643,66 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         .endif
     .endif
     .if SUCCEEDED(hr)
+
         callback.SetPath( [rsi].WSUB.arch, [rdi].WSUB.path, fp_blk )
-        mov rcx,callback
-        mov arcBase,[rcx].CArchiveUpdateCallback.m_arcBase
-        mov arcPath,&[rcx].CArchiveUpdateCallback.m_arcPathW
     .endif
 
     .if SUCCEEDED(hr)
 
-        mov rbx,rdi
         mov rdi,indices
         mov ecx,numItems
         xor eax,eax
         rep stosd
 
-        .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next )
+        .for ( rdi = fp_blk, rsi = rdi : rdi : rsi = rdi, rdi = [rdi].FBLK.next )
 
-            .ifd FindDuplicate(archive, numItems, rdi, arcBase, arcPath)
+            .ifd FindDuplicate(archive, numItems, rdi, callback)
 
-                dec eax
-                dec newcount
-                mov ecx,newcount
-                mov rdx,indices
-                mov [rdx+rcx*4],eax
-                dec byte ptr [rdx+rax*4]
+                lea ebx,[rax-1]
+                .ifd ( confirm_delete_file([rdi].FBLK.name, [rdi].FBLK.flag) == -1 )
+
+                    mov hr,E_ABORT ; Cancel
+                   .break
+
+                .elseif ( eax == 0 ) ; Jump
+
+                    mov rdi,[rdi].FBLK.next
+                    .if ( rsi == fp_blk )
+                        mov fp_blk,rdi
+                        mov rcx,callback
+                        mov [rcx].CArchiveUpdateCallback.m_curFile,rdi
+                    .else
+                        mov [rsi].FBLK.next,rdi
+                    .endif
+                    dec blkcount
+                    .ifz
+                        mov hr,E_ABORT
+                       .break
+                    .endif
+                    dec count
+                    dec newcount
+                .else
+                    dec newcount
+                    mov ecx,newcount
+                    mov rdx,indices
+                    mov [rdx+rcx*4],ebx
+                    dec byte ptr [rdx+rbx*4]
+                .endif
             .endif
         .endf
+    .endif
+
+    .if SUCCEEDED(hr)
+
+        sprintf(__srcfile, "%d selected file(s)", blkcount)
+
         .for ( rdi = indices, eax = 0, ecx = 0 : ecx < numItems : ecx++ )
             .if ( byte ptr [rdi+rcx*4] == 0 )
                 mov [rdi+rax*4],ecx
                 inc eax
             .endif
         .endf
-        mov ecx,-1
-        .for ( rdx = fp_blk : rdx : rdx = [rdx].FBLK.next, eax++ )
+        .for ( ecx = -1, rdx = fp_blk : rdx : rdx = [rdx].FBLK.next, eax++ )
             mov [rdi+rax*4],ecx
             mov [rdx+FBLK].ZINF.z7id,eax
         .endf
@@ -1674,8 +1715,6 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
     .if SUCCEEDED(hr)
 
         inc tempfile
-        sprintf(__srcfile, "%d selected file(s)", blkcount)
-        strfcat(__outfile, [rsi].WSUB.file, [rsi].WSUB.arch)
         callback.InitList( indices )
         mov hr,outarch.UpdateItems(stream, newcount, callback)
     .endif
@@ -1693,7 +1732,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
             _wremove(&tmpfile)
         .endif
     .endif
-    DisplayError(hr, [rsi].WSUB.file)
+    DisplayError(hr, __outfile)
     ret
 
 warcadd endp

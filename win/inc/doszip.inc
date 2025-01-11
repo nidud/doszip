@@ -11,9 +11,9 @@ include conio.inc
 include time.inc
 include helpid.inc
 
-DOSZIP_VERSION	equ 0x0382
+DOSZIP_VERSION	equ 0x0383
 DOSZIP_MINVERS	equ 0x0349
-DOSZIP_VSTRING	equ <"3.82">
+DOSZIP_VSTRING	equ <"3.83">
 ifdef _WIN64
 DOSZIP_VSTRPRE	equ <" Win64">
 else
