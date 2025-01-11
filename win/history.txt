@@ -2,6 +2,9 @@ HISTORY.TXT--
 Change Log File for DOSZIP - Win32
 ==================================
 
+Changes in 3.82 - 11 Jan 2025
+- fixed copy subdir error to 7-Zip archive
+
 Changes in 3.81 - 9 Jan 2025
 - added create 7-Zip archive (Shift-F7) -- no DLL included
 

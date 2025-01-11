@@ -2,8 +2,7 @@
 ; Copyright (C) 2015 Doszip Developers -- see LICENSE.TXT
 ;
 ; Change history:
-; 2025-01-07 - nidud
-; - 7z.dll plugin --> removed 7za.exe code
+; 2025-01-07 - 7z.dll plugin --> removed 7za.exe code
 ;
 include errno.inc
 include malloc.inc
@@ -336,11 +335,8 @@ include dzstr.inc
 
 .comdef CArchiveUpdateCallback : public IArchiveUpdateCallback2
 
-    m_numId             DWORD ?
-    m_newId             DWORD ?
     m_curId             DWORD ?
-    m_remId             DWORD ?
-    m_idList            LPSTR ?
+    m_idList            LPDWORD ?
     m_curFile           PFBLK ?
     m_srcPath           LPSTR ?
     m_arcPath           LPSTR ?
@@ -352,7 +348,7 @@ include dzstr.inc
     CArchiveUpdateCallback proc
 
     SetPath             proc :LPSTR, :LPSTR, :PFBLK
-    InitList            proc :LPSTR, :DWORD, :DWORD
+    InitList            proc :LPDWORD
    .ends
 
 
@@ -857,16 +853,10 @@ IArchiveUpdateCallback2::GetVolumeStream endp
 ; CArchiveUpdateCallback
 ;-------------------------------------------------------------------------
 
-; This loop items to keep -- should be preset to DWORD[count]...
-;
-; - smaller if delete only
-; - equal or bigger for adding
-;
-
     assume rbx:ptr CArchiveUpdateCallback
     assume rcx:ptr CArchiveUpdateCallback
 
-CArchiveUpdateCallback::GetUpdateItemInfo proc WINAPI uses rsi rdi rbx index:DWORD, newData:ptr SDWORD, newProps:ptr SDWORD, indexInArchive:ptr DWORD
+CArchiveUpdateCallback::GetUpdateItemInfo proc WINAPI index:DWORD, newData:ptr SDWORD, newProps:ptr SDWORD, indexInArchive:ptr DWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(index)
@@ -874,41 +864,19 @@ CArchiveUpdateCallback::GetUpdateItemInfo proc WINAPI uses rsi rdi rbx index:DWO
     UNREFERENCED_PARAMETER(newProps)
     UNREFERENCED_PARAMETER(indexInArchive)
 
-    ldr rbx,this
-    ldr rsi,newData
-    ldr rcx,newProps
-    ldr edi,index
-
-    mov rdx,[rbx].m_idList
-    xor eax,eax
-    cmp byte ptr [rdx+rdi],UpdateAdd
-    setz al
-    mov [rcx],eax
-    mov [rsi],eax
+    ldr rcx,this
+    mov rcx,[rcx].m_idList
+    ldr edx,index
+    mov eax,[rcx+rdx*4]
     mov rcx,indexInArchive
-
-    .ifz ; add a new file ?
-
-        mov eax,-1
-
-    .elseif ( edi < [rbx].m_newId )
-
-        ; next index of file to keep
-
-        .for ( eax = [rbx].m_curId, esi = eax, esi++ : esi < [rbx].m_numId : esi++ )
-            .break .if ( byte ptr [rdx+rsi] == UpdateKeep )
-        .endf
-        mov [rbx].m_curId,esi
-    .else
-
-        ; next index of file to delete
-
-        .for ( eax = [rbx].m_remId, esi = eax, esi++ : esi < [rbx].m_numId : esi++ )
-            .break .if ( byte ptr [rdx+rsi] == UpdateDelete )
-        .endf
-        mov [rbx].m_remId,esi
-    .endif
-    mov [rcx],eax ; [new_array] <-- old index
+    mov [rcx],eax
+    cmp eax,-1
+    mov eax,0
+    setz al
+    ldr rdx,newData
+    ldr rcx,newProps
+    mov [rcx],eax
+    mov [rdx],eax
     xor eax,eax
     ret
 
@@ -948,8 +916,8 @@ CArchiveUpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, pr
             shr edx,1
             mov ecx,WMAXPATH
             sub ecx,edx
-            MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, [rbx].m_srcBase, ecx)
-            mov [rsi].PROPVARIANT.bstrVal,SysAllocString([rbx].m_srcBase)
+            MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, [rbx].m_arcBase, ecx)
+            mov [rsi].PROPVARIANT.bstrVal,SysAllocString(&[rbx].m_arcPathW)
            .endc
         .case kpidIsDir
             mov [rsi].PROPVARIANT.vt,VT_BOOL
@@ -1029,7 +997,7 @@ CArchiveUpdateCallback::SetPath proc WINAPI uses rsi rbx arcPath:LPSTR, srcPath:
 
         .ifd ( MultiByteToWideChar(CP_UTF8, 0, rdx, -1, &[rbx].m_arcPathW, WMAXPATH) > 1 )
 
-            lea rcx,[rbx+rax*2+2].m_arcPathW
+            lea rcx,[rbx+rax*2].m_arcPathW
             mov eax,'\'
             .if ( ax == [rcx-4] )
                 sub rcx,2
@@ -1057,35 +1025,15 @@ CArchiveUpdateCallback::SetPath proc WINAPI uses rsi rbx arcPath:LPSTR, srcPath:
 
 CArchiveUpdateCallback::SetPath endp
 
-CArchiveUpdateCallback::InitList proc WINAPI uses rbx idList:LPSTR, numId:DWORD, newId:DWORD
+CArchiveUpdateCallback::InitList proc WINAPI idList:LPDWORD
 
     UNREFERENCED_PARAMETER(this)
     UNREFERENCED_PARAMETER(idList)
-    UNREFERENCED_PARAMETER(numId)
-    UNREFERENCED_PARAMETER(newId)
 
-    ldr rbx,this
+    ldr rcx,this
     ldr rdx,idList
-    ldr ecx,numId
-    ldr eax,newId
 
-    mov [rbx].m_numId,ecx   ; src count
-    mov [rbx].m_newId,eax   ; new count
-    mov [rbx].m_idList,rdx  ; del | keep | add
-
-    ; first index of file to keep
-
-    .for ( eax = 0 : eax < ecx : eax++ )
-        .break .if ( byte ptr [rdx+rax] == UpdateKeep )
-    .endf
-    mov [rbx].m_curId,eax
-
-    ; first index of file to delete
-
-    .for ( eax = 0 : eax < ecx : eax++ )
-        .break .if ( byte ptr [rdx+rax] == UpdateDelete )
-    .endf
-    mov [rbx].m_remId,eax
+    mov [rcx].m_idList,rdx
     xor eax,eax
     ret
 
@@ -1347,22 +1295,35 @@ fp_addsub proc uses rsi rdi path:LPSTR, file:LPSTR
 fp_addsub endp
 
 
-FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK
+FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK, arcBase:LPWSTR, arcPath:LPWSTR
+
+    UNREFERENCED_PARAMETER(archive)
+    UNREFERENCED_PARAMETER(numItems)
+    UNREFERENCED_PARAMETER(fb)
 
    .new prop:PROPVARIANT
 
     ldr rbx,fb
+    ldr rdi,arcBase
 
-    .ifd ( MultiByteToWideChar(CP_UTF8, 0, [rbx].FBLK.name, -1, entryname, WMAXPATH/2) > 1 )
+    mov rax,rdi
+    sub rax,arcPath
+    shr eax,1
+    mov ecx,WMAXPATH
+    sub ecx,eax
 
-        lea edi,[rax+rax]
+    .ifd ( MultiByteToWideChar(CP_UTF8, 0, [rbx].FBLK.name, -1, rdi, ecx) > 1 )
+
+        sub rdi,arcPath
+        lea edi,[rdi+rax*2]
+
         .for ( ebx = 0 : ebx < numItems : ebx++ )
 
             mov prop.vt,VT_EMPTY
             archive.GetProperty(ebx, kpidPath, &prop)
             .if ( prop.vt == VT_BSTR )
 
-                .ifd ( memcmp(prop.bstrVal, entryname, edi) == 0 )
+                .ifd ( memcmp(prop.bstrVal, arcPath, edi) == 0 )
 
                     lea eax,[rbx+1]
                    .return
@@ -1570,7 +1531,9 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
    .new outarch:LPOARCHIVE = rax
    .new stream:PSTREAM = rax
    .new callback:ptr CArchiveUpdateCallback = rax
-   .new delete:string_t = rax
+   .new indices:LPDWORD = rax
+   .new arcPath:LPWSTR
+   .new arcBase:LPWSTR
    .new prop:PROPVARIANT
    .new count:DWORD
    .new blkcount:DWORD
@@ -1651,50 +1614,12 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         add ecx,blkcount
         mov count,ecx
         mov newcount,ecx
+        shl ecx,2
 
         .if ( malloc(ecx) == NULL )
             mov hr,E_OUTOFMEMORY
         .endif
-        mov delete,rax
-    .endif
-
-    .if SUCCEEDED(hr)
-
-        mov rbx,rdi
-        mov rdi,delete
-        mov ecx,numItems
-        xor eax,eax
-        rep stosb
-
-        .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next )
-
-            .ifd FindDuplicate(archive, numItems, rdi)
-
-                mov rdx,delete
-                dec byte ptr [rdx+rax-1]
-                dec newcount
-            .endif
-        .endf
-
-        mov edi,numItems
-        mov edx,newcount
-        mov eax,count
-        sub eax,edx
-        sub edi,eax
-        add rdi,delete
-        mov ecx,blkcount
-        sub edx,ecx
-        mov eax,1
-        rep stosb
-        .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next, edx++ )
-
-            mov [rdi+FBLK].ZINF.z7id,edx
-        .endf
-        mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
-    .endif
-    .if SUCCEEDED(hr)
-        mov rcx,GetTempArchive()
-        mov hr,OpenStream(rcx, 1, &stream)
+        mov indices,rax
     .endif
     .if SUCCEEDED(hr)
         mov callback,CArchiveUpdateCallback()
@@ -1703,16 +1628,59 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         .endif
     .endif
     .if SUCCEEDED(hr)
+        callback.SetPath( [rsi].WSUB.arch, [rdi].WSUB.path, fp_blk )
+        mov rcx,callback
+        mov arcBase,[rcx].CArchiveUpdateCallback.m_arcBase
+        mov arcPath,&[rcx].CArchiveUpdateCallback.m_arcPathW
+    .endif
+
+    .if SUCCEEDED(hr)
+
+        mov rbx,rdi
+        mov rdi,indices
+        mov ecx,numItems
+        xor eax,eax
+        rep stosd
+
+        .for ( rdi = fp_blk : rdi : rdi = [rdi].FBLK.next )
+
+            .ifd FindDuplicate(archive, numItems, rdi, arcBase, arcPath)
+
+                dec eax
+                dec newcount
+                mov ecx,newcount
+                mov rdx,indices
+                mov [rdx+rcx*4],eax
+                dec byte ptr [rdx+rax*4]
+            .endif
+        .endf
+        .for ( rdi = indices, eax = 0, ecx = 0 : ecx < numItems : ecx++ )
+            .if ( byte ptr [rdi+rcx*4] == 0 )
+                mov [rdi+rax*4],ecx
+                inc eax
+            .endif
+        .endf
+        mov ecx,-1
+        .for ( rdx = fp_blk : rdx : rdx = [rdx].FBLK.next, eax++ )
+            mov [rdi+rax*4],ecx
+            mov [rdx+FBLK].ZINF.z7id,eax
+        .endf
+        mov hr,archive.QueryInterface(&IID_IOutArchive, &outarch)
+    .endif
+    .if SUCCEEDED(hr)
+        mov rcx,GetTempArchive()
+        mov hr,OpenStream(rcx, 1, &stream)
+    .endif
+    .if SUCCEEDED(hr)
 
         inc tempfile
         sprintf(__srcfile, "%d selected file(s)", blkcount)
         strfcat(__outfile, [rsi].WSUB.file, [rsi].WSUB.arch)
-        callback.InitList( delete, numItems, newcount )
-        callback.SetPath( [rsi].WSUB.arch, [rbx].WSUB.path, fp_blk )
+        callback.InitList( indices )
         mov hr,outarch.UpdateItems(stream, newcount, callback)
     .endif
 
-    free(delete)
+    free(indices)
     SafeRelease(outarch)
     SafeRelease(callback)
     SafeRelease(stream)
@@ -1745,7 +1713,8 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
    .new outarch:LPOARCHIVE = rax
    .new stream:PSTREAM = rax
    .new callback:ptr CArchiveUpdateCallback = rax
-   .new delete:string_t = rax
+   .new indices:LPDWORD = rax
+   .new flags:LPSTR
    .new prop:PROPVARIANT
    .new sublen:SDWORD
    .new count:DWORD
@@ -1767,17 +1736,22 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
     .if SUCCEEDED(hr)
 
-        .if ( malloc(numItems) == NULL )
+        mov ecx,numItems
+        lea ecx,[rcx+rcx*4]
+        .if ( malloc(ecx) == NULL )
             mov hr,E_OUTOFMEMORY
         .endif
-        mov delete,rax
+        mov indices,rax
+        imul ecx,numItems,4
+        add rax,rcx
+        mov flags,rax
     .endif
 
     .if SUCCEEDED(hr)
 
         ; Find selected item count
 
-        mov rdi,delete
+        mov rdi,flags
         mov ecx,numItems
         xor eax,eax
         rep stosb
@@ -1817,8 +1791,8 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
                                     movzx eax,word ptr [rcx+rdx]
                                     .if ( eax == '\' || eax == '/' || eax == 0 )
 
-                                        mov rdx,delete
-                                        dec byte ptr [rdx+rdi]
+                                        mov rdx,flags
+                                        inc byte ptr [rdx+rdi]
                                     .endif
                                 .endif
                                 SysFreeString(prop.bstrVal)
@@ -1836,9 +1810,9 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
                 .elseif ( eax == 1 )
 
-                    mov rdi,delete
+                    mov rdi,flags
                     mov ecx,[rbx+FBLK].ZINF.z7id
-                    dec byte ptr [rdi+rcx]
+                    inc byte ptr [rdi+rcx]
                 .endif
             .endif
             panel_findnext(cpanel)
@@ -1848,10 +1822,18 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
     .if SUCCEEDED(hr)
 
-        .for ( rdi = delete, eax = 0, ecx = 0 : ecx < numItems : ecx++ )
-            mov dl,[rdi+rcx]
-            and edx,1
-            add eax,edx
+        .for ( rdi = indices, eax = 0, edx = 0, ecx = 0 : ecx < numItems : ecx++ )
+
+            mov rbx,flags
+            .if ( byte ptr [rbx+rcx] == 0 )
+                mov [rdi+rdx*4],ecx
+                inc edx
+            .else
+                inc eax
+                mov ebx,numItems
+                sub ebx,eax
+                mov [rdi+rbx*4],ecx
+            .endif
         .endf
         .if ( eax )
             mov ecx,numItems
@@ -1882,10 +1864,10 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
         sub ecx,count
         sprintf(__outfile, "%d selected file(s)", ecx)
         strfcat(__srcfile, [rsi].WSUB.file, [rsi].WSUB.arch)
-        callback.InitList( delete, numItems, count )
+        callback.InitList( indices )
         mov hr,outarch.UpdateItems(stream, count, callback)
     .endif
-    free(delete)
+    free(indices)
     SafeRelease(outarch)
     SafeRelease(callback)
     SafeRelease(stream)

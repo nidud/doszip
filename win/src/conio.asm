@@ -518,66 +518,44 @@ scpathl proc uses rsi rdi rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
 
 scpathl endp
 
+scgetidchar proc fastcall private uses rdi x:byte, y:byte
+
+    mov edx,getxyc(ecx, edx)
+    .if ( al >= 'A' && al <= 'Z' )
+        or al,0x20
+    .endif
+    lea rdi,idchars
+    mov ecx,sizeof(idchars)
+    repnz scasb
+    movzx eax,byte ptr [rdi-1]
+    ret
+
+scgetidchar endp
+
 scgetword proc uses rsi rdi rbx linebuf:LPSTR
 
-   .new count:int_t
-    mov edi,_wherex()       ; get cursor x,y pos
-    mov ebx,edx
-    inc edi                 ; to start of line..
+    ldr rdi,linebuf
 
-    .repeat
-
-        dec edi             ; moving left seeking a valid character
-        .break .ifz
-
-        getxyc(edi, ebx)
-        idtestal()
-        .continue .ifz
-
-        getxyc(&[rdi-1], ebx)
-        idtestal()
-    .untilz
-
-    mov rsi,linebuf
-    mov count,MAXCOLS
+    mov ebx,_wherex() ; get cursor x,y pos
+    mov bh,dl
+    .for ( ebx++ : eax && bl : )
+        dec ebx
+        scgetidchar(bl, bh)
+    .endf
+    .if ( bl )
+        inc ebx
+    .endif
+    .for ( esi = 0 : esi < MAXCOLS : esi++, ebx++ )
+        .break .ifd !scgetidchar(bl, bh)
+        mov [rdi+rsi],dl
+    .endf
     xor eax,eax
-
-    .repeat
-
-        getxyc(edi, ebx)
-        inc edi
-        idtestal()
-        .break .ifz
-
-        mov [rsi],al
-        inc rsi
-        dec count
-    .untilz
-
-    mov byte ptr [rsi],0
+    mov [rdi+rsi],al
     mov rdx,linebuf
-    xor eax,eax
     .if al != [rdx]
         mov rax,rdx
     .endif
     ret
-
-idtestal:
-
-    push rdi
-    push rcx
-    push rax
-    .if al >= 'A' && al <= 'Z'
-        or al,0x20
-    .endif
-    lea   rdi,idchars
-    mov   ecx,sizeof(idchars)
-    repne scasb
-    cmp   byte ptr [rdi-1],0
-    pop   rax
-    pop   rcx
-    pop   rdi
-    retn
 
 scgetword endp
 

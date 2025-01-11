@@ -405,6 +405,8 @@ style		LPSTR ?
 dobj		DOBJ <>
 crc		UINT ?		; screen data CRC value for minimal output
 bsize		UINT ?		; buffer size (dynamic)
+;ftab_x		UINT ?
+;ftab_col	UINT ?
 TINFO		ends
 PTINFO		typedef ptr TINFO
 
