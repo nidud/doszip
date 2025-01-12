@@ -8,6 +8,7 @@ include direct.inc
 include string.inc
 include time.inc
 include io.inc
+include stdio.inc
 include conio.inc
 include errno.inc
 include syserr.inc
@@ -150,8 +151,11 @@ _disk_retry proc private uses rsi rdi rbx disk:UINT
 
         sub ebx,22
         add esi,2
-        mov rcx,_sys_err_msg(_get_errno(NULL))
-        scputs(ebx, esi, 0, 29, rcx)
+
+        mov ecx,_get_doserrno(NULL)
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM or FORMAT_MESSAGE_IGNORE_INSERTS, NULL, ecx,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &_bufin, 1024, NULL)
+        scputs(ebx, esi, 0, 29, &_bufin)
         dlmodal(rdi)
     .endif
     ret

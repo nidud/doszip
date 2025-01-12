@@ -1109,7 +1109,7 @@ FileSearch::FileSearch proc uses rsi rdi rbx directory:string_t
 
     .if !malloc( FileSearch + FileSearchVtbl + FFMAXHIT * size_t + size_t )
 
-        ermsg(0, _sys_err_msg(ENOMEM))
+        enomem()
        .return 0
     .endif
 
@@ -1149,7 +1149,7 @@ FileSearch::FileSearch proc uses rsi rdi rbx directory:string_t
     .if eax == NULL
 
         [rbx].Release()
-        ermsg(0, _sys_err_msg(ENOMEM))
+        enomem()
        .return 0
     .endif
 

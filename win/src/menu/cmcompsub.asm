@@ -323,7 +323,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
         .if !ff_alloc(&path, rcx)
 
             clear_table()
-            ermsg(0, _sys_err_msg(ENOMEM))
+            enomem()
             mov result,-1
         .endif
     .until 1
@@ -402,7 +402,7 @@ else
 endif
             .else
                 clear_table()
-                ermsg(0, _sys_err_msg(ENOMEM))
+                enomem()
                 mov eax,1
             .endif
         .else
@@ -1047,7 +1047,7 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
             clear_list()
             clear_table()
         .else
-            ermsg(0, _sys_err_msg(ENOMEM))
+            enomem()
         .endif
         free(ll.list)
     .endif

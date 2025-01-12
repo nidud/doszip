@@ -343,7 +343,10 @@ rsevent		proto __cdecl :PIDD, :PDOBJ
 rsmodal		proto __cdecl :PIDD
 rsreload	proto __cdecl :PIDD, :PDOBJ
 
+syserr		proto __Cdecl :UINT, :LPSTR, :LPSTR, :VARARG
 ermsg		proto __Cdecl :LPSTR, :LPSTR, :VARARG
+enomem		proto __cdecl
+
 stdmsg		proto __Cdecl :LPSTR, :LPSTR, :VARARG
 msgbox		proto __cdecl :LPSTR, :DWORD, :LPSTR
 tgetline	proto __cdecl :LPSTR, :LPSTR, :DWORD, :DWORD

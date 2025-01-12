@@ -452,7 +452,7 @@ cmenviron proc public uses rsi rdi rbx
             free(rsi)
         .endif
     .else
-        ermsg(0, _sys_err_msg(ENOMEM))
+        enomem()
     .endif
     GetEnvironmentTEMP()
     GetEnvironmentPATH()

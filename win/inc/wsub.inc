@@ -271,7 +271,6 @@ setfattr	proto __cdecl :LPTSTR, :UINT
 eropen		proto __cdecl :LPSTR
 ermkdir		proto __cdecl :LPSTR
 erdelete	proto __cdecl :LPSTR
-errnomsg	proto __cdecl :LPSTR, :LPSTR, :LPSTR
 
 wdlgopen	proto __cdecl :LPSTR, :LPSTR, :DWORD
 wgetfile	proto __cdecl :LPSTR, :LPSTR, :DWORD

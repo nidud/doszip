@@ -478,15 +478,19 @@ wsfree proc uses rsi rdi rbx wsub:PWSUB
     mov edi,[rsi].count
     mov rbx,[rsi].fcb
 
-    free([rsi].fcb)
-    xor eax,eax
-    mov [rsi].fcb,rax
-    mov [rsi].count,eax
-    or  [rsi].flag,_W_WSREAD
+    .if ( [rsi].flag & _W_WSREAD )
 
-    .if rbx
+        ; This should not happen..
 
-        mov esi,edi
+        .while rbx
+
+            mov rcx,rbx
+            mov rbx,[rbx].FBLK.next
+            free(rcx)
+        .endw
+
+    .elseif rbx
+
         .while edi
 
             free([rbx])
@@ -495,24 +499,29 @@ wsfree proc uses rsi rdi rbx wsub:PWSUB
             add rbx,size_t
             dec edi
         .endw
-        mov eax,esi
+        free([rsi].fcb)
     .endif
+
+    xor eax,eax
+    mov [rsi].fcb,rax
+    mov [rsi].count,eax
+    or  [rsi].flag,_W_WSREAD
     ret
 
 wsfree endp
 
 
-wsclose proc uses rsi rdi wsub:PWSUB
+wsclose proc uses rsi wsub:PWSUB
 
     ldr rsi,wsub
 
-    mov edi,wsfree(rsi)
-    .if [rsi].flag & _W_MALLOC
+    wsfree(rsi)
+    .if ( [rsi].flag & _W_MALLOC )
 
         free([rsi].path)
     .endif
-    mov [rsi].flag,0
-    mov eax,edi
+    xor eax,eax
+    mov [rsi].flag,eax
     ret
 
 wsclose endp
@@ -1875,16 +1884,18 @@ wzipread proc public uses rsi rdi rbx wsub:PWSUB
 
   local fblk:PFBLK, fb:PFBLK
 
+    ldr rdi,wsub
+
     xor eax,eax
     mov STDI.index,eax
     mov STDI.cnt,eax
     mov STDI.flag,eax
     mov STDI.size,0x10000
     mov STDI.base,alloca( 0x10000 )
-    mov rax,wsub
-    mov arc_pathz,strlen( [rax].WSUB.arch )
-    mov rdi,wsub
+    mov arc_pathz,strlen( [rdi].WSUB.arch )
+
     wsfree(rdi)
+
     .ifs ( getendcentral(rdi, &zip_endcent) <= 0 )
 
         .return( -2 )
@@ -2000,7 +2011,7 @@ if 1
                    .endc
 endif
                 .default
-                    ermsg(&cp_warning, "%s\n'%02X'", _sys_err_msg(ENOSYS), zip_local.method)
+                    syserr(E_NOTIMPL, "'%02X'", zip_local.method)
                     mov esi,ERROR_INVALID_FUNCTION
                 .endsw
             .until 1
@@ -2038,9 +2049,9 @@ wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
     .endif
     mov esi,eax
     .if ( wzipfindentry(rbx, eax) == 0 )
+
         _close(esi)
-        mov rcx,_sys_err_msg(ENOENT)
-        ermsg(rcx, [rbx].FBLK.name)
+        syserr(ERROR_FILE_NOT_FOUND, 0, [rbx].FBLK.name)
        .return(ER_FIND)
     .endif
     .if ( progress_set([rbx].FBLK.name, out_path, [rbx].FBLK.size) != 0 )
@@ -2080,16 +2091,10 @@ wzipcopyfile proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, out_path:LPSTR
        .endc
     .case ER_DISK
     .case ER_MEM
-        ermsg(_sys_err_msg(ENOMEM), rdi)
+        syserr(E_OUTOFMEMORY, 0, rdi)
        .endc
     .default
-        .if ( _get_errno(NULL) )
-            _sys_err_msg(eax)
-        .else
-            _sys_err_msg(EIO)
-        .endif
-        mov rdx,rax
-        ermsg(&cp_emarchive, "%s\n\n%s", rdi, rdx)
+        syserr(_get_doserrno(NULL), &cp_emarchive, rdi)
     .endsw
     .return(rc)
 
@@ -2494,24 +2499,19 @@ zip_setprogress endp
 
 zip_displayerror proc uses rsi rdi rbx
 
-    mov rbx,_sys_err_msg(ENOSPC)
-    mov rdi,_sys_err_msg(ENOMEM)
+    mov edi,ERROR_DISK_FULL
+    xor ebx,ebx
 
     .if !( STDO.flag & IO_ERROR )
 
-        mov rbx,rdi
-        mov esi,_get_errno(NULL)
-
-        .if ( esi != ENOMEM )
+        mov edi,E_OUTOFMEMORY
+        .ifd ( _get_errno(NULL) != ENOMEM )
 
             lea rbx,cp_emarchive
-            mov rdi,_sys_err_msg(EIO)
-            .if ( esi )
-                mov rdi,_sys_err_msg(esi)
-            .endif
+            mov edi,_get_doserrno(NULL)
         .endif
     .endif
-    ermsg(rdi, rbx)
+    syserr(edi, rbx, 0)
     ret
 
 zip_displayerror endp

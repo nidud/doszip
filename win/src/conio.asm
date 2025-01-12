@@ -5287,7 +5287,11 @@ msgbox proc private uses rsi rdi rbx dname:LPSTR, flag, string:LPSTR
             strchr(rdi, 10)
             mov rsi,rax
             .break .if !rax
-            mov byte ptr [rsi],0
+            xor eax,eax
+            .if ( byte ptr [rsi-1] == 13 )
+                mov [rsi-1],al
+            .endif
+            mov [rsi],al
             inc rsi
             mov ecx,cols
             mov eax,lcnt
@@ -5326,6 +5330,34 @@ ermsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
 
 ermsg endp
 
+syserr proc __Cdecl hr:UINT, title:LPSTR, format:LPSTR, argptr:VARARG
+
+    ldr rcx,format
+
+    .ifd ( HRESULT_FACILITY(hr) == FACILITY_WINDOWS )
+        mov hr,HRESULT_CODE(hr)
+    .endif
+    .if ( rcx )
+        vsprintf( &_bufin, rcx, &argptr )
+    .else
+        sprintf( &_bufin, "%08X", hr )
+    .endif
+    lea rcx,_bufin
+    lea rcx,[rcx+rax+2]
+    mov eax,0x0A0A
+    mov [rcx-2],eax
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM or FORMAT_MESSAGE_IGNORE_INSERTS, NULL, hr,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), rcx, 1024, NULL)
+    mov rax,title
+    .if !rax
+        lea rax,@CStr("Error")
+    .endif
+    msgbox(rax, _D_STDERR, &_bufin)
+    xor eax,eax
+    ret
+
+syserr endp
+
 stdmsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
 
     vsprintf( &_bufin, format, &argptr )
@@ -5335,39 +5367,37 @@ stdmsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
 
 stdmsg endp
 
+enomem proc
+
+    syserr(E_OUTOFMEMORY, 0, 0)
+    ret
+
+enomem endp
+
 notsup proc
 
-    ermsg(0, _sys_err_msg(ENOSYS))
+    syserr(E_NOTIMPL, 0, 0)
     ret
 
 notsup endp
 
-errnomsg proc etitle:LPSTR, format:LPSTR, file:LPSTR
-
-    mov rcx,_sys_err_msg(_get_errno(NULL))
-    ermsg(etitle, format, file, rcx)
-    mov eax,-1
-    ret
-
-errnomsg endp
-
 eropen proc file:LPSTR
 
-    errnomsg("Error open file", "Can't open the file:\n%s\n\n%s", file)
+    syserr(_get_doserrno(0), "Error open file", "Can't open the file:\n%s", file)
     ret
 
 eropen endp
 
 erdelete proc file:LPSTR
 
-    errnomsg("Error delete", "Can't delete the file:\n%s\n\n%s", file)
+    syserr(_get_doserrno(0), "Error delete", "Can't delete the file:\n%s", file)
     ret
 
 erdelete endp
 
 ermkdir proc directory:LPSTR
 
-    errnomsg("Make directory", "Can't create the directory:\n%s\n\n%s", directory)
+    syserr(_get_doserrno(0), "Make directory", "Can't create the directory:\n%s", directory)
     ret
 
 ermkdir endp

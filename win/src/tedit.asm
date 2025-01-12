@@ -85,7 +85,7 @@ tialloc proc private uses rsi ti:PTINFO
         mov eax,1
     .else
 
-        ermsg(0, _sys_err_msg(ENOMEM))
+        enomem()
         xor eax,eax
     .endif
     ret
@@ -1314,7 +1314,7 @@ tiopen proc private uses rsi ti:PTINFO, tabsize:UINT, flags:UINT
 
     .if !malloc(TINFO)
 
-        ermsg(0, _sys_err_msg(ENOMEM))
+        enomem()
        .return( 0 )
     .endif
 
@@ -1360,7 +1360,7 @@ tiopen proc private uses rsi ti:PTINFO, tabsize:UINT, flags:UINT
     .else
 
         free(rsi)
-        ermsg(0, _sys_err_msg(ENOMEM))
+        enomem()
         xor eax,eax
     .endif
     ret
@@ -4464,7 +4464,7 @@ topen proc uses rsi rdi file:LPSTR, tflag:UINT
 
                 tiread(rsi)
             .else
-                ermsg(0, _sys_err_msg(ENOMEM))
+                enomem()
                 ticlose(rsi)
                 xor esi,esi
             .endif

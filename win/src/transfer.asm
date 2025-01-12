@@ -275,9 +275,7 @@ cmspawnini proc uses rsi rbx IniSection:ptr
 
             .ifd !CreateConsole(rbx, _P_WAIT)
 
-                _sys_err_msg(_get_errno(NULL))
-                ermsg(0, "Unable to execute command:\n\n%s\n\n'%s'", __srcfile, rax)
-                xor eax,eax
+                syserr(_get_doserrno(0), "Unable to execute command:\n%s", __srcfile)
             .endif
         .endif
         mov esi,eax

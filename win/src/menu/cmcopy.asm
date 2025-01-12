@@ -24,8 +24,7 @@ include progress.inc
 
 error_diskfull proc private
 
-    ermsg(0, "%s\n%s\n\n%s", "There was an error while copying",
-            __outfile, _sys_err_msg(ENOSPC))
+    syserr(ERROR_DISK_FULL, 0, "%s\n%s", "There was an error while copying", __outfile)
     ret
 
 error_diskfull endp
@@ -348,12 +347,10 @@ copyfile proc uses rsi rdi file_size:qword, t:dword, attrib:UINT
         .if eax != STDI.crc
 
             ioclose(&STDO)
-            .ifd ( _get_errno(NULL) )
-                _sys_err_msg(eax)
-            .else
-                _sys_err_msg(EIO)
+            .ifd ( _get_doserrno(NULL) == 0 )
+                mov eax,ERROR_IO_DEVICE
             .endif
-            ermsg(0, "%s\n'%s'", "There was an error while copying", rax)
+            syserr(eax, 0, "There was an error while copying")
 
         .elseif !esi
 

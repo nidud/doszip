@@ -172,7 +172,7 @@ ioopen proc uses rbx io:PIOST, file:LPSTR, mode:DWORD, bsize:DWORD
         .ifd !ioinit(rbx, bsize)
 
             _close([rbx].file)
-            ermsg(0, _sys_err_msg(ENOMEM))
+            enomem()
             xor eax,eax
         .else
             mov eax,[rbx].file

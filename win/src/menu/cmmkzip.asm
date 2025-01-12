@@ -16,6 +16,12 @@ cmmkzip proc uses rsi rdi rbx
 
   local path[_MAX_PATH]:byte
 
+    mov eax,path_a.flag
+    or  eax,path_b.flag
+    .if ( eax & _W_ARCHIVE )
+        .return( ermsg("Create archive", "Archive already open") )
+    .endif
+
     lea rdi,path
     .if cpanel_state()
 
@@ -29,7 +35,7 @@ cmmkzip proc uses rsi rdi rbx
                     or  eax,0x00200000
                     .if ( eax == 'z7.' )
                         .ifd ( warctest(NULL, 0xAFBC7A37) == 0 )
-                            .return ermsg(0, _sys_err_msg(ENODEV))
+                            .return notsup()
                         .endif
                         inc ebx
                     .endif

@@ -1171,39 +1171,27 @@ wsreadroot endp
 
 wsub_read proc private uses rsi rdi wsub:PWSUB
 
-    xor esi,esi
     ldr rdi,wsub
 
-    mov eax,[rdi].WSUB.flag
-    and eax,_W_ARCHIVE
+    xor esi,esi
+    .if ( [rdi].WSUB.flag & _W_ARCHIVE )
 
-    .if eax
-
-        mov rsi,rsp
-        strfcat(alloca(WMAXPATH), [rdi].WSUB.path, [rdi].WSUB.file)
-        filexist(rax)
-
-        mov rsp,rsi
-        xor esi,esi
-
-        .if ( eax == 1 )
+        .ifd ( filexist(strfcat(entryname, [rdi].WSUB.path, [rdi].WSUB.file)) == 1 )
 
             .if ( [rdi].WSUB.flag & _W_ARCHZIP )
                 wzipread(rdi)
             .else
                 warcread(rdi)
             .endif
-            .if eax != ER_READARCH
+            .if ( eax != ER_READARCH )
                 inc esi
             .endif
         .endif
     .endif
-
     .if !esi
         and [rdi].WSUB.flag,not ( _W_ARCHIVE or _W_ROOTDIR )
         wsread(rdi)
     .endif
-
     mov esi,eax
     .if eax > 1 && !( [rdi].WSUB.flag & _W_NOSORT )
         wssort(rdi)
@@ -1217,6 +1205,7 @@ wsub_read endp
 panel_read proc uses rsi rdi panel:PPANEL
 
     ldr rsi,panel
+
     mov rdi,[rsi].PANEL.wsub
     panel_openmsg(rsi)
 
@@ -1299,7 +1288,9 @@ panel_open_ab endp
 
 panel_close proc uses rbx panel:PPANEL
 
-    .if panel_state(panel)
+    ldr rcx,panel
+
+    .if panel_state(rcx)
 
         mov rbx,rax
         prect_close(rax)
@@ -2240,8 +2231,12 @@ panel_putitem proc uses rsi rdi rbx panel:PPANEL, index:UINT
         dlclose([rsi].PANEL.xl)
         pcell_set(rsi)
         rcread(rc, rbx)
-        prect_clear(rdi, rc, 0)
+        prect_clear(rbx, rc, 0)
+        rcwrite(rc, rbx)
         free(rbx)
+
+        mov rcx,[rsi].PANEL.wsub
+        and [rcx].WSUB.flag,not (_W_ARCHIVE or _W_ROOTDIR)
     .endif
     ret
 
@@ -2428,9 +2423,9 @@ reduce_path proc private uses rdi path:LPSTR
 
 reduce_path endp
 
-error_directory proc private path:LPSTR
+error_directory proc private directory:LPSTR
 
-    errnomsg("Error open directory", "Can't open the directory:\n%s\n\n%s", path)
+    syserr(_get_doserrno(0), "Error open directory", "Can't open the directory:\n%s", directory)
     xor eax,eax
     ret
 
@@ -2664,7 +2659,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
       .case KEY_KPENTER
 
         mov rdi,[rsi].wsub
-        .endc .if !panel_curobj(rsi)
+        .endc .ifd !panel_curobj(rsi)
 
         mov pe.pe_name,rax
         mov pe.pe_fblk,rdx

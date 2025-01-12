@@ -28,7 +28,7 @@ doszip_close    proto
     dd 564A4A50h
     db __LIBC__ / 100 + '0','.',__LIBC__ mod 100 / 10 + '0',__LIBC__ mod 10 + '0'
 
-ifdef _WIN64
+if defined(_WIN64) and not defined(__DEBUG__)
 
 _exception_handler proc \
     ExceptionRecord   : PEXCEPTION_RECORD,
@@ -115,14 +115,9 @@ _exception_handler proc \
     .endf
 
     mov rdx,[r11].CONTEXT._Rip
-    mov rcx,[rdx]
-    bswap rcx
-    xor r8,r8
-    .if ( r9 )
-        mov r8,[r9]
-        mov r9,[r8]
-        bswap r9
-    .endif
+    mov rcx,[rdx-8]
+    mov r8,[rdx]
+    mov r9,[rdx+8]
 
     printf(
             "This message is created due to unrecoverable error\n"
@@ -140,8 +135,10 @@ _exception_handler proc \
             "\t\tRDI: %p R13: %p\n"
             "\t\tRBP: %p R14: %p\n"
             "\t\tRSP: %p R15: %p\n"
-            "\t\tRIP: %p *--: %p\n"
-            "\t   Dispatch: %p *--: %p\n"
+            "\t\tRIP: %p:\n"
+            "\t\t dq 0x%p ; [-8]\n"
+            "\t\t dq 0x%p ; [-0]\n"
+            "\t\t dq 0x%p ; [+8]\n"
             "\t     EFlags: %s\n"
             "\t\t     r n oditsz a p c\n",
             string,

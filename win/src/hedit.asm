@@ -264,7 +264,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     .if ( ( !eax && !edx ) || edx )
 
         .if edx
-            ermsg(0, _sys_err_msg(ENOMEM))
+            enomem()
         .endif
         _close(ebx)
         .return( 0 )
@@ -278,7 +278,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     add eax,esi
     .if !malloc(eax)
 
-        ermsg(0, _sys_err_msg(ENOMEM))
+        enomem()
         _close(ebx)
         .return( 0 )
     .endif

@@ -374,7 +374,6 @@ OpenStream proto :LPWSTR, :BOOL, :ptr PSTREAM
 CALLBACK(CREATEZ7OBJ, :ptr, :ptr, :ptr)
 
 .data?
-CreateObject    CREATEZ7OBJ ?
 fp_blk          PFBLK ?
 fp_base         dd ?
 arcfile         dw WMAXPATH dup(?)
@@ -384,12 +383,19 @@ tmpfile         dw WMAXPATH dup(?)
 IID_IInArchive  GUID { 0x23170F69, 0x40C1, 0x278A, { 0x00, 0x00, 0x00, 0x06, 0x00, 0x60, 0x00, 0x00 } }
 IID_IOutArchive GUID { 0x23170F69, 0x40C1, 0x278A, { 0x00, 0x00, 0x00, 0x06, 0x00, 0xA0, 0x00, 0x00 } }
 CLSID_Format    GUID { 0x23170F69, 0x40C1, 0x278A, { 0x10, 0x00, 0x00, 0x01, 0x10, 0x07, 0x00, 0x00 } }
-
+CreateObject    CREATEZ7OBJ dummy_CreateObject
 IsLoaded        DWORD 0
 
 .code
 
 option proc: private
+
+dummy_CreateObject proc WINAPI format:ptr, iid:ptr, archive:ptr
+
+    mov eax,E_NOTIMPL
+    ret
+
+dummy_CreateObject endp
 
 
 LoadDll proc uses rsi
@@ -428,34 +434,12 @@ LoadDll proc uses rsi
 LoadDll endp
 
 
-DisplayError proc hr:HRESULT, msg:string_t
+DisplayError proc hr:HRESULT
 
-   .new szMessage:string_t
+    .if (FAILED(hr))
 
-    ldr ecx,hr
-
-    .if (SUCCEEDED(ecx))
-        .return( 0 )
+        syserr(hr, "7-zip", 0)
     .endif
-    .if (HRESULT_FACILITY(ecx) == FACILITY_WINDOWS)
-        mov hr,HRESULT_CODE(ecx)
-    .endif
-    FormatMessage(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM or FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL,
-            hr,
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            &szMessage,
-            0,
-            NULL)
-    mov rcx,szMessage
-    .if ( rcx )
-        mov byte ptr [rcx+rax-2],0
-    .else
-        lea rcx,@CStr("Unknown error")
-    .endif
-    ermsg("7-zip", "%s\n%s\n%08X", msg, rcx, hr)
-    LocalFree(szMessage)
     mov eax,hr
     ret
 
@@ -1406,10 +1390,6 @@ warcread proc uses rsi rdi rbx ws:PWSUB
 
     ldr rsi,ws
 
-    .ifd ( LoadDll() == FALSE )
-        .return
-    .endif
-
     strfcat(entryname, [rsi].WSUB.path, [rsi].WSUB.file)
     lea edi,[strlen(entryname)+1]
     MultiByteToWideChar(CP_UTF8, 0, entryname, edi, &arcfile, WMAXPATH)
@@ -1425,6 +1405,9 @@ warcread proc uses rsi rdi rbx ws:PWSUB
             mov curtime,[rbx].FBLK.time
 
             archive.GetNumberOfItems(&numItems)
+            .if ( numItems < 0 )
+                mov numItems,0
+            .endif
 
             .for ( edi = 0 : edi < numItems : edi++ )
 
@@ -1481,6 +1464,7 @@ warcread proc uses rsi rdi rbx ws:PWSUB
         archive.Release()
         wsetfcb(rsi)
     .else
+        DisplayError(eax)
         mov eax,ER_READARCH
     .endif
     ret
@@ -1495,11 +1479,14 @@ warccopy proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, outPath:LPSTR
 
    .new archive:LPIARCHIVE = 0
    .new indices[2]:DWORD = {0}
+   .new hr:HRESULT
 
     ldr rsi,wsub
     ldr rbx,fblk
 
-    .if SUCCEEDED(OpenArchive(&archive))
+    mov hr,OpenArchive(&archive)
+
+    .if SUCCEEDED(hr)
 
         .repeat
             .if CArchiveExtractCallback(archive, outPath, [rsi].WSUB.arch, rbx)
@@ -1517,12 +1504,15 @@ warccopy proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, outPath:LPSTR
                     mov indices,ecx
                     archive.Extract(&indices, 1, 0, rdi)
                 .endif
+                mov hr,eax
+                .break .if FAILED(eax)
                 panel_findnext(cpanel)
                 mov rbx,rdx
             .endif
         .until !rax
         archive.Release()
     .endif
+    DisplayError(hr)
     ret
 
 warccopy endp
@@ -1732,7 +1722,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
             _wremove(&tmpfile)
         .endif
     .endif
-    DisplayError(hr, __outfile)
+    DisplayError(hr)
     ret
 
 warcadd endp
@@ -1919,7 +1909,7 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
             _wremove(&tmpfile)
         .endif
     .endif
-    DisplayError(hr, [rsi].WSUB.file)
+    DisplayError(hr)
     ret
 
 warcdelete endp
