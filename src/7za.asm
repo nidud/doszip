@@ -631,13 +631,19 @@ CArchiveExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, out
     mov [rcx],eax
 
     mov prop.vt,VT_EMPTY
-    mov [rbx].m_curId,esi
+    mov prop.ulVal,FALSE
+    this.m_Archive.GetProperty(esi, kpidIsDir, &prop)
+    .if ( prop.ulVal != FALSE )
+        .return( 0 )
+    .endif
 
+    mov prop.vt,VT_EMPTY
+    mov [rbx].m_curId,esi
     this.m_Archive.GetProperty(esi, kpidPath, &prop)
 
     .if ( prop.vt == VT_EMPTY )
 
-        .if ( esi == 0 )
+        .if ( esi == 0 ) ; .tar.xx ?
 
             mov rsi,[rbx].m_curFile
             lea ecx,[strlen([rsi].FBLK.name)+1]
@@ -1219,7 +1225,7 @@ OpenArchive proc uses rdi pArc:ptr LPIARCHIVE
             archive.Release()
         .endif
     .else
-        archive.Release()
+        SafeRelease(archive)
     .endif
     mov eax,hr
     ret

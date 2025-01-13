@@ -1643,7 +1643,7 @@ zip_allocfblk proc uses rsi rdi rbx
     mov edi,eax
     mov rsi,entryname
 
-    .if ( malloc( &[strlen(rsi)+FBLK+ZINF] ) == NULL )
+    .if ( malloc( &[strlen(rsi)+FBLK+ZINF+1] ) == NULL )
 
         .return
     .endif
@@ -1784,9 +1784,8 @@ zip_testcentral proc uses rsi wsub:PWSUB
     mov rax,[rax].WSUB.arch
 
     .if ( byte ptr [rax] )
-        .if strncmp(rax, rsi, arc_pathz)
-
-            .return(0)
+        .ifd strncmp(rax, rsi, arc_pathz)
+            .return( 0 )
         .endif
     .endif
 
@@ -1849,7 +1848,7 @@ zip_findnext proc
     .new fnsize:SINT
     .while 1
 
-        .if !zip_readcentral()
+        .ifd !zip_readcentral()
 
             .return
         .endif
@@ -1858,12 +1857,12 @@ zip_findnext proc
             zip_testcentral(rdi)
         .else
 
-            movzx eax,[rbx].CZIP.extsize
-            add ax,[rbx].CZIP.cmtsize
-            add ax,[rbx].CZIP.fnsize
-            mov fnsize,eax
+            movzx ecx,[rbx].CZIP.extsize
+            add cx,[rbx].CZIP.cmtsize
+            add cx,[rbx].CZIP.fnsize
+            mov fnsize,ecx
 
-            .if !oread(eax)
+            .if !oread(ecx)
 
                 .return
             .endif
@@ -1896,9 +1895,9 @@ wzipread proc public uses rsi rdi rbx wsub:PWSUB
 
     wsfree(rdi)
 
-    .ifs ( getendcentral(rdi, &zip_endcent) <= 0 )
+    .ifsd ( getendcentral(rdi, &zip_endcent) <= 0 )
 
-        .return( -2 )
+        .return( ER_READARCH )
     .endif
     mov fblk,fbupdir( _FB_ARCHZIP )
     mov [rdi].WSUB.fcb,rax
@@ -1906,16 +1905,16 @@ wzipread proc public uses rsi rdi rbx wsub:PWSUB
 
     .while zip_findnext()
 
-        mov fb,rax
-        mov cl,[rax]
-        .if !( cl & _A_SUBDIR )
+        .if !( [rax].FBLK.flag & _A_SUBDIR )
+
+            mov fb,rax
             .ifd !strwild([rdi].WSUB.mask, [rax].FBLK.name)
 
                 free(fb)
                .continue
             .endif
+            mov rax,fb
         .endif
-        mov rax,fb
         mov rcx,fblk
         mov fblk,rax
         mov [rcx].FBLK.next,rax
