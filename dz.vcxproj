@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <AsmcDir>$(AsmcDir)</AsmcDir>
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>dz</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectGuid>{3E727EF4-500A-4577-972B-4CDB62E0A007}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(AsmcDir)\bin\asmc.props" />
+    <Import Project="$(AsmcDir)\bin\iddc.props" />
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <GenerateManifest>false</GenerateManifest>
+    <PublicIncludeDirectories>
+    </PublicIncludeDirectories>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateMapFile>true</GenerateMapFile>
+      <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>$(AsmcDir)\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalOptions>/merge:.CRT=.rdata %(AdditionalOptions)</AdditionalOptions>
+      <Profile>false</Profile>
+      <IgnoreEmbeddedIDL>true</IgnoreEmbeddedIDL>
+      <TypeLibraryResourceID>1</TypeLibraryResourceID>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <LinkErrorReporting>NoErrorReport</LinkErrorReporting>
+      <StackReserveSize>0x300000</StackReserveSize>
+      <StackCommitSize>0x200000</StackCommitSize>
+      <ShowProgress>NotSet</ShowProgress>
+      <LargeAddressAware>true</LargeAddressAware>
+    </Link>
+    <ASMC>
+      <WarningLevel>2</WarningLevel>
+      <IncludePaths>src\inc</IncludePaths>
+      <GenerateUnwindInformation>true</GenerateUnwindInformation>
+      <PackAlignmentBoundary>4</PackAlignmentBoundary>
+      <GenerateCStackFrame>true</GenerateCStackFrame>
+      <AdditionalOptions>-DVERSION=383 -DMINVERS=349 -DDEBUGX -MT %(AdditionalOptions)</AdditionalOptions>
+    </ASMC>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateMapFile>true</GenerateMapFile>
+      <AdditionalLibraryDirectories>$(AsmcDir)\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalOptions>/merge:.CRT=.rdata %(AdditionalOptions)</AdditionalOptions>
+      <Profile>false</Profile>
+      <IgnoreEmbeddedIDL>true</IgnoreEmbeddedIDL>
+      <TypeLibraryResourceID>1</TypeLibraryResourceID>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <LinkErrorReporting>NoErrorReport</LinkErrorReporting>
+    </Link>
+    <ASMC>
+      <WarningLevel>2</WarningLevel>
+      <IncludePaths>src\inc</IncludePaths>
+      <PackAlignmentBoundary>3</PackAlignmentBoundary>
+      <GenerateCStackFrame>true</GenerateCStackFrame>
+      <ObjectFileTypeCOFF>true</ObjectFileTypeCOFF>
+      <CallingConvention>2</CallingConvention>
+      <IgnoreINCLUDELIB>false</IgnoreINCLUDELIB>
+      <AdditionalOptions>-DVERSION=383 -DMINVERS=349 -DDEBUGX -D__BMP__ %(AdditionalOptions)</AdditionalOptions>
+    </ASMC>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ASMC Include="src\command.asm" />
+    <ASMC Include="src\dz.asm" />
+    <ASMC Include="src\dzmain.asm" />
+    <ASMC Include="src\dzmodal.asm" />
+    <ASMC Include="src\filter.asm" />
+    <ASMC Include="src\hedit.asm" />
+    <ASMC Include="src\panel.asm" />
+    <ASMC Include="src\tview.asm" />
+    <ASMC Include="src\config.asm" />
+    <ASMC Include="src\conio.asm" />
+    <ASMC Include="src\deflate.asm" />
+    <ASMC Include="src\direct.asm" />
+    <ASMC Include="src\7za.asm" />
+    <ASMC Include="src\CaptureScreen.asm" />
+    <ASMC Include="src\inflate.asm" />
+    <ASMC Include="src\io.asm" />
+    <ASMC Include="src\cmattrib.asm" />
+    <ASMC Include="src\cmcalendar.asm" />
+    <ASMC Include="src\cmchdrv.asm" />
+    <ASMC Include="src\cmclrcmdl.asm" />
+    <ASMC Include="src\cmcompare.asm" />
+    <ASMC Include="src\cmcompress.asm" />
+    <ASMC Include="src\cmcompsub.asm" />
+    <ASMC Include="src\cmcopy.asm" />
+    <ASMC Include="src\cmcopycell.asm" />
+    <ASMC Include="src\cmdelete.asm" />
+    <ASMC Include="src\cmdetail.asm" />
+    <ASMC Include="src\cmedit.asm" />
+    <ASMC Include="src\cmegaline.asm" />
+    <ASMC Include="src\cmenviron.asm" />
+    <ASMC Include="src\cmexit.asm" />
+    <ASMC Include="src\cmfilter.asm" />
+    <ASMC Include="src\cmhelp.asm" />
+    <ASMC Include="src\cmhidden.asm" />
+    <ASMC Include="src\cmhomedir.asm" />
+    <ASMC Include="src\cmlong.asm" />
+    <ASMC Include="src\cmmini.asm" />
+    <ASMC Include="src\cmmkdir.asm" />
+    <ASMC Include="src\cmmklist.asm" />
+    <ASMC Include="src\cmmkzip.asm" />
+    <ASMC Include="src\cmmove.asm" />
+    <ASMC Include="src\cmpath.asm" />
+    <ASMC Include="src\cmpfilter.asm" />
+    <ASMC Include="src\cmpsize.asm" />
+    <ASMC Include="src\cmquicksearch.asm" />
+    <ASMC Include="src\cmsavesetup.asm" />
+    <ASMC Include="src\cmsearch.asm" />
+    <ASMC Include="src\cmsearchidd.asm" />
+    <ASMC Include="src\cmselect.asm" />
+    <ASMC Include="src\cmsetup.asm" />
+    <ASMC Include="src\cmsort.asm" />
+    <ASMC Include="src\cmsubdir.asm" />
+    <ASMC Include="src\cmsubinfo.asm" />
+    <ASMC Include="src\cmswap.asm" />
+    <ASMC Include="src\cmsysteminfo.asm" />
+    <ASMC Include="src\cmtoggle.asm" />
+    <ASMC Include="src\cmupdate.asm" />
+    <ASMC Include="src\cmupdir.asm" />
+    <ASMC Include="src\cmuserscreen.asm" />
+    <ASMC Include="src\cmview.asm" />
+    <ASMC Include="src\cmwideview.asm" />
+    <ASMC Include="src\confirm.asm" />
+    <ASMC Include="src\editattrib.asm" />
+    <ASMC Include="src\menus.asm" />
+    <ASMC Include="src\process.asm" />
+    <ASMC Include="src\progress.asm" />
+    <ASMC Include="src\stdlib.asm" />
+    <ASMC Include="src\string.asm" />
+    <ASMC Include="src\tedit.asm" />
+    <ASMC Include="src\transfer.asm" />
+    <ASMC Include="src\tsession.asm" />
+    <ASMC Include="src\wsub.asm" />
+    <IDDC Include="src\res\Calendar.idd" />
+    <IDDC Include="src\res\CalHelp.idd" />
+    <IDDC Include="src\res\Commandline.idd" />
+    <IDDC Include="src\res\CompareOptions.idd" />
+    <IDDC Include="src\res\ConfirmAddFiles.idd" />
+    <IDDC Include="src\res\ConfirmContinue.idd" />
+    <IDDC Include="src\res\ConfirmDelete.idd" />
+    <IDDC Include="src\res\ConsoleSize.idd" />
+    <IDDC Include="src\res\Deflate64.idd" />
+    <IDDC Include="src\res\DriveNotReady.idd" />
+    <IDDC Include="src\res\DZCompareDirectories.idd" />
+    <IDDC Include="src\res\DZCompression.idd" />
+    <IDDC Include="src\res\DZConfiguration.idd" />
+    <IDDC Include="src\res\DZConfirmations.idd" />
+    <IDDC Include="src\res\DZCopy.idd" />
+    <IDDC Include="src\res\DZDecompress.idd" />
+    <IDDC Include="src\res\DZDefaultColor.idd" />
+    <IDDC Include="src\res\DZEnviron.idd" />
+    <IDDC Include="src\res\DZExit.idd" />
+    <IDDC Include="src\res\DZFFHelp.idd" />
+    <IDDC Include="src\res\DZFileAttributes.idd" />
+    <IDDC Include="src\res\DZFindFile.idd" />
+    <IDDC Include="src\res\DZHelp.idd" />
+    <IDDC Include="src\res\DZHistory.idd" />
+    <IDDC Include="src\res\DZMenuEdit.idd" />
+    <IDDC Include="src\res\DZMenuFile.idd" />
+    <IDDC Include="src\res\DZMenuHelp.idd" />
+    <IDDC Include="src\res\DZMenuPanel.idd" />
+    <IDDC Include="src\res\DZMenuSetup.idd" />
+    <IDDC Include="src\res\DZMenuTools.idd" />
+    <IDDC Include="src\res\DZMKList.idd" />
+    <IDDC Include="src\res\DZMove.idd" />
+    <IDDC Include="src\res\DZPanelFilter.idd" />
+    <IDDC Include="src\res\DZPanelOptions.idd" />
+    <IDDC Include="src\res\DZRecursiveCompare.idd" />
+    <IDDC Include="src\res\DZSaveSetup.idd" />
+    <IDDC Include="src\res\DZScreenOptions.idd" />
+    <IDDC Include="src\res\DZSubInfo.idd" />
+    <IDDC Include="src\res\DZSystemInfo.idd" />
+    <IDDC Include="src\res\DZSystemOptions.idd" />
+    <IDDC Include="src\res\DZTransfer.idd" />
+    <IDDC Include="src\res\DZZipAttributes.idd" />
+    <IDDC Include="src\res\EditColor.idd" />
+    <IDDC Include="src\res\FFReplace.idd" />
+    <IDDC Include="src\res\HEFormat.idd" />
+    <IDDC Include="src\res\HELine.idd" />
+    <IDDC Include="src\res\HEMenusline.idd" />
+    <IDDC Include="src\res\HEStatusline.idd" />
+    <IDDC Include="src\res\Menusline.idd" />
+    <IDDC Include="src\res\OperationFilters.idd" />
+    <IDDC Include="src\res\Replace.idd" />
+    <IDDC Include="src\res\ReplacePrompt.idd" />
+    <IDDC Include="src\res\SaveScreen.idd" />
+    <IDDC Include="src\res\Search.idd" />
+    <IDDC Include="src\res\Statusline.idd" />
+    <IDDC Include="src\res\TEOptions.idd" />
+    <IDDC Include="src\res\TEQuickMenu.idd" />
+    <IDDC Include="src\res\TEReload.idd" />
+    <IDDC Include="src\res\TEReload2.idd" />
+    <IDDC Include="src\res\TESave.idd" />
+    <IDDC Include="src\res\TESeek.idd" />
+    <IDDC Include="src\res\TEWindows.idd" />
+    <IDDC Include="src\res\TVCopy.idd" />
+    <IDDC Include="src\res\TVHelp.idd" />
+    <IDDC Include="src\res\TVMenusline.idd" />
+    <IDDC Include="src\res\TVQuickMenu.idd" />
+    <IDDC Include="src\res\TVSeek.idd" />
+    <IDDC Include="src\res\TVStatusline.idd" />
+    <IDDC Include="src\res\UnzipCRCError.idd" />
+    <IDDC Include="src\res\WOpenFile.idd" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\res\dz.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(AsmcDir)\bin\asmc.targets" />
+    <Import Project="$(AsmcDir)\bin\iddc.targets" />
+  </ImportGroup>
+</Project>

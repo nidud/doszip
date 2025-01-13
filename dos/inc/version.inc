@@ -1,3 +1,0 @@
-VERSION equ 0266h
-MINVERS equ 0253h
-VERSSTR equ <'2.66'>
