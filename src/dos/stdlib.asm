@@ -470,34 +470,6 @@ toend:
 	ret
 qsort	ENDP
 
-qwtobstr PROC _CType PUBLIC USES si di odx:DWORD, oax:DWORD
-local	result[128]:BYTE
-	invoke	qwtostr,odx,oax
-	invoke	strrev,dx::ax
-	mov	si,ax
-	lea	di,result
-	sub	dx,dx
-      @@:
-	lodsb
-	stosb
-	test	al,al
-	jz	@F
-	inc	dl
-	cmp	dl,3
-	jne	@B
-	mov	al,' '
-	stosb
-	sub	dl,dl
-	jmp	@B
-      @@:
-	cmp	BYTE PTR [di-2],' '
-	jne	@F
-	mov	[di-2],dh
-      @@:
-	invoke	strrev,addr result
-	ret
-qwtobstr ENDP
-
 ifndef	__16__
 
 qwtostr PROC _CType PUBLIC USES esi edi ebx odx:DWORD, oax:DWORD
@@ -556,157 +528,190 @@ qwtostr ENDP
 
 else
 
-	.data
+; qword / 10 + qword % 10
 
-string_01	db '1',0
-string_02	db '52',0
-string_03	db '904',0
-string_04	db '3556',0
-string_05	db '758401',0
-string_06	db '1277761',0
-string_07	db '54534862',0
-string_08	db '927694924',0
-string_09	db '3767491786',0
-string_10	db '777261159901',0
-string_11	db '1444068129571',0
-string_12	db '56017679474182',0
-string_13	db '940737269953054',0
-string_14	db '3972973049575027',0
-string_15	db '796486064051292511',0
-string_16	db '1615590737044764481',0
+_udiv64 proc _CType uses si di bx dividend:ptr, reminder:ptr
 
-str_off		dw string_01
-		dw string_02
-		dw string_03
-		dw string_04
-		dw string_05
-		dw string_06
-		dw string_07
-		dw string_08
-		dw string_09
-		dw string_10
-		dw string_11
-		dw string_12
-		dw string_13
-		dw string_14
-		dw string_15
-		dw string_16
+  local bits:word, overflow:word
 
-	.code
+    cld?
+    mov ax,ds
+    les di,reminder
+    lds si,dividend
+    mov cx,4
+    rep movsw
+    mov ds,ax
 
-qwtostr PROC _CType PUBLIC USES si di bx odx:DWORD, oax:DWORD
-local	result[128]:BYTE
-	mov	ax,ss
-	mov	es,ax
-	lea	di,result
-	mov	cx,20
-	mov	al,'0'
-	cld?
-	rep	stosb
-	mov	dx,WORD PTR oax
-	mov	ax,dx
-	and	ax,15
+    xor ax,ax	      ; quotient (dividend) --> 0
+    les di,dividend
+    mov cx,4
+    rep stosw
+    mov overflow,ax
+
+    .repeat
+
+	les di,reminder
+	xor ax,ax
+
+	.if ( ax == [di+6] && ax == [di+4] && ax == [di+2] )
+	    mov cx,10
+	    cmp cx,[di]
+	.endif
+	.break .ifa
+	    ;
+	    ; divisor > dividend : reminder = dividend, quotient = 0
+	    ;
+	.ifz
+	    ;
+	    ; divisor == dividend : reminder = 0, quotient = 1
+	    ;
+	    mov cx,4
+	    rep stosw
+	    les di,dividend
+	    inc byte ptr [di]
+	   .break
+	.endif
+
+	mov si,10
+	xor dx,dx
+	xor bx,bx
+	xor cx,cx
+	mov bits,dx
+	les di,reminder
+
+	.while 1
+
+	    add si,si
+	    adc dx,dx
+	    adc bx,bx
+	    adc cx,cx
+	    .break .ifc
+	    .if ( cx == [di+6] && bx == [di+4] && dx == [di+2] )
+		cmp si,[di]
+	    .endif
+	    .break .ifa
+	    inc bits
+	.endw
+
+	.while 1
+
+	    les di,reminder
+	    rcr cx,1
+	    rcr bx,1
+	    rcr dx,1
+	    rcr si,1
+	    sub [di+0],si
+	    sbb [di+2],dx
+	    sbb [di+4],bx
+	    sbb [di+6],cx
+	    cmc
+	    .ifnc
+
+		.repeat
+		    les di,dividend
+		    mov ax,[di+0]
+		    add [di+0],ax
+		    mov ax,[di+2]
+		    adc [di+2],ax
+		    mov ax,[di+4]
+		    adc [di+4],ax
+		    mov ax,[di+6]
+		    adc [di+6],ax
+		    adc overflow,0
+		    dec bits
+		    les di,reminder
+		    .ifs
+			add [di+0],si
+			adc [di+2],dx
+			adc [di+4],bx
+			adc [di+6],cx
+		       .break( 1 )
+		    .endif
+		    shr cx,1
+		    rcr bx,1
+		    rcr dx,1
+		    rcr si,1
+		    add [di+0],si
+		    adc [di+2],dx
+		    adc [di+4],bx
+		    adc [di+6],cx
+		.untilb
+	    .endif
+	    les di,dividend
+	    mov ax,[di+0]
+	    adc [di+0],ax
+	    mov ax,[di+2]
+	    adc [di+2],ax
+	    mov ax,[di+4]
+	    adc [di+4],ax
+	    mov ax,[di+6]
+	    adc [di+6],ax
+	    adc overflow,0
+	    dec bits
+	   .break .ifs
+	.endw
+    .until 1
+    mov ax,overflow
+    ret
+
+_udiv64 endp
+
+qwtostr PROC _CType PUBLIC USES di odx:DWORD, oax:DWORD
+local	result[64]:BYTE
+local	reminder[8]:BYTE
+	lea	di,result+40
+	mov	result[40],0
+      @@:
+	invoke	_udiv64, addr oax, addr reminder
+	test	ax,ax
+	jnz	@F
+	lea	ax,result
+	cmp	di,ax
+	jbe	@F
+	mov	al,reminder
 	add	al,'0'
-	lea	di,result
-	cmp	al,'9'
-	jle	@F
-	add	al,246
-	inc	result[1]
-      @@:
-	stosb
-	call	DO_QWORD
-	lea	dx,result
-	mov	ax,3000h
-	mov	cx,19
-	mov	di,dx
-	add	di,19
-	std
-      @@:
-	cmp	[di],ah
-	jne	@F
-	stosb
-	dec	cx
+	dec	di
+	mov	[di],al
+	mov	ax,word ptr oax[0]
+	or	ax,word ptr oax[2]
+	or	ax,word ptr oax[4]
+	or	ax,word ptr oax[6]
 	jnz	@B
       @@:
-	cld
-	mov	si,di
-	mov	di,dx
-      @@:
-	mov	al,[di]
-	movsb
-	mov	[si-1],al
-	sub	si,2
-	cmp	di,si
-	jb	@B
-	lea	ax,result
+	mov	ax,di
 	mov	dx,ss
 	ret
-    DO_QWORD:
-	mov	si,dx
-	mov	dx,WORD PTR oax[2]
-	mov	cx,0704h
-	mov	bx,offset str_off
-	call	DO_DWORD
-	mov	cx,0800h
-	mov	si,WORD PTR odx
-	mov	dx,WORD PTR odx[2]
-    DO_DWORD:
-	mov	ax,si
-	shr	ax,cl
-	and	ax,15
-	jz	DWORD_01
-      @@:
-	call	ADD_STRING
-	dec	ax
-	jnz	@B
-    DWORD_01:
-	add	cl,4
-	cmp	cl,16
-	jb	@F
-	mov	si,dx
-	xor	cl,cl
-      @@:
-	add	bx,2
-	dec	ch
-	jnz	DO_DWORD
-	retn
-    ADD_STRING:
-	push	ax
-	push	si
-	push	cx
-	mov	si,[bx]
-	lea	di,result
-	mov	cx,17
-	add	BYTE PTR [di],6
-	call	FIX_BYTE
-	inc	di
-      @@:
-	lodsb
-	test	al,al
-	jz	@F
-	add	al,-48
-	add	[di],al
-	call	FIX_BYTE
-	inc	di
-	dec	cx
-	jnz	@B
-      @@:
-	call	FIX_BYTE
-	pop	cx
-	pop	si
-	pop	ax
-	retn
-    FIX_BYTE:
-	mov	ax,[di]
-	cmp	al,'9'
-	jle	@F
-	add	al,246
-	inc	ah
-	mov	[di],ax
-      @@:
-	retn
 qwtostr ENDP
 endif
+
+
+qwtobstr PROC _CType PUBLIC USES si di odx:DWORD, oax:DWORD
+local	result[128]:BYTE
+	invoke	qwtostr,odx,oax
+	invoke	strrev,dx::ax
+	mov	si,ax
+	lea	di,result
+	sub	dx,dx
+      @@:
+	lodsb
+	stosb
+	test	al,al
+	jz	@F
+	inc	dl
+	cmp	dl,3
+	jne	@B
+	mov	al,' '
+	stosb
+	sub	dl,dl
+	jmp	@B
+      @@:
+	cmp	BYTE PTR [di-2],' '
+	jne	@F
+	mov	[di-2],dh
+      @@:
+	invoke	strrev,addr result
+	ret
+qwtobstr ENDP
 
 strtol	PROC _CType PUBLIC USES bx string:PTR BYTE
 	push	es

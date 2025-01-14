@@ -434,6 +434,9 @@ Changes in 2.48 - 16 Jul 2013
 Change Log for DOSZIP - Dos16
 =============================
 
+Changes in 2.67 - 11 Jan 2025
+- source cleanup
+
 Changes in 2.66 - 6 Mar 2024
 - fixed search bug in root directory
 

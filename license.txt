@@ -1,14 +1,12 @@
  Doszip source code
- ------------------
- License for use and distribution
- --------------------------------
 
- Copyright (C) 2014-2025 The Doszip Contributors.
+ License for use and distribution
+
+ Copyright (C) 1999-2025 The Doszip Contributors.
 
  The license for files are GNU General Public License.
 
-GNU GPL information
--------------------
+ GNU GPL information:
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
