@@ -103,39 +103,52 @@ init_vector:
 	xor	ax,ax
 	repnz	scasb
 	not	cx
-	push	cx
 	mov	es,dx
 	mov	di,offset exec.dz_dzmain
 	mov	ds,bx
 	rep	movsb
 	mov	ds,dx
-	mov	es,dx
-	mov	bx,di
+	mov	bx,di ; rename dx.exe to dz.dos
 	mov	di,offset exec.dz_fcb_160
 	mov	si,offset exec.dz_dzmain
 	mov	ax,2901h
 	int	21h
-	mov	ax,'OD'
-	mov	[bx-4],ax
-	mov	ax,'S'
-	mov	[bx-2],ax
-	mov	di,offset exec.dz_dzcommand
-	mov	si,128
-	mov	ds,bp
+ifdef DOSEMU
+	mov	al,'\' ; if the name is not dz.exe
+	cmp	al,[bx-8]
+	je	emu_done
+	lea	di,[bx-8]
+     @@:
+	cmp	di,si
+	jbe	emu_done
+	dec	di
+	cmp	al,[di]
+	jne	@B
+	lea	bx,[di+8]
+	mov	word ptr [bx-7],'ZD'
+	mov	byte ptr [bx-5],'.'
+emu_done:
+endif
+	mov	word ptr [bx-4],'OD'
+	mov	word ptr [bx-2],'S'
 	mov	cx,128
+	mov	di,offset exec.dz_dzcommand
+	mov	si,cx
+	mov	ds,bp
 	rep	movsb
 	mov	ds,dx
 	mov	ax,4300h
 	mov	dx,offset exec.dz_dzmain
 	int	21h
-	pop	di
 	jnc	file_found
 file_not_found:
+	mov	di,bx
 	mov	dx,offset cp_file_not_found
 	mov	cx,15
 	call	write
-	mov	cx,di
 	mov	dx,offset exec.dz_dzmain
+	mov	cx,di
+	sub	cx,dx
 	call	write
 	mov	ax,2
 	jmp	exit
