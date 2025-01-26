@@ -537,12 +537,13 @@ scgetword proc uses rsi rdi rbx linebuf:LPSTR
     ldr rdi,linebuf
 
     mov ebx,_wherex() ; get cursor x,y pos
+    mov esi,eax
     mov bh,dl
     .for ( eax++, ebx++ : eax && bl : )
         dec ebx
         scgetidchar(bl, bh)
     .endf
-    .if ( bl )
+    .if ( bl || ( !bl && !al && esi ) )
         inc ebx
     .endif
     .for ( esi = 0 : esi < MAXCOLS : esi++, ebx++ )
