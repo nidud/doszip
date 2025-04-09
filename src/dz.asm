@@ -28,6 +28,29 @@ doszip_close    proto
     dd 564A4A50h
     db __LIBC__ / 100 + '0','.',__LIBC__ mod 100 / 10 + '0',__LIBC__ mod 10 + '0'
 
+
+CtrlHandler proc private EventCode:UINT
+
+    ldr ecx,EventCode
+
+    .switch ecx
+    .case CTRL_C_EVENT
+    .case CTRL_BREAK_EVENT
+    .case CTRL_CLOSE_EVENT
+    .case CTRL_LOGOFF_EVENT
+    .case CTRL_SHUTDOWN_EVENT
+        doszip_close()
+        tcloseall()
+        .if CFGetSection("Exit")
+            CFExecute(rax)
+        .endif
+    .endsw
+    SetConsoleCtrlHandler( &CtrlHandler, 0 )
+    xor eax,eax
+    ret
+
+CtrlHandler endp
+
 if defined(_WIN64) and not defined(__DEBUG__)
 
 _exception_handler proc \
@@ -91,12 +114,7 @@ _exception_handler proc \
 
     .if ( signo == SIGTERM )
 
-        doszip_close()
-        tcloseall()
-        .if CFGetSection("Exit")
-            CFExecute(rax)
-        .endif
-        exit(0)
+        exit( CtrlHandler(CTRL_CLOSE_EVENT) )
     .endif
 
     .for ( r11      = r8,
@@ -254,14 +272,9 @@ endif
         .endif
 
         doszip_open()
+        SetConsoleCtrlHandler( &CtrlHandler, 1 )
         doszip_modal()
-        doszip_close()
-        tcloseall()
-
-        .if CFGetSection("Exit")
-            CFExecute(rax)
-        .endif
-        xor eax,eax
+        CtrlHandler(CTRL_CLOSE_EVENT)
     .endif
     ret
 
