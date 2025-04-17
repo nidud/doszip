@@ -108,7 +108,7 @@ init_vector:
 	mov	ds,bx
 	rep	movsb
 	mov	ds,dx
-	mov	bx,di ; rename dx.exe to dz.dos
+	mov	bx,di ; rename dz.exe to dz.dos
 	mov	di,offset exec.dz_fcb_160
 	mov	si,offset exec.dz_dzmain
 	mov	ax,2901h

@@ -463,15 +463,18 @@ parse_line proc uses rsi rbx offs:ptr, curcol:UINT
             .break .ifd ogetc() == -1
 
             inc rbx
-            .if al == 10 || al == 13
+            .if ( al == 10 || al == 13 )
 
                 .break .ifd ogetc() == -1
 
                 inc rbx
-                .if al != 10 && al != 13
+                .if ( al != 10 && al != 13 )
                     dec rbx
                     dec STDI.index
                 .endif
+            .elseif tvflag & _TV_WRAPLINES
+                dec rbx
+                dec STDI.index
             .endif
             xor eax,eax
            .break
@@ -1123,9 +1126,7 @@ endif
 
             .elseif tvflag & _TV_WRAPLINES
 
-                .repeat
-
-                    .break .if !rax
+                .if rax
 
                     xor eax,eax
                     mov rdi,screen
@@ -1152,7 +1153,7 @@ endif
                     sub rax,loffs
                     mov scount,eax
                     or  eax,1
-                .until 1
+                .endif
 
             .else
 
