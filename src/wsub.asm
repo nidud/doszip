@@ -1818,10 +1818,16 @@ zip_testcentral proc uses rsi wsub:PWSUB
         .return( 1 )
     .endif
 
-    dec eax
-    mov rdx,wsub
-    mov rdx,[rdx].WSUB.fcb
-    mov rdx,[rdx+rax*size_t]
+    mov rcx,wsub
+    mov rdx,[rcx].WSUB.fcb
+
+    .if ( [rcx].WSUB.flag & _W_WSREAD )
+
+        .for ( : eax && rdx : rdx = [rdx].FBLK.next, eax-- )
+        .endf
+    .else
+        mov rdx,[rdx+rax*size_t-size_t]
+    .endif
 
     mov ax,zip_central.date
     shl eax,16

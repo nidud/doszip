@@ -3,6 +3,18 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.87 - 2 May 2025
+- fixed bug in reading archives -- regression from v3.80
+
+Changes in 3.86 - 17 Apr 2025
+- fixed line breaks in Text view (F2 [Un]Wrap)
+
+Changes in 3.85 - 9 Apr 2025
+- added handler for external Shut-Down events
+
+Changes in 3.84 - 26 Jan 2025
+- fixup in Edit function Next/Prev Word (Ctrl-Left/Right)
+
 Changes in 3.83 - 13 Jan 2025
 - added Confirm Delete to 7-Zip Copy
 - fixed bug reading archives -- regression from v3.80
