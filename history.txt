@@ -3,6 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.88 - 3 May 2025
+- allow duplicated files in ZIP archives -- Read/Extract/Delete
+
 Changes in 3.87 - 2 May 2025
 - fixed bug in reading archives -- regression from v3.80
 
