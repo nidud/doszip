@@ -1638,230 +1638,28 @@ error:
 getendcentral endp
 
 
-zip_allocfblk proc uses rsi rdi rbx
+zip_findnext proc uses rsi rdi rbx wsub:PWSUB
 
-    mov edi,eax
-    mov rsi,entryname
+   .new fnsize:SINT
+   .new subdir:SINT = 0
 
-    .if ( malloc( &[strlen(rsi)+FBLK+ZINF+1] ) == NULL )
-
-        .return
-    .endif
-    mov rbx,rax
-    mov [rbx].FBLK.name,&[rax+FBLK+ZINF]
-    xor eax,eax
-    mov [rbx].FBLK.next,rax
-    mov ax,zip_central.ext_attrib
-    and eax,_A_FATTRIB
-    or  eax,zip_attrib
-    mov [rbx].FBLK.flag,eax
-
-    .if ( edi == 2 )
-
-        .if ( zip_central.version_made || !( zip_central.ext_attrib & _A_SUBDIR ) )
-
-            mov eax,_A_SUBDIR
-            or  eax,zip_attrib
-            mov [rbx].FBLK.flag,eax
-        .endif
-    .else
-        mov DWORD PTR [rbx].FBLK.size[4],0
-        mov eax,zip_central.fsize
-        mov DWORD PTR [rbx].FBLK.size,eax
-    .endif
-
-    mov ax,zip_central.date
-    shl eax,16
-    mov ax,zip_central.time
-    mov [rbx].FBLK.time,eax
-    strcpy([rbx].FBLK.name, rsi)
-    mov [rbx+FBLK].ZINF.offs,zip_central.off_local
-    mov [rbx+FBLK].ZINF.csize,zip_central.csize
-    mov [rbx+FBLK].ZINF.crc,zip_central.crc
-    mov rax,rbx
-    ret
-
-zip_allocfblk endp
-
-
-zip_readcentral proc uses rsi rdi
-
-    .if !oread(CZIP)
-
-        .return
-    .endif
-    mov rbx,rax
-    xor eax,eax
-
-    .if ( DWORD PTR [rbx] != ZIP_CENTRALID )
-
-        .return
-    .endif
-
-    add STDI.index,CZIP
-    dec rax
-    mov edx,arc_pathz
-    .if ( [rbx].CZIP.fnsize <= dx )
-
-        .return
-    .endif
-
-    lea rdi,zip_central
-    mov eax,ecx
-    mov rsi,rbx
-    mov ecx,CZIP/4
-    rep movsd
-    movsw
-
-    movzx ecx,[rbx].CZIP.fnsize
-    add rbx,CZIP
-    sub eax,CZIP
-    .if ( eax < ecx )
-
-        .if !oread(ecx)
-
-            .return
-        .endif
-        mov rbx,rax
-        movzx ecx,zip_central.fnsize
-    .endif
-
-    .for ( rsi = rbx, rdi = entryname, ah = '\' : ecx : ecx-- )
-
-        mov al,[rsi]
-        mov [rdi],al
-        inc rdi
-        inc rsi
-        .if ( al == '/' )
-            mov [rdi-1],ah
-        .endif
-    .endf
-
-    mov byte ptr [rdi],0
-    movzx eax,zip_central.fnsize
-    add STDI.index,eax
-    mov ecx,eax
-    mov eax,_FB_ARCHZIP or _A_ARCH
-
-    .if ( zip_central.bitflag & 1 )
-
-        or eax,_FB_ZENCRYPTED
-    .endif
-    .if ( zip_central.bitflag & 8 )
-
-        or eax,_FB_ZEXTLOCHD
-    .endif
-
-    mov zip_attrib,eax
-    .if ( byte ptr [rdi-1] == '\' )
-
-        mov byte ptr [rdi-1],0
-        or  zip_attrib,_A_SUBDIR
-        dec zip_central.fnsize
-    .endif
-
-    movzx edi,zip_central.extsize
-    add di,zip_central.cmtsize
-
-    .ifnz
-        .if !oread(edi)
-
-            .return
-        .endif
-        mov rbx,rax
-        add STDI.index,edi
-    .endif
-    mov eax,1
-    ret
-
-zip_readcentral endp
-
-
-zip_testcentral proc uses rsi wsub:PWSUB
-
-    mov rax,wsub
-    mov rsi,entryname
-    mov rax,[rax].WSUB.arch
-
-    .if ( byte ptr [rax] )
-        .ifd strncmp(rax, rsi, arc_pathz)
-            .return( 0 )
-        .endif
-    .endif
-
-    mov eax,arc_pathz
-    .if ( eax )
-
-        .if ( byte ptr [rsi+rax] != '\' )
-
-            .return( 0 )
-        .endif
-        strcpy(rsi, &[rsi+rax+1])
-    .endif
-
-    .while( byte ptr [rsi] == ',' )
-
-        strcpy(rsi, &[rsi+1])
-    .endw
-
-    .if strchr(rsi, '\')
-
-        mov byte ptr [rax],0
-        .ifd ( wsearch(wsub, rsi) == -1 )
-            .return( 2 )
-        .endif
-        .return( 0 )
-    .endif
-
-    .ifd ( wsearch(wsub, rsi) == -1 )
-
-        .return( 1 )
-    .endif
-
-    mov rcx,wsub
-    mov rdx,[rcx].WSUB.fcb
-
-    .if ( [rcx].WSUB.flag & _W_WSREAD )
-
-        .for ( : eax && rdx : rdx = [rdx].FBLK.next, eax-- )
-        .endf
-    .else
-        mov rdx,[rdx+rax*size_t-size_t]
-    .endif
-
-    mov ax,zip_central.date
-    shl eax,16
-    mov ax,zip_central.time
-    mov [rdx].FBLK.time,eax
-
-    .if ( zip_central.version_made )
-
-        .return( 0 )
-    .endif
-
-    mov eax,zip_attrib
-    or  ax,zip_central.ext_attrib
-    and eax,_A_FATTRIB
-    mov [rdx].FBLK.flag,eax
-    xor eax,eax
-    ret
-
-zip_testcentral endp
-
-
-zip_findnext proc
-
-    .new fnsize:SINT
     .while 1
 
-        .ifd !zip_readcentral()
+        .if !oread(CZIP)
 
             .return
         .endif
-        .if ( eax != -1 )
+        mov rbx,rax
+        xor eax,eax
 
-            zip_testcentral(rdi)
-        .else
+        .if ( DWORD PTR [rbx] != ZIP_CENTRALID )
+
+            .return
+        .endif
+
+        add STDI.index,CZIP
+        mov edx,arc_pathz
+        .if ( [rbx].CZIP.fnsize <= dx )
 
             movzx ecx,[rbx].CZIP.extsize
             add cx,[rbx].CZIP.cmtsize
@@ -1875,11 +1673,180 @@ zip_findnext proc
             mov rbx,rax
             mov edx,fnsize
             add STDI.index,edx
-            xor eax,eax
+           .continue
         .endif
-        .break .if eax
+
+        lea rdi,zip_central
+        mov eax,ecx
+        mov rsi,rbx
+        mov ecx,CZIP/4
+        rep movsd
+        movsw
+
+        movzx ecx,[rbx].CZIP.fnsize
+        add rbx,CZIP
+        sub eax,CZIP
+        .if ( eax < ecx )
+
+            .if !oread(ecx)
+
+                .return
+            .endif
+            mov rbx,rax
+            movzx ecx,zip_central.fnsize
+        .endif
+        .for ( rsi = rbx, rdi = entryname : ecx : ecx-- )
+
+            lodsb
+            .if ( al == '/' )
+                mov al,'\'
+            .endif
+            stosb
+        .endf
+
+        mov byte ptr [rdi],0
+        movzx eax,zip_central.fnsize
+        add STDI.index,eax
+        mov ecx,eax
+        mov eax,_FB_ARCHZIP or _A_ARCH
+
+        .if ( zip_central.bitflag & 1 )
+
+            or eax,_FB_ZENCRYPTED
+        .endif
+        .if ( zip_central.bitflag & 8 )
+
+            or eax,_FB_ZEXTLOCHD
+        .endif
+
+        mov zip_attrib,eax
+        .if ( byte ptr [rdi-1] == '\' )
+
+            mov byte ptr [rdi-1],0
+            or  zip_attrib,_A_SUBDIR
+            dec zip_central.fnsize
+        .endif
+
+        movzx edi,zip_central.extsize
+        add di,zip_central.cmtsize
+
+        .ifnz
+            .if !oread(edi)
+
+                .return
+            .endif
+            mov rbx,rax
+            add STDI.index,edi
+        .endif
+
+        mov rdi,wsub
+        mov rsi,entryname
+
+
+        mov rax,[rdi].WSUB.arch
+        .if ( byte ptr [rax] )
+            .continue .ifd strncmp(rax, rsi, arc_pathz)
+        .endif
+
+        mov eax,arc_pathz
+        .if ( eax )
+
+            .continue .if ( byte ptr [rsi+rax] != '\' )
+            strcpy(rsi, &[rsi+rax+1])
+        .endif
+
+        .while( byte ptr [rsi] == ',' )
+
+            strcpy(rsi, &[rsi+1])
+        .endw
+
+        .if strchr(rsi, '\')
+
+            mov byte ptr [rax],0
+            .ifd ( wsearch(rdi, rsi) == -1 )
+
+                inc subdir
+               .break
+            .endif
+            .continue
+        .endif
+        .break .ifd ( wsearch(rdi, rsi) == -1 )
+
+        ; v3.87 -- duplicated file error
+
+        mov rdx,[rdi].WSUB.fcb
+        .if ( [rdi].WSUB.flag & _W_WSREAD )
+            .for ( : eax && rdx : rdx = [rdx].FBLK.next, eax-- )
+            .endf
+        .else
+            mov rdx,[rdx+rax*size_t-size_t]
+        .endif
+
+        ; this is normally a directory entry
+
+        .if ( [rdx].FBLK.flag & _A_SUBDIR )
+
+            ; update time and attributes
+
+            mov ax,zip_central.date
+            shl eax,16
+            mov ax,zip_central.time
+            mov [rdx].FBLK.time,eax
+            .if ( zip_central.version_made == 0 )
+
+                mov eax,zip_attrib
+                or  ax,zip_central.ext_attrib
+                mov [rdx].FBLK.flag,eax
+            .endif
+
+        .else   ; v3.88 -- allow duplicated files ?
+                ;
+                ; The format is technically Unix, so yes. Duplicates will be
+                ; overwritten on extraction here with a Delete prompt.
+                ;
+                ; There will however be a mixture of [no]case sensitive code
+                ; so this will be limited to the read process.
+                ;
+            .break
+        .endif
     .endw
-    zip_allocfblk()
+
+    .if ( malloc( &[strlen(rsi)+FBLK+ZINF+1] ) == NULL )
+
+        .return
+    .endif
+    mov rdi,rax
+    mov [rdi].FBLK.name,&[rax+FBLK+ZINF]
+    xor eax,eax
+    mov [rdi].FBLK.next,rax
+    mov ax,zip_central.ext_attrib
+    and eax,_A_FATTRIB
+    or  eax,zip_attrib
+    mov [rdi].FBLK.flag,eax
+
+    .if ( subdir )
+
+        .if ( zip_central.version_made || !( zip_central.ext_attrib & _A_SUBDIR ) )
+
+            mov eax,_A_SUBDIR
+            or  eax,zip_attrib
+            mov [rdi].FBLK.flag,eax
+        .endif
+    .else
+        mov DWORD PTR [rdi].FBLK.size[4],0
+        mov eax,zip_central.fsize
+        mov DWORD PTR [rdi].FBLK.size,eax
+    .endif
+
+    mov ax,zip_central.date
+    shl eax,16
+    mov ax,zip_central.time
+    mov [rdi].FBLK.time,eax
+    strcpy([rdi].FBLK.name, rsi)
+    mov [rdi+FBLK].ZINF.offs,zip_central.off_local
+    mov [rdi+FBLK].ZINF.csize,zip_central.csize
+    mov [rdi+FBLK].ZINF.crc,zip_central.crc
+    mov rax,rdi
     ret
 
 zip_findnext endp
@@ -1909,7 +1876,7 @@ wzipread proc public uses rsi rdi rbx wsub:PWSUB
     mov [rdi].WSUB.fcb,rax
     oseek(zip_endcent.off_cent, SEEK_SET)
 
-    .while zip_findnext()
+    .while zip_findnext(rdi)
 
         .if !( [rax].FBLK.flag & _A_SUBDIR )
 

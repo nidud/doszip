@@ -7,7 +7,7 @@ ifndef dosver
 dosver = 267
 endif
 ifndef winver
-winver = 384
+winver = 388
 endif
 dosmin = 253
 winmin = 349
