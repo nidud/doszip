@@ -45,11 +45,14 @@ CtrlHandler proc private EventCode:UINT
             CFExecute(rax)
         .endif
     .endsw
+ifdef _WIN64
     SetConsoleCtrlHandler( &CtrlHandler, 0 )
+endif
     xor eax,eax
     ret
 
 CtrlHandler endp
+
 
 if defined(_WIN64) and not defined(__DEBUG__)
 
@@ -272,7 +275,9 @@ endif
         .endif
 
         doszip_open()
+ifdef _WIN64
         SetConsoleCtrlHandler( &CtrlHandler, 1 )
+endif
         doszip_modal()
         CtrlHandler(CTRL_CLOSE_EVENT)
     .endif

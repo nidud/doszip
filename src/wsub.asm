@@ -1741,8 +1741,6 @@ zip_findnext proc uses rsi rdi rbx wsub:PWSUB
 
         mov rdi,wsub
         mov rsi,entryname
-
-
         mov rax,[rdi].WSUB.arch
         .if ( byte ptr [rax] )
             .continue .ifd strncmp(rax, rsi, arc_pathz)
@@ -1811,42 +1809,41 @@ zip_findnext proc uses rsi rdi rbx wsub:PWSUB
         .endif
     .endw
 
-    .if ( malloc( &[strlen(rsi)+FBLK+ZINF+1] ) == NULL )
+    .if malloc( &[strlen(rsi)+FBLK+ZINF+1] )
 
-        .return
-    .endif
-    mov rdi,rax
-    mov [rdi].FBLK.name,&[rax+FBLK+ZINF]
-    xor eax,eax
-    mov [rdi].FBLK.next,rax
-    mov ax,zip_central.ext_attrib
-    and eax,_A_FATTRIB
-    or  eax,zip_attrib
-    mov [rdi].FBLK.flag,eax
+        mov rdi,rax
+        mov [rdi].FBLK.name,&[rax+FBLK+ZINF]
+        xor eax,eax
+        mov [rdi].FBLK.next,rax
+        mov ax,zip_central.ext_attrib
+        and eax,_A_FATTRIB
+        or  eax,zip_attrib
+        mov [rdi].FBLK.flag,eax
 
-    .if ( subdir )
+        .if ( subdir )
 
-        .if ( zip_central.version_made || !( zip_central.ext_attrib & _A_SUBDIR ) )
+            .if ( zip_central.version_made || !( zip_central.ext_attrib & _A_SUBDIR ) )
 
-            mov eax,_A_SUBDIR
-            or  eax,zip_attrib
-            mov [rdi].FBLK.flag,eax
+                mov eax,_A_SUBDIR
+                or  eax,zip_attrib
+                mov [rdi].FBLK.flag,eax
+            .endif
+        .else
+            mov DWORD PTR [rdi].FBLK.size[4],0
+            mov eax,zip_central.fsize
+            mov DWORD PTR [rdi].FBLK.size,eax
         .endif
-    .else
-        mov DWORD PTR [rdi].FBLK.size[4],0
-        mov eax,zip_central.fsize
-        mov DWORD PTR [rdi].FBLK.size,eax
-    .endif
 
-    mov ax,zip_central.date
-    shl eax,16
-    mov ax,zip_central.time
-    mov [rdi].FBLK.time,eax
-    strcpy([rdi].FBLK.name, rsi)
-    mov [rdi+FBLK].ZINF.offs,zip_central.off_local
-    mov [rdi+FBLK].ZINF.csize,zip_central.csize
-    mov [rdi+FBLK].ZINF.crc,zip_central.crc
-    mov rax,rdi
+        mov ax,zip_central.date
+        shl eax,16
+        mov ax,zip_central.time
+        mov [rdi].FBLK.time,eax
+        strcpy([rdi].FBLK.name, rsi)
+        mov [rdi+FBLK].ZINF.offs,zip_central.off_local
+        mov [rdi+FBLK].ZINF.csize,zip_central.csize
+        mov [rdi+FBLK].ZINF.crc,zip_central.crc
+        mov rax,rdi
+    .endif
     ret
 
 zip_findnext endp
