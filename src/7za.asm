@@ -1936,6 +1936,9 @@ warcview proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
     .if SUCCEEDED(OpenArchive(&archive))
 
+        progress_open("Copy", "Copy")
+        strcpy(__srcfile, [rbx].FBLK.name)
+        strcpy(__outfile, rdi)
         .if CArchiveExtractCallback(archive, rdi, [rsi].WSUB.arch, rbx)
 
             mov ecx,[rbx+FBLK].ZINF.z7id
@@ -1943,6 +1946,7 @@ warcview proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
             archive.Extract(&indices, 1, 0, rax)
         .endif
         archive.Release()
+        progress_close()
         mov rdi,strfcat( &fbname, rdi, [rbx].FBLK.name )
         .ifd ( filexist( rdi ) == 1 )
 
