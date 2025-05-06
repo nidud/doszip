@@ -4,7 +4,7 @@
 
 watc   = \watcom
 ifndef dosver
-dosver = 267
+dosver = 268
 endif
 ifndef winver
 winver = 388

@@ -4846,17 +4846,27 @@ zip_testcentral proc pascal private uses si di wsub:dword
 		shl ax,2
 		add bx,ax
 		les bx,es:[bx]
-		mov ax,zip_central.cz_date
-		mov dx,zip_central.cz_time
-		mov word ptr es:[bx].S_FBLK.fb_time,dx
-		mov word ptr es:[bx].S_FBLK.fb_time[2],ax
-		.if zip_central.cz_version_made == 0
-		    mov ax,zip_central.cz_ext_attrib
-		    or	ax,zip_attrib
-		    and ax,_A_FATTRIB
-		    mov es:[bx],ax
+
+		; v2.68 -- duplicated file error
+
+		.if ( es:[bx].S_FBLK.fb_flag & _A_SUBDIR )
+
+		    ; update time and attributes
+
+		    mov ax,zip_central.cz_date
+		    mov dx,zip_central.cz_time
+		    mov word ptr es:[bx].S_FBLK.fb_time,dx
+		    mov word ptr es:[bx].S_FBLK.fb_time[2],ax
+		    .if zip_central.cz_version_made == 0
+			mov ax,zip_central.cz_ext_attrib
+			or  ax,zip_attrib
+			and ax,_A_FATTRIB
+			mov es:[bx],ax
+		    .endif
+		    xor ax,ax
+		.else
+		    mov ax,1
 		.endif
-		xor ax,ax
 	    .endif
 	.endif
       @@:

@@ -449,6 +449,9 @@ Changes in 2.48 - 16 Jul 2013
 Change Log for DOSZIP - Dos16
 =============================
 
+Changes in 2.68 - 6 May 2025
+- allow duplicated files in ZIP archives
+
 Changes in 2.67 - 11 Jan 2025
 - source cleanup
 
