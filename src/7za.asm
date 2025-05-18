@@ -1445,7 +1445,8 @@ warcread proc uses rsi rdi rbx ws:PWSUB
                 .continue .if ( eax == 0 )
 
                 archive.GetProperty(edi, kpidAttrib, &prop)
-                or fattrib,prop.ulVal
+                movzx eax,prop.bVal
+                or fattrib,eax
                 .if !( fattrib & _A_SUBDIR )
                     archive.GetProperty(edi, kpidIsDir, &prop)
                     .if ( prop.ulVal )

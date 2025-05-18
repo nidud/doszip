@@ -3,6 +3,12 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.90 - 18 May 2025
+- fixed bug in 7z.dll reading directory attributes
+
+Changes in 3.89 - 6 May 2025
+- added progress for 7z.dll view
+
 Changes in 3.88 - 3 May 2025
 - allow duplicated files in ZIP archives -- Read/Extract/Delete
 
