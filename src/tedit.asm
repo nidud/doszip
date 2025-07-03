@@ -4522,9 +4522,13 @@ tclose proc
     .if tistate(tinfo)
         .if ecx & _T_MODIFIED
             mov rdx,tinfo
-            .if SaveChanges([rdx].TINFO.file)
-
-                tiflush(tinfo)
+            .if ( ctrl_shutdown == 0 ) ; no time for this..
+                .if SaveChanges([rdx].TINFO.file)
+                    tiflush(tinfo)
+                .endif
+            .else
+                or [rdx].TINFO.flags,_T_USEBAKFILE
+                tiflush(tinfo) ; just flush the file..
             .endif
         .endif
         ticlose(tinfo)

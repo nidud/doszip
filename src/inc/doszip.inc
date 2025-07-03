@@ -178,6 +178,8 @@ PHISTORY	typedef ptr HISTORY
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+externdef ctrl_shutdown:	uint_t
+
 externdef cp_ziplst:		char_t
 externdef cp_selectmask:	char_t
 

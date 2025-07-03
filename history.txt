@@ -3,6 +3,12 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.91 - 4 Jul 2025
+- upate for external Shut-Down events:
+  - there's no time for the "is not saved. Save ?" in this case
+  - so the files are now just flushed by adding a .BAK file
+  - note: Shut-Down events are only added to the 64-bit version
+
 Changes in 3.90 - 18 May 2025
 - fixed bug in 7z.dll reading directory attributes
 

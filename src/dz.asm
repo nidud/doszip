@@ -21,6 +21,7 @@ doszip_close    proto
 
     DZTitle LPSTR cptitle
     cptitle db "Doszip Commander",0
+    ctrl_shutdown dd 0
 
     .code
 
@@ -28,6 +29,8 @@ doszip_close    proto
     dd 564A4A50h
     db __LIBC__ / 100 + '0','.',__LIBC__ mod 100 / 10 + '0',__LIBC__ mod 10 + '0'
 
+
+define DZ_CLOSE_EVENT 7
 
 CtrlHandler proc private EventCode:UINT
 
@@ -39,6 +42,10 @@ CtrlHandler proc private EventCode:UINT
     .case CTRL_CLOSE_EVENT
     .case CTRL_LOGOFF_EVENT
     .case CTRL_SHUTDOWN_EVENT
+ifdef _WIN64
+        mov ctrl_shutdown,ecx
+endif
+    .case DZ_CLOSE_EVENT
         doszip_close()
         tcloseall()
         .if CFGetSection("Exit")
@@ -279,7 +286,7 @@ ifdef _WIN64
         SetConsoleCtrlHandler( &CtrlHandler, 1 )
 endif
         doszip_modal()
-        CtrlHandler(CTRL_CLOSE_EVENT)
+        CtrlHandler(DZ_CLOSE_EVENT)
     .endif
     ret
 

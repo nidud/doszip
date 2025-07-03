@@ -36,10 +36,9 @@ create_heap:
 	mov	ss:brklvl,ax
 	mov	ss:heapfree,ax
 	mov	es,ax
-	xor	ax,ax
-	mov	bx,ax
-	mov	es:[bx].mb.mb_size,ax
-	inc	ax
+	mov	ax,1
+	xor	bx,bx
+	mov	es:[bx].mb.mb_size,bx
 	mov	es:[bx].mb.mb_used,ax
 	ret
     create_heap_failed:
@@ -62,9 +61,8 @@ extend_heap:
 	add	ax,cx
 	mov	ss:brklvl,ax
 	mov	es,ax
-	xor	ax,ax
-	mov	es:[bx].mb.mb_size,ax
-	inc	ax
+	mov	ax,1
+	mov	es:[bx].mb.mb_size,bx
 	mov	es:[bx].mb.mb_used,ax
 	ret
     extend_heap_failed:

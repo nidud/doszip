@@ -283,7 +283,7 @@ ioflush		proto __cdecl :PIOST
 ioread		proto __cdecl :PIOST
 ioclose		proto __cdecl :PIOST
 iofree		proto fastcall :PIOST
-iowrite		proto __cdecl :PIOST, :PTR, :SIZE_T
+iowrite		proto __cdecl :PIOST, :PTR, :size_t
 iotell		proto fastcall :PIOST
 oputc		proto __cdecl :SINT
 ogetc		proto __cdecl
