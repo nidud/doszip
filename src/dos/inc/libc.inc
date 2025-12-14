@@ -2,13 +2,13 @@
 
 __LIBC_INC	equ 1
 
-ifndef __COMPACT__
-   ifndef __LARGE__
-	.err <you must supply a model symbol>
+ifndef __c__
+   ifndef __l__
+       __l__	equ 1
    endif
 endif
 
-ifdef	__LARGE__
+ifdef	__l__
 	_CDecl	equ <far c>
 	_CType	equ <far pascal>
 	_CFast	equ <far fastcall>
@@ -18,7 +18,7 @@ else
 	_CFast	equ <fastcall>
 endif
 
-ifdef	__COMPACT__
+ifdef	__c__
 	p?	equ <dw>	; Proc Pointer
 	size_p	equ <WORD>	; - as Parameter
 else
@@ -41,7 +41,7 @@ endif
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cld?	equ <>
-ifdef __LARGE__
+ifdef __l__
 	movl	equ <mov>
 	pushl	equ <push>
 	popl	equ <pop>
@@ -100,7 +100,7 @@ endif
 	endm
 
 movp	macro fp,lp
-ifdef __LARGE__
+ifdef __l__
 	mov WORD PTR fp+2,cs
 endif
 	mov WORD PTR fp,offset lp

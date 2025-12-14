@@ -223,13 +223,20 @@ PTRECT		typedef ptr TRECT
     BOX_CLEAR
     }
 
+.enum _RCMOVE_DIRECTION {
+    RC_MOVERIGHT = 1,
+    RC_MOVELEFT,
+    RC_MOVEDOWN,
+    RC_MOVEUP
+    }
+
 rcalloc		proto __cdecl :TRECT, :UINT
+rcread		proto __cdecl :TRECT, :PCHAR_INFO
+rcwrite		proto __cdecl :TRECT, :PCHAR_INFO
+rcmove		proto __cdecl :TRECT, :PCHAR_INFO, :UINT
 rcclose		proto __cdecl :TRECT, :UINT, :PCHAR_INFO
 rcshow		proto __cdecl :TRECT, :UINT, :PCHAR_INFO
 rcopen		proto __cdecl :TRECT, :UINT, :UINT, :LPSTR, :PTR
-rcread		proto __cdecl :TRECT, :PCHAR_INFO
-rcwrite		proto __cdecl :TRECT, :PCHAR_INFO
-rcmove		proto __cdecl :PTRECT,:PCHAR_INFO, :UINT, :UINT, :UINT
 rcbprc		proto __cdecl :TRECT, :PCHAR_INFO, :UINT
 rcbprcrc	proto __cdecl :TRECT, :UINT, :PCHAR_INFO, :UINT
 rcframe		proto __cdecl :TRECT, :PCHAR_INFO, :UINT, :UINT

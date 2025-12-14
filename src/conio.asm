@@ -883,315 +883,218 @@ rcopen proc rc:TRECT, flag:uint_t, attrib:uint_t, title:string_t, p:ptr
 rcopen endp
 
 
-rcmoveu proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, flag:uint_t
+rcmove proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, direction:UINT
 
-  local x:uint_t, lines:uint_t, l:uint_t, lp:ptr
+   .new r0:TRECT
+   .new r1:TRECT
+   .new r2:TRECT
+   .new l1[128]:CHAR_INFO ; read
+   .new l2[128]:CHAR_INFO ; write
 
-    movzx eax,rc.y
-    .if eax > 1
+    ldr eax,rc
+    ldr rsi,p
+    ldr ebx,direction
 
-        movzx   esi,rc.row
-        dec     eax
-        add     esi,eax
-        mov     edi,eax
-        mov     al,rc.x
-        mov     x,eax
-        mov     al,rc.col
-        mov     l,eax
-
-        .if rcalloc(rc, 0)
-
-            mov rbx,rax
-            rcread(rc, rax)
-            mov lp,scgetws(x, edi, l)
-            dec rc.y
-            rcwrite(rc, rbx)
-            free(rbx)
-
-            mov     ebx,l
-            shl     ebx,2
-            movzx   eax,rc.row
-            dec     eax
-            mov     lines,eax
-            mul     ebx
-            mov     rdi,p
-            add     rdi,rax
-
-            memxchg(lp, rdi, ebx)
-            scputws(x, esi, l, rax)
-
-            mov rsi,rdi
-            sub rsi,rbx
-
-            .while lines
-
-                memxchg(rsi, rdi, ebx)
-                sub rdi,rbx
-                sub rsi,rbx
-                dec lines
-            .endw
+    lea rdi,l2
+    .switch ebx
+    .case RC_MOVELEFT
+        .if ( al == 0 )
+            .return
         .endif
-    .endif
-    mov eax,rc
-    ret
+        dec     al
+        mov     r0,eax          ; write line right
+        mov     r1,eax          ; read line left
+        mov     r2,eax
+        mov     r1.col,1
+        mov     r2.col,1
+        add     r2.x,rc.col
+        dec     al
+        movzx   edx,al
+        .for ( ecx = 0 : cl < rc.row : ecx++ )
 
-rcmoveu endp
-
-rcmoved proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, flag:uint_t
-
-  local x,l,lp:ptr
-
-    movzx eax,rc.y
-    movzx edx,rc.row
-    mov   esi,eax
-    add   eax,edx
-
-    .if _scrrow >= eax
-
-        mov edi,eax
-        mov al,rc.x
-        mov x,eax
-        mov al,rc.col
-        mov l,eax
-
-        .if rcalloc( rc, 0 )
-
-            mov rbx,rax
-            rcread(rc, rax)
-            mov lp,scgetws(x, edi, l)
-            inc rc.y
-            rcwrite(rc, rbx)
-            free(rbx)
-
-            mov ebx,l
-            shl ebx,2
-            memxchg( lp, p, ebx )
-            scputws( x, esi, l, rax )
-            movzx esi,rc.row
-            dec esi
-            mov rdi,p
-
-            .while esi
-
-                memxchg(rdi, &[rdi+rbx], ebx)
-                add rdi,rbx
-                dec esi
-            .endw
+            mov eax,[rsi+rdx*4]
+            stosd
+            movzx eax,rc.col
+            add edx,eax
+        .endf
+        .endc
+    .case RC_MOVERIGHT
+        movzx ecx,al
+        movzx edx,rc.col
+        add ecx,edx
+        .if ( ecx >= _scrcol )
+            .return
         .endif
-    .endif
-    mov eax,rc
-    ret
+        mov r1,eax              ; read line right
+        mov r2,eax              ; write line left
+        mov r1.col,1
+        mov r2.col,1
+        inc al
+        mov r0,eax
+        add r1.x,rc.col
+        .for ( edx = 0, ecx = 0 : cl < rc.row : ecx++ )
 
-rcmoved endp
-
-rcmover proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, flag:uint_t
-
-  local x,y,l,b:ptr
-
-    movzx eax,rc.x
-    movzx edx,rc.col
-    mov   esi,eax
-    add   eax,edx
-
-    .if _scrcol > eax
-
-        mov edi,eax
-        mov al,rc.x
-        mov x,eax
-        mov al,rc.y
-        mov y,eax
-        mov al,rc.row
-        not eax
-        mov l,eax
-
-        .if rcalloc(rc, 0)
-
-            mov rbx,rax
-            rcread(rc, rax)
-            mov b,scgetws(edi, y, l)
-            inc rc.x
-            rcwrite(rc, rbx)
-            free(rbx)
-
-            movzx ebx,rc.col
-            dec   ebx
-            movzx edx,rc.row
-            mov   rsi,p
-            mov   rdi,b
-
-            .repeat
-                mov     ecx,[rsi]
-                mov     eax,[rdi]
-                mov     [rdi],ecx
-                push    rdi
-                mov     rdi,rsi
-                add     rsi,4
-                mov     ecx,ebx
-                rep     movsd
-                pop     rdi
-                mov     [rsi-4],eax
-                add     rdi,4
-                dec     edx
-            .until !edx
-            scputws(x, y, l, b)
+            mov eax,[rsi+rdx*4]
+            stosd
+            movzx eax,rc.col
+            add edx,eax
+        .endf
+        .endc
+    .case RC_MOVEUP
+        .if ( ah <= 1 )
+            .return
         .endif
-    .endif
-    mov eax,rc
-    ret
-
-rcmover endp
-
-rcmovel proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, flag:uint_t
-
-  local x,y,l,r,z,b:ptr
-
-    ldr ecx,rc
-    mov eax,ecx
-
-    .if al
-
+        dec     ah
+        mov     r0,eax          ; write last line
+        mov     r1,eax          ; read line above
+        mov     r2,eax
+        mov     r1.row,1
+        mov     r2.row,1
+        add     r2.y,rc.row
+        dec     al
+        movzx   ecx,rc.col
         movzx   eax,al
-        lea     edx,[rax-1]
-        mov     z,edx
-        mov     x,eax
-        mov     al,ch
-        mov     y,eax
-        mov     al,rc.row
-        mov     r,eax
-        not     eax
-        mov     l,eax
-        movzx   eax,rc.col
-        mul     r
-        shl     eax,2
-
-        .if malloc(eax)
-
-            mov rbx,rax
-            rcread(rc, rax)
-            mov b,scgetws(z, y, l)
-            dec rc.x
-            rcwrite(rc, rbx)
-            free(rbx)
-
-            movzx   ebx,rc.col
-            lea     eax,[rbx-1]
-            mov     z,eax
-            shl     ebx,3
-            mov     edx,r
-            shl     eax,2
-            mov     rsi,p
-            add     rsi,rax
-            mov     rdi,b
-
-            std
-            .repeat
-                mov     ecx,[rsi]
-                mov     eax,[rdi]
-                mov     [rdi],ecx
-                push    rdi
-                mov     rdi,rsi
-                sub     rsi,4
-                mov     ecx,z
-                rep     movsd
-                pop     rdi
-                mov     [rsi+4],eax
-                add     rsi,rbx
-                add     rdi,4
-                dec     edx
-            .until !edx
-            cld
-
-            movzx   eax,rc.col
-            add     eax,x
-            dec     eax
-
-            scputws(eax, y, l, b)
+        mul     ecx
+        mov     rdx,rsi
+        lea     rsi,[rsi+rax*4] ; last line
+        rep     movsd
+        mov     rsi,rdx
+       .endc
+    .case RC_MOVEDOWN
+        movzx   ecx,ah
+        movzx   edx,rc.row
+        add     ecx,edx
+        .if ( _scrrow < ecx )
+            .return
         .endif
-    .endif
-    mov eax,rc
-    ret
+        mov     r1,eax          ; write first line
+        mov     r2,eax          ; read line below
+        mov     r1.row,1
+        mov     r2.row,1
+        inc     ah
+        mov     r0,eax
+        add     r1.y,rc.row
+        movzx   ecx,rc.col
+        mov     rdx,rsi
+        rep     movsd           ; first line
+        mov     rsi,rdx
+    .endsw
 
-rcmovel endp
+    .if rcalloc(rc, 0)
+
+        mov rdi,rax
+        rcread(r1, &l1)
+        rcread(rc, rdi)
+        rcwrite(r0, rdi)
+        rcwrite(r2, &l2)
+        free(rdi)
+
+        .switch ebx
+        .case RC_MOVELEFT
+             std
+            .for ( rbx = rsi, edx = 0 : dl < rc.row : edx++ )
+
+                movzx   eax,rc.col
+                mov     ecx,eax
+                imul    eax,edx
+                lea     rsi,[rbx+rax*4]
+                dec     ecx
+                lea     rsi,[rsi+rcx*4-4]
+                lea     rdi,[rsi+4]
+                rep     movsd
+                mov     eax,l1[rdx*4]
+                mov     [rdi],eax
+            .endf
+             cld
+            .endc
+        .case RC_MOVERIGHT
+            .for ( rdi = rsi, rsi+=4, edx = 0 : dl < rc.row : edx++ )
+
+                mov     eax,l1[rdx*4]
+                movzx   ecx,rc.col
+                dec     ecx
+                rep     movsd
+                stosd
+                add     rsi,4
+            .endf
+            .endc
+        .case RC_MOVEUP
+            movzx   eax,rc.row ; move lines down
+            movzx   ecx,rc.col ; insert first line
+            dec     eax
+            mul     ecx
+            mov     rdx,rsi
+            lea     rsi,[rsi+rax*4-4]
+            lea     rdi,[rsi+rcx*4]
+            mov     ecx,eax
+            std
+            rep     movsd
+            cld
+            mov     rdi,rdx
+            movzx   ecx,rc.col
+            lea     rsi,l1
+            rep     movsd
+           .endc
+        .case RC_MOVEDOWN
+            movzx   eax,rc.row  ; move lines up
+            movzx   ecx,rc.col  ; insert last line
+            dec     eax
+            mul     ecx
+            mov     rdi,rsi
+            lea     rsi,[rsi+rcx*4]
+            xchg    eax,ecx
+            rep     movsd
+            mov     ecx,eax
+            lea     rsi,l1
+            rep     movsd
+           .endc
+        .endsw
+        .return(r0)
+    .endif
+    .return(rc)
+
+rcmove endp
+
 
 rcmsmove proc private uses rsi rdi rbx rc:PTRECT, p:PCHAR_INFO, flag:uint_t
 
-  local xpos,ypos
-  local relx,rely
+  local xpos,ypos,relx
   local cursor:CURSOR
 
     ldr rdi,rc
     mov ebx,[rdi]
     .if flag & _D_SHADE
-
         rcshade(ebx, p, 0)
     .endif
-
-    mov ypos,mousey()
-    mov edx,eax
-    mov xpos,mousex()
-    sub al,bl
-    mov relx,eax
-    sub dl,bh
-    mov rely,edx
-
     _getcursor(&cursor)
     _cursoroff()
 
+    mousex()
+    movzx ecx,bl
+    sub eax,ecx
+    mov relx,eax
+
     .while mousep() == 1
 
-        xor esi,esi
-        .ifd mousex() > xpos
-
-            mov esi,1
-
-        .elseif CARRY?
-
-            .if bl
-
-                mov esi,2
-            .endif
+        mousex()
+        movzx ecx,bl
+        add ecx,relx
+        .if ( ecx < eax )
+            mov ebx,rcmove(ebx, p, RC_MOVERIGHT)
+        .elseif ( ecx > eax )
+            mov ebx,rcmove(ebx, p, RC_MOVELEFT)
         .endif
-
-        .if !esi
-
-            .ifd mousey() > ypos
-
-                mov esi,3
-
-            .elseif CARRY?
-
-                .if bh != 1
-
-                    mov esi,4
-                .endif
-            .endif
-        .endif
-
-        mov ecx,flag
-        and ecx,not _D_SHADE
-
-        .switch pascal esi
-        .case 1: rcmover(ebx, p, ecx)
-        .case 2: rcmovel(ebx, p, ecx)
-        .case 3: rcmoved(ebx, p, ecx)
-        .case 4: rcmoveu(ebx, p, ecx)
-        .endsw
-
-        .if esi
-            mov ebx,eax
-            mov edx,eax
-            mov eax,rely
-            add al,dh
-            mov ypos,eax
-            mov eax,relx
-            add al,dl
-            mov xpos,eax
+        mousey()
+        movzx ecx,bh
+        .if ( ecx < eax )
+            mov ebx,rcmove(ebx, p, RC_MOVEDOWN)
+        .elseif ( ecx > eax )
+            mov ebx,rcmove(ebx, p, RC_MOVEUP)
         .endif
     .endw
 
     _setcursor(&cursor)
     .if flag & _D_SHADE
-
         rcshade(ebx, p, 1)
     .endif
     mov [rdi],ebx
@@ -3098,22 +3001,17 @@ test_event proc private uses rsi rdi rbx cmd, extended
 
             mov rdi,[rsi].DOBJ.wp
             mov ebx,[rsi].DOBJ.rc
-
             .if ( ecx & _D_SHADE )
-
                 rcshade(ebx, rdi, 0)
             .endif
-
             mov eax,cmd
-            movzx ecx,[rsi].DOBJ.flag
-
             .switch pascal eax
-            .case KEY_ALTUP:    rcmoveu(ebx, rdi, ecx)
-            .case KEY_ALTDN:    rcmoved(ebx, rdi, ecx)
-            .case KEY_ALTLEFT:  rcmovel(ebx, rdi, ecx)
-            .case KEY_ALTRIGHT: rcmover(ebx, rdi, ecx)
+            .case KEY_ALTUP:    mov ecx,RC_MOVEUP
+            .case KEY_ALTDN:    mov ecx,RC_MOVEDOWN
+            .case KEY_ALTLEFT:  mov ecx,RC_MOVELEFT
+            .case KEY_ALTRIGHT: mov ecx,RC_MOVERIGHT
             .endsw
-
+            rcmove(ebx, rdi, ecx)
             mov bx,ax
             mov word ptr [rsi].DOBJ.rc,ax
             .if [rsi].DOBJ.flag & _D_SHADE

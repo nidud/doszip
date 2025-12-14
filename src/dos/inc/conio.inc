@@ -143,7 +143,7 @@ to_ascii	db ?
 to_rect		S_RECT <?>
 to_data		dd ?
 to_proc		p? ?
-ifdef __COMPACT__
+ifdef __c__
 to_proc_seg	dw ?
 endif
 S_TOBJ		ENDS

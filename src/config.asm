@@ -71,7 +71,7 @@ doskey_isnext   db 0
 
 ;-S_DZDATA-END--------------------------------------------------
 
-_bufin label byte
+_bufin label sbyte
 ;;;;;;;;;;;;;;;;;-----------------------------------------------
         ; _bufin 4096 byte. Includes a default .INI file
         ;-----------------------------------------------

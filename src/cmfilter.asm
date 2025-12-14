@@ -44,7 +44,10 @@ cmfilter_load proc uses rsi rdi rbx
     mov dl,[rax].RIDD.count
     mov edi,0x0D0D
     .if [rbx].DOBJ.count != dl
-        mov edi,1
+        dec edx
+        .if [rbx].DOBJ.count != dl
+            mov edi,1
+        .endif
     .endif
     mov esi,tools_idd(128, &filt, "Filter")
 

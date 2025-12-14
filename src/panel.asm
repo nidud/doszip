@@ -2939,7 +2939,7 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
             ;
             mov rax,keyshift
             mov eax,[rax]
-            and eax,3   ; Shift + Mouse = Move
+            and eax,3       ; Shift + Mouse = Move
             mov mouse,eax   ; else Copy
 
             .if selected
@@ -2999,11 +2999,17 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
             ;
             .while getmouse() == 1
 
-                mov eax,edi
-                mov ecx,esi
-                .if al != rect.x || cl != rect.y
-
-                    rcmove(addr rect, dialog, dlflag, edi, esi)
+                movzx ecx,rect.x
+                .if ( ecx < edi )
+                    mov rect,rcmove(rect, dialog, RC_MOVERIGHT)
+                .elseif ( ecx > edi )
+                    mov rect,rcmove(rect, dialog, RC_MOVELEFT)
+                .endif
+                movzx ecx,rect.y
+                .if ( ecx < esi )
+                    mov rect,rcmove(rect, dialog, RC_MOVEDOWN)
+                .elseif ( ecx > esi )
+                    mov rect,rcmove(rect, dialog, RC_MOVEUP)
                 .endif
                 mov rax,keyshift
                 mov eax,[rax]

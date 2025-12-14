@@ -8,6 +8,7 @@ include dir.inc
 include fblk.inc
 include wsub.inc
 include filter.inc
+include version.inc
 include dzidd.inc
 include macro.inc
 include tview.inc
@@ -476,7 +477,7 @@ externdef cp_deselect:	byte
 removetemp proto _CType :dword
 getpanelb proto
 
-ifdef __LARGE__
+ifdef __l__
 _DZIP	SEGMENT WORD USE16 public 'CODE'
 _DZIP	ENDS
 	ASSUME CS:_DZIP, DS:DGROUP
