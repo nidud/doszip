@@ -3,6 +3,15 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.93 - 16 Des 2025
+- added more support to Create Archive (Shift-F7):
+  - In addition to ZIP and 7ZIP all archive types defined in
+    section [7z.dll] (TAR/GZ/etc) are now allowed.
+
+Changes in 3.92 - 15 Des 2025
+- fixed bug in Compare Directories:
+  - Load predefined file mask from .INI file (F9) failed
+
 Changes in 3.91 - 4 Jul 2025
 - upate for external Shut-Down events:
   - there's no time for the "is not saved. Save ?" in this case

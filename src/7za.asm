@@ -1548,7 +1548,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
    .new numItems:SDWORD = eax
    .new tempfile:DWORD = eax
    .new hr:HRESULT = eax
-   .new wb:WIN32_FIND_DATA
+   .new wb:WIN32_FIND_DATAW
 
     ldr rsi,dest
     ldr rdi,wsub
@@ -1615,8 +1615,31 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
     .if SUCCEEDED(hr)
 
         archive.GetNumberOfItems(&numItems)
-        .if ( numItems < 0 )
-            mov hr,E_BOUNDS
+        ;
+        ; v3.93: allow empty archives (created by Shift-F7)
+        ;
+        mov eax,numItems
+        .ifs ( eax < 0 || ( eax == 1 && CLSID_Format.Data4[5] == kId_GZip ) )
+
+            .if ( eax != 1 )
+                mov hr,E_BOUNDS
+                xor eax,eax
+            .endif
+            inc eax
+
+            .if ( eax == [rsi].WSUB.count )
+
+                .ifd ( FindFirstFileW(&arcfile, &wb) != -1 )
+
+                    FindClose(rax)
+                    mov eax,wb.nFileSizeLow
+                    or  eax,wb.nFileSizeHigh
+                    .ifz
+                        mov hr,eax
+                        mov numItems,eax
+                    .endif
+                .endif
+            .endif
         .endif
     .endif
 
@@ -1965,7 +1988,7 @@ warcview endp
 ; Test
 ;-------------------------------------------------------------------------
 
-warctest proc uses rsi rdi rbx fblk:PFBLK, sign:int_t
+warctest proc uses rsi rdi rbx fblk:LPSTR, sign:int_t
 
     ldr rbx,fblk
     ldr edi,sign
@@ -1979,7 +2002,7 @@ warctest proc uses rsi rdi rbx fblk:PFBLK, sign:int_t
         .elseif CFGetSection("7z.dll")
 
             mov rsi,rax
-            .if strext([rbx].FBLK.name)
+            .if strext(rbx)
 
                 inc rax
                 .if INIGetEntry(rsi, rax)

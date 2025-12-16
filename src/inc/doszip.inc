@@ -237,7 +237,7 @@ CaptureScreen		PROTO
 endif
 
 warcread		PROTO :PWSUB
-warctest		PROTO :PFBLK, :SINT
+warctest		PROTO :LPSTR, :SINT
 warcadd			PROTO :PWSUB, :PWSUB, :PFBLK
 warccopy		PROTO :PWSUB, :PFBLK, :LPSTR
 warcview		PROTO :PWSUB, :PFBLK

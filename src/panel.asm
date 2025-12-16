@@ -2859,7 +2859,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                     ; case .ZIP file
                     ;
                     mov eax,_W_ARCHZIP
-                .elseifd warctest(pe.pe_fblk, eax) == 1
+                .elseifd warctest(rbx, eax) == 1
                     ;
                     ; case 7za archive
                     ;

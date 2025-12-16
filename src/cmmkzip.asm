@@ -32,12 +32,17 @@ cmmkzip proc uses rsi rdi rbx
                 xor ebx,ebx
                 .if strext(rdi)
                     mov eax,[rax]
-                    or  eax,0x00200000
-                    .if ( eax == 'z7.' )
+                    or  eax,0x20202000
+                    .if ( eax == ' z7.' )
                         .ifd ( warctest(NULL, 0xAFBC7A37) == 0 )
                             .return notsup()
                         .endif
                         inc ebx
+                    .elseif ( eax != 'piz.' )
+                        .ifd ( warctest(rdi, 0) == 0 )
+                            .return notsup()
+                        .endif
+                        mov ebx,2
                     .endif
                 .endif
 
@@ -79,7 +84,9 @@ cmmkzip proc uses rsi rdi rbx
                     .if ( ebx )
                         mov ecx,32
                     .endif
-                    oswrite(esi, rdx, ecx)
+                    .if ( ebx < 2 )
+                        oswrite(esi, rdx, ecx)
+                    .endif
                     _close(esi)
                     mov _diskflag,1
                 .endif

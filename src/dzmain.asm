@@ -219,7 +219,7 @@ doszip_init proc uses rsi rdi rbx argv:LPSTR
             .if ax == 4B50h
 
                 mov eax,_W_ARCHZIP
-            .elseif warctest(rdi, eax) == 1
+            .elseif warctest(rbx, eax) == 1
                 mov eax,_W_ARCHEXT
             .else
                 xor eax,eax
