@@ -1620,7 +1620,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         ; v3.94: a "fake" file name not only added to GZip
 
         mov eax,numItems
-        .ifs ( eax < 2 ) ; ( eax < 0 ) || ( eax == 1 && CLSID_Format.Data4[5] == kId_GZip ) )
+        .ifs ( eax < 0 || eax == 1 ) ; || ( eax == 1 && CLSID_Format.Data4[5] == kId_GZip ) )
 
             .if ( eax != 1 )
                 mov hr,E_BOUNDS

@@ -3,6 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.94 - 17 Des 2025
+- update for 7z.dll Create Archive (BZ2/XC/..)
+
 Changes in 3.93 - 16 Des 2025
 - added more support to Create Archive (Shift-F7):
   - In addition to ZIP and 7ZIP all archive types defined in
