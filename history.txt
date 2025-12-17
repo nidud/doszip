@@ -470,7 +470,7 @@ Changes in 2.48 - 16 Jul 2013
 Change Log for DOSZIP - Dos16
 =============================
 
-Changes in 2.68 - 14 Des 2025
+Changes in 2.69 - 14 Des 2025
 - regress from 2.67
 
 Changes in 2.68 - 6 May 2025
