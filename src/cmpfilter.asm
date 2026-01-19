@@ -26,18 +26,14 @@ event_loadpath proc private
    .new rc:int_t = tools_idd(_MAX_PATH, &path, "Directory")
 
     msloop()
-
     .if ( !path || !rc || rc == MOUSECMD )
-
         mov eax,_C_NORMAL
     .else
-
         strcpy(pathptr, expenviron(&path))
         mov eax,_C_REOPEN
     .endif
     ret
-
-event_loadpath endp
+    endp
 
 
 PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
@@ -78,24 +74,18 @@ PanelFilter proc private uses rsi rdi rbx panel:PPANEL, xpos:int_t
     .endif
     xor eax,eax
     ret
-
-PanelFilter endp
+    endp
 
 
 cmafilter proc
-
     PanelFilter(panela, 3)
     ret
-
-cmafilter endp
-
+    endp
 
 cmbfilter proc
-
     PanelFilter(panelb, 42)
     ret
-
-cmbfilter endp
+    endp
 
 
 cmloadpath proc uses rbx
@@ -105,11 +95,9 @@ cmloadpath proc uses rbx
     lea rbx,path
     mov pathptr,rbx
     .ifd ( event_loadpath() == _C_REOPEN )
-
         cpanel_setpath(rbx)
     .endif
     ret
-
-cmloadpath endp
+    endp
 
     END

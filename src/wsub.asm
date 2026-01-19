@@ -435,36 +435,46 @@ wsinit proc uses rsi rdi rbx wsub:PWSUB
 
     ldr rdi,wsub
 
+    ; v3.95: Skip Set/GetCurrentDirectory() on network paths
+
+    xor ebx,ebx
     mov rsi,[rdi].WSUB.path
     .if ( byte ptr [rsi] == 0 )
-        GetCurrentDirectory(WMAXPATH, rsi)
-    .endif
-
-    .if SetCurrentDirectory(rsi)
-
-        .if GetCurrentDirectory(WMAXPATH, rsi)
-
-            movzx eax,word ptr [rsi]
-            .if ah == ':'
-                .if al <= 'z' && al >= 'a'
-                    sub al,'a' - 'A'
-                .endif
-                shl eax,8
-                mov al,'='
-                mov path,eax
-                SetEnvironmentVariable(&path, rsi)
-            .endif
+        mov ebx,GetCurrentDirectory(WMAXPATH, rsi)
+    .elseif ( byte ptr [rsi+1] != '\' )
+        .ifd SetCurrentDirectory(rsi)
+            GetCurrentDirectory(WMAXPATH, rsi)
         .endif
+        mov ebx,eax
     .endif
 
     .if !wssetflag(rdi)
-
         ermsg(0, "Error init directory\n%s", [rdi].WSUB.path)
-        wslocal(rdi)
-
+        mov ebx,GetCurrentDirectory(WMAXPATH, rsi)
+        wssetflag(rdi)
     .elseif ( eax != 1 && eax != 3 )
+        mov ebx,GetCurrentDirectory(WMAXPATH, rsi)
+        wssetflag(rdi)
+    .endif
 
-        wslocal(rdi)
+    .if ( ebx && !( [rdi].WSUB.flag & _W_NETWORK ) )
+
+        .if SetCurrentDirectory(rsi)
+
+            .if GetCurrentDirectory(WMAXPATH, rsi)
+
+                movzx eax,word ptr [rsi]
+                .if ah == ':'
+                    .if al <= 'z' && al >= 'a'
+                        sub al,'a' - 'A'
+                    .endif
+                    shl eax,8
+                    mov al,'='
+                    mov path,eax
+                    SetEnvironmentVariable(&path, rsi)
+                .endif
+            .endif
+        .endif
     .endif
     ret
 
