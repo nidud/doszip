@@ -10,8 +10,8 @@ include winnls.inc
 
 cmmkdir proc uses rsi rdi rbx
 
-   .new wbuf[_MAX_PATH]:wchar_t
-   .new path[_MAX_PATH]:char_t
+   .new path[1024]:char_t
+   .new wbuf[512]:wchar_t
    .new size:int_t
 
     lea rbx,path
@@ -23,18 +23,23 @@ cmmkdir proc uses rsi rdi rbx
 
         .if panel_state(rax)
 
+            .if ( edi & _W_NETWORK ) ; v3.95: network directory
+                lea rbx,[rbx+strlen(strcpy(rbx, [rsi].WSUB.path))+1]
+                mov byte ptr [rbx-1],'\'
+            .endif
             mov byte ptr [rbx],0
             .ifd tgetline("Make directory", rbx, 40, _MAX_PATH)
 
-                .ifd strlen(rbx)
-
+                .if ( byte ptr [rbx] )
+                    .if ( edi & _W_NETWORK )
+                        lea rbx,path
+                    .endif
+                    strlen(rbx)
                     inc eax
                     mov size,eax
-                    .ifd MultiByteToWideChar(_consolecp, 0, rbx, size, &wbuf, _MAX_PATH)
-
+                    .ifd MultiByteToWideChar(_consolecp, 0, rbx, size, &wbuf, 1024)
                         mov ecx,eax
-                        .ifd WideCharToMultiByte(CP_UTF8, 0, &wbuf, ecx, rbx, _MAX_PATH, NULL, NULL)
-
+                        .ifd WideCharToMultiByte(CP_UTF8, 0, &wbuf, ecx, rbx, 1024, NULL, NULL)
                             mov _diskflag,1
                             .if ( edi & _W_ARCHZIP )
                                 wsmkzipdir(rsi, rbx)
