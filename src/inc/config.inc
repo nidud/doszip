@@ -1,6 +1,18 @@
 ifndef __CONFIG_INC
 define __CONFIG_INC
 
+.enum {
+    CON_MIN_X = 1,
+    CON_MIN_Y,
+    CON_MIN_COL,
+    CON_MIN_ROW,
+    CON_MAX_X,
+    CON_MAX_Y,
+    CON_MAX_COL,
+    CON_MAX_ROW,
+    CON_USEDEFAULT
+    }
+
 if 0
 .enum EntryType {
     C_EMPTY,
@@ -37,13 +49,35 @@ define INI_ENTRY        2
 define INI_COMMENT      4
 
 
+LPINI           typedef ptr S_INI
 S_INI           STRUC
 flags           UINT ?
 entry           LPSTR ?         ; [<Section>]  | <Entry>
-value           PVOID ?         ; first entry  | value
-next            PVOID ?         ; next section | next entry
+union
+ value          LPSTR ?         ; first entry  | value
+ first          LPINI ?
+ends
+next            LPINI ?         ; next section | next entry
 S_INI           ENDS
-LPINI           typedef ptr S_INI
+
+CFBLK           union 1
+struct
+ loff           dd ?
+ yoff           dd ?
+ boff           dd ?
+ xoff           dd ?
+ tabz           dd ?
+ flag           dd ?
+ name           string_t ?
+ends
+struct
+ attrib         dd ?
+ fcb_index      dd ?
+ cel_index      dd ?
+ path           string_t ?
+ends
+CFBLK           ends
+PCFBLK          typedef ptr CFBLK
 
 INIRead         proto __cdecl :LPINI, :LPSTR
 INIWrite        proto __cdecl :LPINI, :LPSTR
@@ -52,6 +86,7 @@ INIAlloc        proto __cdecl
 INIGetSection   proto __cdecl :LPINI, :LPSTR
 INIGetEntry     proto __cdecl :LPINI, :LPSTR
 INIGetEntryID   proto __cdecl :LPINI, :UINT
+INIGetNextEntry proto __cdecl :LPINI
 INIAddSection   proto __cdecl :LPINI, :LPSTR
 INIDelSection   proto __cdecl :LPINI, :LPSTR
 INIDelEntries   proto __cdecl :LPINI
@@ -62,8 +97,9 @@ CFWrite         proto __cdecl :LPSTR
 CFClose         proto __cdecl
 CFGetSection    proto __cdecl :LPSTR
 CFGetSectionID  proto __cdecl :LPSTR, :UINT
+CFGetSecEntry   proto __cdecl :LPSTR, :LPSTR
 CFAddSection    proto __cdecl :LPSTR
-CFReadFileName  proto __cdecl :LPINI, :PTR, :UINT
+CFReadFileName  proto __cdecl :LPINI, :PCFBLK, :UINT
 CFFindSection   proto __cdecl :LPINI, :LPSTR, :LPSTR
 
 CFExecute       proto __cdecl :LPINI

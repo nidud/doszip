@@ -2,6 +2,7 @@
 ; Copyright (C) 2015 Doszip Developers -- see LICENSE.TXT
 ;
 ; Change history:
+; 2026-02-11 - added progress on read file list
 ; 2025-01-11 - added Confirm Delete for Add function
 ; 2025-01-07 - 7z.dll plugin --> removed 7za.exe code
 ;
@@ -22,360 +23,13 @@ include tview.inc
 include confirm.inc
 include progress.inc
 include dzstr.inc
-
-.enum {
-
-  kId_Zip       = 0x01,
-  kId_BZip2     = 0x02,
-  kId_Rar       = 0x03,
-  kId_Arj       = 0x04,
-  kId_Z         = 0x05,
-  kId_Lzh       = 0x06,
-  kId_7z        = 0x07,
-  kId_Cab       = 0x08,
-  kId_Nsis      = 0x09,
-  kId_Lzma      = 0x0A,
-  kId_Lzma86    = 0x0B,
-  kId_Xz        = 0x0C,
-  kId_Ppmd      = 0x0D,
-  kId_Zstd      = 0x0E,
-  kId_LVM       = 0xBF,
-  kId_AVB       = 0xC0,
-  kId_LP        = 0xC1,
-  kId_Sparse    = 0xC2,
-  kId_APFS      = 0xC3,
-  kId_Vhdx      = 0xC4,
-  kId_Base64    = 0xC5,
-  kId_COFF      = 0xC6,
-  kId_Ext       = 0xC7,
-  kId_VMDK      = 0xC8,
-  kId_VDI       = 0xC9,
-  kId_Qcow      = 0xCA,
-  kId_GPT       = 0xCB,
-  kId_Rar5      = 0xCC,
-  kId_IHex      = 0xCD,
-  kId_Hxs       = 0xCE,
-  kId_TE        = 0xCF,
-  kId_UEFIc     = 0xD0,
-  kId_UEFIs     = 0xD1,
-  kId_SquashFS  = 0xD2,
-  kId_CramFS    = 0xD3,
-  kId_APM       = 0xD4,
-  kId_Mslz      = 0xD5,
-  kId_Flv       = 0xD6,
-  kId_Swf       = 0xD7,
-  kId_Swfc      = 0xD8,
-  kId_Ntfs      = 0xD9,
-  kId_Fat       = 0xDA,
-  kId_Mbr       = 0xDB,
-  kId_Vhd       = 0xDC,
-  kId_Pe        = 0xDD,
-  kId_Elf       = 0xDE,
-  kId_Mach_O    = 0xDF,
-  kId_Udf       = 0xE0,
-  kId_Xar       = 0xE1,
-  kId_Mub       = 0xE2,
-  kId_Hfs       = 0xE3,
-  kId_Dmg       = 0xE4,
-  kId_Compound  = 0xE5,
-  kId_Wim       = 0xE6,
-  kId_Iso       = 0xE7,
-  kId_Chm       = 0xE9,
-  kId_Split     = 0xEA,
-  kId_Rpm       = 0xEB,
-  kId_Deb       = 0xEC,
-  kId_Cpio      = 0xED,
-  kId_Tar       = 0xEE,
-  kId_GZip      = 0xEF,
-}
-
-.enum {
-
-  kpidNoProperty,
-  kpidMainSubfile,
-  kpidHandlerItemIndex,
-  kpidPath,
-  kpidName,
-  kpidExtension,
-  kpidIsDir,
-  kpidSize,
-  kpidPackSize,
-  kpidAttrib,
-  kpidCTime,
-  kpidATime,
-  kpidMTime,
-  kpidSolid,
-  kpidCommented,
-  kpidEncrypted,
-  kpidSplitBefore,
-  kpidSplitAfter,
-  kpidDictionarySize,
-  kpidCRC,
-  kpidType,
-  kpidIsAnti,
-  kpidMethod,
-  kpidHostOS,
-  kpidFileSystem,
-  kpidUser,
-  kpidGroup,
-  kpidBlock,
-  kpidComment,
-  kpidPosition,
-  kpidPrefix,
-  kpidNumSubDirs,
-  kpidNumSubFiles,
-  kpidUnpackVer,
-  kpidVolume,
-  kpidIsVolume,
-  kpidOffset,
-  kpidLinks,
-  kpidNumBlocks,
-  kpidNumVolumes,
-  kpidTimeType,
-  kpidBit64,
-  kpidBigEndian,
-  kpidCpu,
-  kpidPhySize,
-  kpidHeadersSize,
-  kpidChecksum,
-  kpidCharacts,
-  kpidVa,
-  kpidId,
-  kpidShortName,
-  kpidCreatorApp,
-  kpidSectorSize,
-  kpidPosixAttrib,
-  kpidSymLink,
-  kpidError,
-  kpidTotalSize,
-  kpidFreeSpace,
-  kpidClusterSize,
-  kpidVolumeName,
-  kpidLocalName,
-  kpidProvider,
-  kpidNtSecure,
-  kpidIsAltStream,
-  kpidIsAux,
-  kpidIsDeleted,
-  kpidIsTree,
-  kpidSha1,
-  kpidSha256,
-  kpidErrorType,
-  kpidNumErrors,
-  kpidErrorFlags,
-  kpidWarningFlags,
-  kpidWarning,
-  kpidNumStreams,
-  kpidNumAltStreams,
-  kpidAltStreamsSize,
-  kpidVirtualSize,
-  kpidUnpackSize,
-  kpidTotalPhySize,
-  kpidVolumeIndex,
-  kpidSubType,
-  kpidShortComment,
-  kpidCodePage,
-  kpidIsNotArcType,
-  kpidPhySizeCantBeDetected,
-  kpidZerosTailIsAllowed,
-  kpidTailSize,
-  kpidEmbeddedStubSize,
-  kpidNtReparse,
-  kpidHardLink,
-  kpidINode,
-  kpidStreamId,
-  kpidReadOnly,
-  kpidOutName,
-  kpidCopyLink,
-  kpidArcFileName,
-  kpidIsHash,
-  kpidChangeTime,
-  kpidUserId,
-  kpidGroupId,
-  kpidDeviceMajor,
-  kpidDeviceMinor,
-  kpidDevMajor,
-  kpidDevMinor,
-
-  kpid_NUM_DEFINED,
-
-  kpidUserDefined = 0x10000
-}
-
-
-.namespace NExtract
-
-  .namespace NAskMode
-
-      .enum {
-        kExtract,
-        kTest,
-        kSkip,
-        kReadExternal
-      }
-  .endn
-
-  .namespace NOperationResult
-
-      .enum {
-        kOK,
-        kUnsupportedMethod,
-        kDataError,
-        kCRCError,
-        kUnavailable,
-        kUnexpectedEnd,
-        kDataAfterEnd,
-        kIsNotArc,
-        kHeadersError,
-        kWrongPassword
-      }
-  .endn
-.endn
-
-
-.comdef IInArchive : public IUnknown
-
-    Open                            proc :ptr, :ptr, :ptr
-    Close                           proc
-    GetNumberOfItems                proc :ptr
-    GetProperty                     proc :DWORD, :DWORD, :ptr
-    Extract                         proc :ptr, :DWORD, :SDWORD, :ptr
-    GetArchiveProperty              proc :DWORD, :ptr
-    GetNumberOfProperties           proc :ptr
-    GetPropertyInfo                 proc :DWORD, :ptr, :ptr, :ptr
-    GetNumberOfArchiveProperties    proc :ptr
-    GetArchivePropertyInfo          proc :DWORD, :ptr, :ptr, :ptr
-   .ends
-    LPIARCHIVE          typedef ptr IInArchive
-
-
-.comdef IOutArchive : public IUnknown
-
-    UpdateItems         proc :ptr, :DWORD, :ptr
-    GetFileTimeType     proc :ptr
-   .ends
-    LPOARCHIVE          typedef ptr IOutArchive
-
-
-
-.comdef CUnknown : public IUnknown
-
-    m_refCount          SDWORD ?
-   .ends
-
-
-.comdef CProgress : public CUnknown
-
-    SetTotal            proc :QWORD
-    SetCompleted        proc :ptr QWORD
-   .ends
-
-
-.comdef CStream : public CUnknown
-
-    m_Handle            HANDLE ?
-    m_IsOutStream       BOOL ?
-
-    Read                proc :ptr, :dword, :ptr dword
-    Seek                proc :sqword, :dword, :ptr qword
-    SetSize             proc :qword
-   .ends
-    PSTREAM             typedef ptr CStream
-
-
-.comdef IArchiveOpenCallback : public CUnknown
-
-    SetTotal            proc :ptr, :ptr
-    SetCompleted        proc :ptr, :ptr
-   .ends
-
-
-.comdef CArchiveExtractCallback : public CProgress
-
-    m_Archive           LPIARCHIVE ?
-    m_outStream         PSTREAM ?
-    m_curId             DWORD ?
-    m_setResult         DWORD ?
-    m_curFile           PFBLK ?
-    m_outPath           LPSTR ?
-    m_arcPath           LPSTR ?
-    m_outBase           LPWSTR ?
-    m_arcBase           LPWSTR ?
-    m_outPathW          WCHAR WMAXPATH dup(?)
-    m_arcPathW          WCHAR WMAXPATH dup(?)
-
-    CArchiveExtractCallback proc :LPIARCHIVE, :LPSTR, :LPSTR, :PFBLK
-
-    GetStream           proc :DWORD, :PTR PSTREAM, :SDWORD
-    PrepareOperation    proc :SDWORD
-    SetOperationResult  proc :SDWORD
-   .ends
-
-
-.enum
-    UpdateDelete = -1,
-    UpdateKeep   =  0,
-    UpdateAdd    =  1
-
-
-.comdef IArchiveUpdateCallback : public CProgress
-
-    GetUpdateItemInfo   proc :DWORD, :ptr SDWORD, :ptr SDWORD, :ptr DWORD
-    GetProperty         proc :DWORD, :PROPID, :ptr PROPVARIANT
-    GetStream           proc :DWORD, :ptr PSTREAM
-    SetOperationResult  proc :SDWORD
-   .ends
-
-
-.comdef IArchiveUpdateCallback2 : public IArchiveUpdateCallback
-
-    GetVolumeSize       proc :DWORD, :QWORD
-    GetVolumeStream     proc :DWORD, :ptr PSTREAM
-   .ends
-
-
-.comdef CArchiveUpdateCallback : public IArchiveUpdateCallback2
-
-    m_curId             DWORD ?
-    m_idList            LPDWORD ?
-    m_curFile           PFBLK ?
-    m_srcPath           LPSTR ?
-    m_arcPath           LPSTR ?
-    m_srcBase           LPWSTR ?
-    m_arcBase           LPWSTR ?
-    m_srcPathW          WCHAR WMAXPATH dup(?)
-    m_arcPathW          WCHAR WMAXPATH dup(?)
-
-    CArchiveUpdateCallback proc
-
-    SetPath             proc :LPSTR, :LPSTR, :PFBLK
-    InitList            proc :LPDWORD
-   .ends
-
-
-.comdef CCryptoGetTextPassword : public CUnknown
-
-    Password            LPWSTR 128 dup(?)
-    PasswordIsDefined   BOOL ?
-
-    CCryptoGetTextPassword proc
-
-    CryptoGetTextPassword proc :ptr BSTR
-   .ends
-
-define TYPE_7Z  0xAFBC7A37
-define TYPE_GZ  0x8B1F
-define TYPE_BZ2 0x5A42
-define TYPE_CAB 0x4643534D
-define TYPE_XZ  0x587A37FD
-
-OpenStream proto :LPWSTR, :BOOL, :ptr PSTREAM
-
-CALLBACK(CREATEZ7OBJ, :ptr, :ptr, :ptr)
+include 7z.inc
 
 .data?
-fp_blk          PFBLK ?
+fp_first        PFBLK ?
+fp_last         PFBLK ?
 fp_base         dd ?
+fp_count        dd ?
 arcfile         dw WMAXPATH dup(?)
 tmpfile         dw WMAXPATH dup(?)
 
@@ -391,11 +45,9 @@ IsLoaded        DWORD 0
 option proc: private
 
 dummy_CreateObject proc WINAPI format:ptr, iid:ptr, archive:ptr
-
     mov eax,E_NOTIMPL
     ret
-
-dummy_CreateObject endp
+    endp
 
 
 LoadDll proc uses rsi
@@ -430,156 +82,115 @@ LoadDll proc uses rsi
         xor eax,eax
     .endif
     ret
-
-LoadDll endp
+    endp
 
 
 DisplayError proc hr:HRESULT
-
     .if (FAILED(hr))
-
         syserr(hr, "7-zip", 0)
     .endif
     mov eax,hr
     ret
+    endp
 
-DisplayError endp
+    assume class:rbx
 
 ;-------------------------------------------------------------------------
 ; IUnknown
 ;-------------------------------------------------------------------------
 
-CUnknown::QueryInterface proc WINAPI uses rbx riid:LPIID, ppv:ptr ptr
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(riid)
-
-    ldr rcx,this
+CUnknown::QueryInterface proc WINAPI riid:LPIID, ppv:ptr ptr
     ldr rdx,riid
-    ldr rbx,ppv
-
+    ldr rcx,ppv
     movzx eax,[rdx].GUID.Data4[3]
     mov ah,[rdx].GUID.Data4[5]
-
     .if ( eax == 0x0303 || eax == 0x0403 )
-
-        mov [rbx],rcx
-        InterlockedIncrement(&[rcx].CUnknown.m_refCount)
+        mov [rcx],rbx
+        InterlockedIncrement(&m_refCount)
         xor eax,eax
-
     .elseif ( eax == 0x1005 )
-
-        mov [rbx],CCryptoGetTextPassword()
+        mov rbx,rcx
+        CCryptoGetTextPassword()
+        mov [rbx],rax
         xor eax,eax
     .else
         mov eax,E_NOINTERFACE
     .endif
     ret
+    endp
 
-CUnknown::QueryInterface endp
 
 CUnknown::AddRef proc WINAPI
-
-    UNREFERENCED_PARAMETER(this)
-
-    ldr rcx,this
-
-    InterlockedIncrement(&[rcx].CUnknown.m_refCount)
+    InterlockedIncrement(&m_refCount)
     ret
-
-CUnknown::AddRef endp
+    endp
 
 CUnknown::Release proc WINAPI
-
-    UNREFERENCED_PARAMETER(this)
-
-    ldr rcx,this
-
-    .if ( InterlockedDecrement(&[rcx].CUnknown.m_refCount) == 0 )
-
-        free(rcx)
+    .ifd ( InterlockedDecrement(&m_refCount) == 0 )
+        free(rbx)
         xor eax,eax
     .endif
     ret
-
-CUnknown::Release endp
+    endp
 
 ;-------------------------------------------------------------------------
 ; ICryptoGetTextPassword
 ;-------------------------------------------------------------------------
 
-    assume rbx:ptr CCryptoGetTextPassword
-
-CCryptoGetTextPassword::CryptoGetTextPassword proc WINAPI uses rdi rbx pPassword:ptr BSTR
+CCryptoGetTextPassword::CryptoGetTextPassword proc WINAPI uses rdi pPassword:ptr BSTR
 
    .new password[128]:char_t
-
-    ldr rbx,this
     ldr rdi,pPassword
 
-    .if ( ![rbx].PasswordIsDefined )
+    .if ( !PasswordIsDefined )
 
         ; Ask password from user
 
         mov password,0
         .ifd tgetline("Enter password", &password, 32, 80)
-
             .if ( password )
-
                 lea ecx,[strlen(&password)+1]
-                MultiByteToWideChar(CP_UTF8, 0, &password, ecx, &[rbx].Password, 128)
-                mov [rbx].PasswordIsDefined,TRUE
+                MultiByteToWideChar(CP_UTF8, 0, &password, ecx, &Password, 128)
+                mov PasswordIsDefined,TRUE
             .endif
         .endif
     .endif
-
     mov eax,E_FAIL
-    .if ( [rbx].PasswordIsDefined )
-
-        SysAllocString(&[rbx].Password)
+    .if ( PasswordIsDefined )
+        SysAllocString(&Password)
         mov [rdi],rax
         xor eax,eax
     .endif
     ret
+    endp
 
-CCryptoGetTextPassword::CryptoGetTextPassword endp
 
 CCryptoGetTextPassword::CCryptoGetTextPassword proc
-
-        @ComAlloc(CCryptoGetTextPassword)
-        inc [rax].CCryptoGetTextPassword.m_refCount
-        ret
-
-CCryptoGetTextPassword::CCryptoGetTextPassword endp
+    mov rbx,@ComAlloc(CCryptoGetTextPassword)
+    inc m_refCount
+    ret
+    endp
 
 ;-------------------------------------------------------------------------
 ; IProgress
 ;-------------------------------------------------------------------------
 
+    assume class:rcx
+
 CProgress::SetTotal proc WINAPI total:QWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(total)
-
-    progress_set(__srcfile, __outfile, total)
+    progress_set(__srcfile, __outfile, ldr(total))
     ret
-
-CProgress::SetTotal endp
+    endp
 
 
 CProgress::SetCompleted proc WINAPI completeValue:ptr QWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(completeValue)
-
     ldr rdx,completeValue
     xor eax,eax
-    .if ( rcx )
+    .if ( rdx )
         progress_update([rdx])
     .endif
     ret
-
-CProgress::SetCompleted endp
+    endp
 
 
 ;-------------------------------------------------------------------------
@@ -589,63 +200,51 @@ if 0
 IArchiveOpenCallback::SetTotal proc WINAPI files:ptr QWORD, bytes:ptr QWORD
     xor eax,eax
     ret
-IArchiveOpenCallback::SetTotal endp
+    endp
 
 IArchiveOpenCallback::SetCompleted proc WINAPI files:ptr QWORD, bytes:ptr QWORD
     xor eax,eax
     ret
-IArchiveOpenCallback::SetCompleted endp
+    endp
 endif
 
 ;-------------------------------------------------------------------------
 ; IArchiveExtractCallback
 ;-------------------------------------------------------------------------
 
-    assume rbx:ptr CArchiveExtractCallback
+    assume class:rbx
 
-define kEmptyFileAlias <L"[Content]">
-
-CArchiveExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, outStream:PTR PSTREAM, askExtractMode:SDWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(index)
-    UNREFERENCED_PARAMETER(outStream)
-    UNREFERENCED_PARAMETER(askExtractMode)
+CArchiveExtractCallback::GetStream proc WINAPI uses rsi rdi index:DWORD, outStream:PTR PSTREAM, askExtractMode:SDWORD
 
    .new p:LPWSTR
    .new prop:PROPVARIANT
    .new hr:HRESULT
 
-    ldr rbx,this
     ldr ecx,askExtractMode
-
     xor eax,eax
     .return .if ( ecx != NExtract::NAskMode::kExtract )
 
     ldr esi,index
     ldr rdi,outStream
 
-    mov [rbx].m_outStream,rax
+    mov m_outStream,rax
     mov [rdi],rax
-    mov rcx,[rbx].m_outBase
+    mov rcx,m_outBase
     mov [rcx],eax
 
     mov prop.vt,VT_EMPTY
     mov prop.ulVal,FALSE
-    this.m_Archive.GetProperty(esi, kpidIsDir, &prop)
+    m_Archive.GetProperty(esi, kpidIsDir, &prop)
     .if ( prop.ulVal != FALSE )
         .return( 0 )
     .endif
 
     mov prop.vt,VT_EMPTY
-    mov [rbx].m_curId,esi
-    this.m_Archive.GetProperty(esi, kpidPath, &prop)
-
+    mov m_curId,esi
+    m_Archive.GetProperty(esi, kpidPath, &prop)
     .if ( prop.vt == VT_EMPTY )
-
         .if ( esi == 0 ) ; .tar.xx ?
-
-            mov rsi,[rbx].m_curFile
+            mov rsi,m_curFile
             lea ecx,[strlen([rsi].FBLK.name)+1]
             MultiByteToWideChar(CP_UTF8, 0, [rsi].FBLK.name, ecx, entryname, WMAXPATH/2)
             mov rdx,entryname
@@ -657,8 +256,7 @@ CArchiveExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, out
     .else
         .return ( E_FAIL )
     .endif
-
-    lea rsi,[rbx].m_arcPathW
+    lea rsi,m_arcPathW
     movzx eax,word ptr [rsi]
     .if ( eax )
         .for ( : eax && ax == [rdx] : rdx+=2, rsi+=2, ax = [rsi] )
@@ -671,200 +269,157 @@ CArchiveExtractCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, out
         .endif
         add rdx,2
     .endif
-    mov p,rdx
-
-    .for ( eax = 1, esi = 0 : eax : esi += 2 )
-
+    .for ( p = rdx, eax = 1, esi = 0 : eax : esi += 2 )
         mov rdx,p
         movzx eax,word ptr [rdx+rsi]
         .if ( eax == '\' )
-            .ifd ( CreateDirectoryW( &[rbx].m_outPathW, 0 ) == 0 )
+            .ifd ( CreateDirectoryW( &m_outPathW, 0 ) == 0 )
                 .ifd ( GetLastError() != ERROR_ALREADY_EXISTS )
                     .return ( HRESULT_FROM_WIN32(eax) )
                 .endif
             .endif
             mov eax,'\'
         .endif
-        mov rcx,[rbx].m_outBase
+        mov rcx,m_outBase
         mov [rcx+rsi],eax
     .endf
     .if ( prop.vt == VT_BSTR )
         SysFreeString(prop.bstrVal)
     .endif
-    .if (SUCCEEDED(OpenStream(&[rbx].m_outPathW, 1, &[rbx].m_outStream)))
-        mov [rbx].m_setResult,1
+    .if (SUCCEEDED(OpenStream(&m_outPathW, 1, &m_outStream)))
+        mov m_setResult,1
     .endif
-    mov rcx,[rbx].m_outStream
+    mov rcx,m_outStream
     mov [rdi],rcx
     ret
+    endp
 
-CArchiveExtractCallback::GetStream endp
+    assume class:rcx
 
 CArchiveExtractCallback::PrepareOperation proc WINAPI askExtractMode:SDWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(askExtractMode)
     xor eax,eax
     ret
+    endp
 
-CArchiveExtractCallback::PrepareOperation endp
+    assume class:rbx
 
-CArchiveExtractCallback::SetOperationResult proc WINAPI uses rsi rdi rbx opRes:SDWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(opRes)
+CArchiveExtractCallback::SetOperationResult proc WINAPI uses rsi rdi opRes:SDWORD
 
    .new prop:PROPVARIANT
-
-    ldr rbx,this
-
     xor eax,eax
-    .if ( eax != [rbx].m_setResult )
-
-        mov [rbx].m_setResult,eax
+    .if ( eax != m_setResult )
+        mov m_setResult,eax
         mov prop.vt,VT_EMPTY
-        this.m_Archive.GetProperty([rbx].m_curId, kpidMTime, &prop)
+        m_Archive.GetProperty(m_curId, kpidMTime, &prop)
         .if ( prop.vt == VT_FILETIME )
-
-            .ifd ( CreateFileW( &[rbx].m_outPathW, GENERIC_WRITE, FILE_SHARE_READ, NULL,
+            .ifd ( CreateFileW( &m_outPathW, GENERIC_WRITE, FILE_SHARE_READ, NULL,
                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL) != INVALID_HANDLE_VALUE )
-
                 mov rsi,rax
                 SetFileTime( rsi, 0, 0, &prop.filetime )
                 CloseHandle( rsi )
             .endif
         .endif
         mov prop.vt,VT_EMPTY
-        this.m_Archive.GetProperty([rbx].m_curId, kpidAttrib, &prop)
+        m_Archive.GetProperty(m_curId, kpidAttrib, &prop)
         .if ( prop.vt != VT_EMPTY )
-            SetFileAttributesW( &[rbx].m_outPathW, prop.ulVal )
+            SetFileAttributesW( &m_outPathW, prop.ulVal )
         .endif
         xor eax,eax
     .endif
     ret
+    endp
 
-CArchiveExtractCallback::SetOperationResult endp
 
-
-CArchiveExtractCallback::CArchiveExtractCallback proc uses rsi rdi rbx archive:LPIARCHIVE,
+CArchiveExtractCallback::CArchiveExtractCallback proc uses rsi rdi archive:LPIARCHIVE,
         outPath:LPSTR, arcPath:LPSTR, curFile:PFBLK
-
-    UNREFERENCED_PARAMETER(archive)
-    UNREFERENCED_PARAMETER(outPath)
 
     ldr rsi,archive
     ldr rdi,outPath
-
     mov rbx,@ComAlloc(CArchiveExtractCallback)
     .if ( rax == NULL )
         .return
     .endif
 
-    mov [rbx].m_Archive,rsi
-    mov [rbx].m_outPath,rdi
-    mov [rbx].m_arcPath,arcPath
-    mov [rbx].m_curFile,curFile
+    mov m_Archive,rsi
+    mov m_outPath,rdi
+    mov m_curFile,curFile
 
-    lea rsi,[rbx].m_outPathW
-    .ifd ( MultiByteToWideChar(CP_UTF8, 0, rdi, -1, &[rbx].m_outPathW, WMAXPATH) > 1 )
-
-        lea rsi,[rbx+rax*2].m_outPathW
+    mov m_arcPath,arcPath
+    lea rsi,m_outPathW
+    .ifd ( MultiByteToWideChar(CP_UTF8, 0, rdi, -1, &m_outPathW, WMAXPATH) > 1 )
+        lea rsi,m_outPathW[rax*2]
         mov eax,'\'
         .if ( ax == [rsi-4] )
             sub rsi,2 ; remove '\' from end of srcpath (C:\)
         .endif
         mov [rsi-2],eax
     .endif
-    mov [rbx].m_outBase,rsi
-
-    lea rdi,[rbx].m_arcPathW
-    .ifd ( MultiByteToWideChar(CP_UTF8, 0, [rbx].m_arcPath, -1, &[rbx].m_arcPathW, WMAXPATH) > 1 )
-
-        lea rdi,[rbx+rax*2].m_arcPathW
+    mov m_outBase,rsi
+    lea rdi,m_arcPathW
+    .ifd ( MultiByteToWideChar(CP_UTF8, 0, m_arcPath, -1, &m_arcPathW, WMAXPATH) > 1 )
+        lea rdi,m_arcPathW[rax*2]
     .endif
-    mov [rbx].m_arcBase,rdi
-
-    mov rcx,[rbx].m_curFile
+    mov m_arcBase,rdi
+    mov rcx,m_curFile
     .if ( [rcx].FBLK.flag & _A_SUBDIR )
-
         MultiByteToWideChar(CP_UTF8, 0, [rcx].FBLK.name, -1, rsi, _MAX_PATH)
         mov ecx,eax
-        lea rax,[rbx].m_arcPathW
+        lea rax,m_arcPathW
         .if ( rdi != rax )
             mov eax,'\'
             mov [rdi-2],eax
         .endif
         rep movsw
-        CreateDirectoryW( &[rbx].m_outPathW, 0 )
+        CreateDirectoryW( &m_outPathW, 0 )
         mov eax,'\'
         .if ( ax == [rdi-4] )
             sub rdi,2
             sub rsi,2
         .endif
         mov [rsi-2],eax
-        mov [rbx].m_arcBase,rdi
-        mov [rbx].m_outBase,rsi
+        mov m_arcBase,rdi
+        mov m_outBase,rsi
     .endif
     mov rax,rbx
     ret
-
-CArchiveExtractCallback::CArchiveExtractCallback endp
+    endp
 
 ;-------------------------------------------------------------------------
 ; IArchiveUpdateCallback
 ;-------------------------------------------------------------------------
 
-IArchiveUpdateCallback::SetOperationResult proc WINAPI operationResult:SDWORD
+    assume class:rcx
 
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(operationResult)
+IArchiveUpdateCallback::SetOperationResult proc WINAPI operationResult:SDWORD
     xor eax,eax
     ret
-
-IArchiveUpdateCallback::SetOperationResult endp
+    endp
 
 ;-------------------------------------------------------------------------
 ; IArchiveUpdateCallback2
 ;-------------------------------------------------------------------------
 
 IArchiveUpdateCallback2::GetVolumeSize proc WINAPI index:DWORD, size:ptr QWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(index)
-    UNREFERENCED_PARAMETER(size)
     mov eax,E_NOTIMPL
     ret
-
-IArchiveUpdateCallback2::GetVolumeSize endp
+    endp
 
 IArchiveUpdateCallback2::GetVolumeStream proc WINAPI index:DWORD, volumeStream:ptr PSTREAM
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(index)
-    UNREFERENCED_PARAMETER(volumeStream)
     mov eax,E_NOTIMPL
     ret
-
-IArchiveUpdateCallback2::GetVolumeStream endp
+    endp
 
 ;-------------------------------------------------------------------------
 ; CArchiveUpdateCallback
 ;-------------------------------------------------------------------------
 
-    assume rbx:ptr CArchiveUpdateCallback
-    assume rcx:ptr CArchiveUpdateCallback
+    assume class:rbx
 
-CArchiveUpdateCallback::GetUpdateItemInfo proc WINAPI index:DWORD, newData:ptr SDWORD, newProps:ptr SDWORD, indexInArchive:ptr DWORD
+CArchiveUpdateCallback::GetUpdateItemInfo proc WINAPI index:DWORD, newData:ptr SDWORD,
+        newProps:ptr SDWORD, indexInArchive:ptr DWORD
 
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(index)
-    UNREFERENCED_PARAMETER(newData)
-    UNREFERENCED_PARAMETER(newProps)
-    UNREFERENCED_PARAMETER(indexInArchive)
-
-    ldr rcx,this
-    mov rcx,[rcx].m_idList
     ldr edx,index
+    mov rcx,m_idList
     mov eax,[rcx+rdx*4]
     mov rcx,indexInArchive
     mov [rcx],eax
@@ -877,21 +432,13 @@ CArchiveUpdateCallback::GetUpdateItemInfo proc WINAPI index:DWORD, newData:ptr S
     mov [rdx],eax
     xor eax,eax
     ret
+    endp
 
-CArchiveUpdateCallback::GetUpdateItemInfo endp
 
+CArchiveUpdateCallback::GetProperty proc WINAPI uses rsi rdi index:DWORD, propID:PROPID, value:ptr PROPVARIANT
 
-CArchiveUpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, propID:PROPID, value:ptr PROPVARIANT
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(index)
-    UNREFERENCED_PARAMETER(propID)
-    UNREFERENCED_PARAMETER(value)
-
-    ldr rbx,this
     ldr edx,index
-
-    .for ( rdi = [rbx].m_curFile : rdi : rdi = [rdi].FBLK.next )
+    .for ( rdi = fp_first, rcx = rdi : rdi : rcx = rdi, rdi = [rdi].FBLK.next )
         .break .if ( edx == [rdi+FBLK].ZINF.z7id )
     .endf
 
@@ -908,14 +455,16 @@ CArchiveUpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, pr
            .endc
         .case kpidPath
             mov [rsi].PROPVARIANT.vt,VT_BSTR
-            mov rdx,[rbx].m_srcBase
-            lea rax,[rbx].m_srcPathW
+            mov rdx,m_srcBase
+            lea rax,m_srcPathW
             sub rdx,rax
             shr edx,1
             mov ecx,WMAXPATH
             sub ecx,edx
-            MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, [rbx].m_arcBase, ecx)
-            mov [rsi].PROPVARIANT.bstrVal,SysAllocString(&[rbx].m_arcPathW)
+            MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, m_arcBase, ecx)
+            mov [rsi].PROPVARIANT.bstrVal,SysAllocString(&m_arcPathW)
+            inc fp_count
+            progress_update(fp_count)
            .endc
         .case kpidIsDir
             mov [rsi].PROPVARIANT.vt,VT_BOOL
@@ -932,170 +481,156 @@ CArchiveUpdateCallback::GetProperty proc WINAPI uses rsi rdi rbx index:DWORD, pr
         .case kpidSize
             mov [rsi].PROPVARIANT.vt,VT_UI8
             mov [rsi].PROPVARIANT.uhVal,[rdi].FBLK.size
-           .endc
+
+            ; Last call for this index: Rotate list
+
+            mov rax,[rdi].FBLK.next
+            mov [rdi].FBLK.next,NULL
+            .if ( rcx == rdi )
+                mov fp_first,rax
+            .else
+                mov [rcx].FBLK.next,rax
+            .endif
+            mov rdx,fp_last
+            mov fp_last,rdi
+            .if ( rdx )
+                mov [rdx].FBLK.next,rdi
+            .endif
+            .endc
         .endsw
     .endif
     xor eax,eax
     ret
+    endp
 
-CArchiveUpdateCallback::GetProperty endp
 
+CArchiveUpdateCallback::GetStream proc WINAPI uses rsi rdi index:DWORD, inStream:ptr PSTREAM
 
-CArchiveUpdateCallback::GetStream proc WINAPI uses rsi rdi rbx index:DWORD, inStream:ptr PSTREAM
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(index)
-    UNREFERENCED_PARAMETER(inStream)
-
-    ldr rbx,this
     ldr edx,index
     ldr rsi,inStream
 
-    .for ( rdi = [rbx].m_curFile : rdi : rdi = [rdi].FBLK.next )
+    .for ( rdi = fp_first, rcx = rdi : rdi : rcx = rdi, rdi = [rdi].FBLK.next )
         .break .if ( edx == [rdi+FBLK].ZINF.z7id )
     .endf
 
     mov eax,E_FAIL
     .if ( rdi && edx == [rdi+FBLK].ZINF.z7id )
 
-        strfcat(__srcfile, [rbx].m_srcPath, [rdi].FBLK.name)
-        mov rdx,[rbx].m_srcBase
-        lea rax,[rbx].m_srcPathW
+        mov rax,[rdi].FBLK.next
+        mov [rdi].FBLK.next,NULL
+        .if ( rcx == rdi )
+            mov fp_first,rax
+        .else
+            mov [rcx].FBLK.next,rax
+        .endif
+        mov rdx,fp_last
+        mov fp_last,rdi
+        .if ( rdx )
+            mov [rdx].FBLK.next,rdi
+        .endif
+        strfcat(__srcfile, m_srcPath, [rdi].FBLK.name)
+        mov rdx,m_srcBase
+        lea rax,m_srcPathW
         sub rdx,rax
         shr edx,1
         mov ecx,WMAXPATH
         sub ecx,edx
-        MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, [rbx].m_srcBase, ecx)
+        MultiByteToWideChar(CP_UTF8, 0, [rdi].FBLK.name, -1, m_srcBase, ecx)
         mov eax,E_FAIL
         .if ( rsi )
-            OpenStream(&[rbx].m_srcPathW, 0, rsi)
+            OpenStream(&m_srcPathW, 0, rsi)
         .endif
     .endif
     ret
+    endp
 
-CArchiveUpdateCallback::GetStream endp
 
+CArchiveUpdateCallback::SetPath proc WINAPI uses rsi arcPath:LPSTR, srcPath:LPSTR
 
-CArchiveUpdateCallback::SetPath proc WINAPI uses rsi rbx arcPath:LPSTR, srcPath:LPSTR, curFile:PFBLK
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(srcPath)
-    UNREFERENCED_PARAMETER(arcPath)
-
-    ldr rbx,this
     ldr rdx,arcPath
     ldr rsi,srcPath
-    ldr rcx,curFile
 
-    mov [rbx].m_arcPath,rdx
-    mov [rbx].m_srcPath,rsi
-    mov [rbx].m_curFile,rcx
+    mov m_arcPath,rdx
+    mov m_srcPath,rsi
 
     .if ( rdx )
 
-        .ifd ( MultiByteToWideChar(CP_UTF8, 0, rdx, -1, &[rbx].m_arcPathW, WMAXPATH) > 1 )
+        .ifd ( MultiByteToWideChar(CP_UTF8, 0, rdx, -1, &m_arcPathW, WMAXPATH) > 1 )
 
-            lea rcx,[rbx+rax*2].m_arcPathW
+            lea rcx,m_arcPathW[rax*2]
             mov eax,'\'
             .if ( ax == [rcx-4] )
                 sub rcx,2
             .endif
             mov [rcx-2],eax
-            mov [rbx].m_arcBase,rcx
+            mov m_arcBase,rcx
         .endif
     .endif
 
     .if ( rsi )
 
-        .ifd ( MultiByteToWideChar(CP_UTF8, 0, rsi, -1, &[rbx].m_srcPathW, WMAXPATH) > 1 )
+        .ifd ( MultiByteToWideChar(CP_UTF8, 0, rsi, -1, &m_srcPathW, WMAXPATH) > 1 )
 
-            lea rcx,[rbx+rax*2].m_srcPathW
+            lea rcx,m_srcPathW[rax*2]
             mov eax,'\'
             .if ( ax == [rcx-4] )
                 sub rcx,2
             .endif
             mov [rcx-2],eax
-            mov [rbx].m_srcBase,rcx
+            mov m_srcBase,rcx
         .endif
     .endif
     xor eax,eax
     ret
+    endp
 
-CArchiveUpdateCallback::SetPath endp
 
 CArchiveUpdateCallback::InitList proc WINAPI idList:LPDWORD
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(idList)
-
-    ldr rcx,this
-    ldr rdx,idList
-
-    mov [rcx].m_idList,rdx
+    mov m_idList,ldr(idList)
     xor eax,eax
     ret
+    endp
 
-CArchiveUpdateCallback::InitList endp
 
 CArchiveUpdateCallback::CArchiveUpdateCallback proc
-
-    .if @ComAlloc(CArchiveUpdateCallback)
-
-        inc [rax].CArchiveUpdateCallback.m_refCount
-        lea rdx,[rax].CArchiveUpdateCallback.m_arcPathW
-        lea rcx,[rax].CArchiveUpdateCallback.m_srcPathW
-        mov [rax].CArchiveUpdateCallback.m_arcBase,rdx
-        mov [rax].CArchiveUpdateCallback.m_srcBase,rcx
+    mov rbx,@ComAlloc(CArchiveUpdateCallback)
+    .if ( rax )
+        inc m_refCount
+        lea rdx,m_arcPathW
+        lea rcx,m_srcPathW
+        mov m_arcBase,rdx
+        mov m_srcBase,rcx
     .endif
     ret
-
-CArchiveUpdateCallback::CArchiveUpdateCallback endp
+    endp
 
 ;-------------------------------------------------------------------------
 ; ISequentialInStream, ISequentialOutStream
 ;-------------------------------------------------------------------------
 
-    assume rcx:ptr CStream
-    assume rbx:ptr CStream
-
-CStream::Release proc WINAPI uses rbx
-
-    UNREFERENCED_PARAMETER(this)
-
-   .new hr:HRESULT = S_OK
-
-    ldr rbx,this
-
-    .if ( InterlockedDecrement(&[rbx].m_refCount) == 0 )
-
-        .if ( [rbx].m_Handle != INVALID_HANDLE_VALUE )
-            .ifd ( CloseHandle( [rbx].m_Handle ) == 0 )
+CStream::Release proc WINAPI
+    .new hr:HRESULT = S_OK
+    .if ( InterlockedDecrement(&m_refCount) == 0 )
+        .if ( m_Handle != INVALID_HANDLE_VALUE )
+            .ifd ( CloseHandle( m_Handle ) == 0 )
                 mov hr,HRESULT_FROM_WIN32(GetLastError())
             .endif
-            mov [rbx].m_Handle,INVALID_HANDLE_VALUE
+            mov m_Handle,INVALID_HANDLE_VALUE
         .endif
         free( rbx )
     .endif
     mov eax,hr
     ret
-
-CStream::Release endp
+    endp
 
 
 CStream::Read proc WINAPI buffer:ptr, size:dword, rdsize:ptr dword
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(buffer)
-    UNREFERENCED_PARAMETER(rdsize)
-
-    ldr rcx,this
     ldr rdx,buffer
     ldr rax,rdsize
-
-    .if ( [rcx].m_IsOutStream )
-        WriteFile([rcx].m_Handle, rdx, size, rax, NULL)
+    .if ( m_IsOutStream )
+        WriteFile(m_Handle, rdx, size, rax, NULL)
     .else
-        ReadFile([rcx].m_Handle, rdx, size, rax, NULL)
+        ReadFile(m_Handle, rdx, size, rax, NULL)
     .endif
     test eax,eax
     mov eax,S_OK
@@ -1103,48 +638,35 @@ CStream::Read proc WINAPI buffer:ptr, size:dword, rdsize:ptr dword
         HRESULT_FROM_WIN32(GetLastError())
     .endif
     ret
-
-CStream::Read endp
+    endp
 
 
 CStream::Seek proc WINAPI liDistanceToMove:sqword, dwMoveMethod:dword, lpNewFilePointer:ptr qword
-
-    UNREFERENCED_PARAMETER(this)
-    UNREFERENCED_PARAMETER(dwMoveMethod)
-    UNREFERENCED_PARAMETER(lpNewFilePointer)
-
-    ldr rcx,this
-    ldr rax,lpNewFilePointer
-    ldr edx,dwMoveMethod
-
-    SetFilePointerEx([rcx].m_Handle, liDistanceToMove, rax, edx)
+    ldr rcx,lpNewFilePointer
+    SetFilePointerEx(m_Handle, liDistanceToMove, rcx, ldr(dwMoveMethod))
     test eax,eax
     mov eax,S_OK
     .ifz
         HRESULT_FROM_WIN32(GetLastError())
     .endif
     ret
+    endp
 
-CStream::Seek endp
-
+    assume class:rcx
 
 CStream::SetSize proc WINAPI newSize:qword
-
     mov eax,E_NOTIMPL
     ret
+    endp
 
-CStream::SetSize endp
-
-    assume rcx:nothing
+    assume class:nothing
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; <Archive>.$$$
 
 GetTempArchive proc
-
     .for ( rcx = &tmpfile, rdx = &arcfile, eax = 1 : eax : rcx+=2, rdx+=2 )
-
         mov ax,[rdx]
         mov [rcx],rax
     .endf
@@ -1153,17 +675,12 @@ GetTempArchive proc
     mov word ptr [rcx+6],0x0000
     lea rax,tmpfile
     ret
-
-GetTempArchive endp
+    endp
 
 
 OpenStream proc uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr PSTREAM
 
    .new hr:HRESULT = S_OK
-
-    UNREFERENCED_PARAMETER(name)
-    UNREFERENCED_PARAMETER(OutStream)
-    UNREFERENCED_PARAMETER(Stream)
 
     ldr rsi,name
     ldr ebx,OutStream
@@ -1179,24 +696,20 @@ OpenStream proc uses rsi rdi rbx name:LPWSTR, OutStream:BOOL, Stream:ptr PSTREAM
     mov [rdi],rax
     mov edx,GENERIC_READ
     mov eax,OPEN_EXISTING
-    .if ( [rbx].m_IsOutStream )
+    .if ( [rbx].CStream.m_IsOutStream )
         mov edx,GENERIC_WRITE
         mov eax,CREATE_ALWAYS
     .endif
     .ifd ( CreateFileW(rsi, edx, FILE_SHARE_READ, NULL, eax, FILE_ATTRIBUTE_NORMAL, NULL) == INVALID_HANDLE_VALUE )
-
         free(rbx)
         HRESULT_FROM_WIN32(GetLastError())
     .else
-        mov [rbx].m_Handle,rax
+        mov [rbx].CStream.m_Handle,rax
         mov [rdi],rbx
         xor eax,eax
     .endif
     ret
-
-OpenStream endp
-
-    assume rbx:nothing
+    endp
 
 
 OpenArchive proc uses rdi pArc:ptr LPIARCHIVE
@@ -1229,8 +742,7 @@ OpenArchive proc uses rdi pArc:ptr LPIARCHIVE
     .endif
     mov eax,hr
     ret
-
-OpenArchive endp
+    endp
 
 
 fp_addfile proc uses rsi rdi rbx path:LPSTR, wblk:ptr WIN32_FIND_DATA
@@ -1261,20 +773,25 @@ fp_addfile proc uses rsi rdi rbx path:LPSTR, wblk:ptr WIN32_FIND_DATA
            .return
         .endif
         mov [rdi+FBLK].ZINF.ftime,[rbx].WIN32_FIND_DATA.ftLastWriteTime
-        mov rcx,fp_blk
+        mov rcx,fp_first
         xor eax,eax
         .if ( rcx == NULL )
-            mov fp_blk,rdi
+            mov fp_first,rdi
+            mov fp_last,rdi
+            mov fp_count,1
         .else
-            .while ( rax != [rcx].FBLK.next )
-                mov rcx,[rcx].FBLK.next
-            .endw
+            inc fp_count
+            mov rcx,fp_last
             mov [rcx].FBLK.next,rdi
+            mov fp_last,rdi
+            .if !( fp_count & 3 )
+                sprintf(__srcfile, "%d selected file(s)", fp_count)
+                progress_set(__srcfile, __outfile, 0)
+            .endif
         .endif
     .endif
     ret
-
-fp_addfile endp
+    endp
 
 
 fp_addsub proc uses rsi rdi path:LPSTR, file:LPSTR
@@ -1289,15 +806,10 @@ fp_addsub proc uses rsi rdi path:LPSTR, file:LPSTR
         scansub(__outpath, &cp_stdmask, 1)
     .endif
     ret
-
-fp_addsub endp
+    endp
 
 
 FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBLK, callback:ptr CArchiveUpdateCallback
-
-    UNREFERENCED_PARAMETER(archive)
-    UNREFERENCED_PARAMETER(numItems)
-    UNREFERENCED_PARAMETER(fb)
 
    .new prop:PROPVARIANT
 
@@ -1336,8 +848,7 @@ FindDuplicate proc uses rsi rdi rbx archive:LPIARCHIVE, numItems:SDWORD, fb:PFBL
     .endif
     xor eax,eax
     ret
-
-FindDuplicate endp
+    endp
 
 
 ; Returns 0 if entry not part of basepath,
@@ -1374,8 +885,7 @@ testentryname proc uses rsi rdi rbx wsub:PWSUB, name:LPSTR
     .endif
     mov eax,edi
     ret
-
-testentryname endp
+    endp
 
     option proc:public
 
@@ -1475,8 +985,7 @@ warcread proc uses rsi rdi rbx ws:PWSUB
         mov eax,ER_READARCH
     .endif
     ret
-
-warcread endp
+    endp
 
 ;-------------------------------------------------------------------------
 ; Copy
@@ -1521,8 +1030,7 @@ warccopy proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK, outPath:LPSTR
     .endif
     DisplayError(hr)
     ret
-
-warccopy endp
+    endp
 
 
 ;-------------------------------------------------------------------------
@@ -1531,11 +1039,7 @@ warccopy endp
 
 warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
 
-    UNREFERENCED_PARAMETER(dest)
-    UNREFERENCED_PARAMETER(wsub)
-    UNREFERENCED_PARAMETER(fblk)
     xor eax,eax
-
    .new archive:LPIARCHIVE = rax
    .new outarch:LPOARCHIVE = rax
    .new stream:PSTREAM = rax
@@ -1554,7 +1058,8 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
     ldr rdi,wsub
     ldr rbx,fblk
 
-    mov fp_blk,rax
+    mov fp_first,rax
+    mov fp_last,rax
 
     ; Find selected item count
 
@@ -1592,15 +1097,9 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         panel_findnext(cpanel)
         mov rbx,rdx
     .until !rax
-
     strfcat(__outfile, [rsi].WSUB.file, [rsi].WSUB.arch)
-
     .if SUCCEEDED(hr)
-
-        .for ( rbx = fp_blk : rbx : rbx = [rbx].FBLK.next )
-            inc eax
-        .endf
-        mov blkcount,eax
+        mov blkcount,fp_count
         .if ( eax == 0 )
             mov hr,E_ABORT
         .endif
@@ -1618,20 +1117,16 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         ;
         ; v3.93: allow empty archives (created by Shift-F7)
         ; v3.94: a "fake" file name not only added to GZip
-
+        ;
         mov eax,numItems
         .ifs ( eax < 0 || eax == 1 ) ; || ( eax == 1 && CLSID_Format.Data4[5] == kId_GZip ) )
-
             .if ( eax != 1 )
                 mov hr,E_BOUNDS
                 xor eax,eax
             .endif
             inc eax
-
             .if ( eax == [rsi].WSUB.count )
-
                 .ifd ( FindFirstFileW(&arcfile, &wb) != -1 )
-
                     FindClose(rax)
                     mov eax,wb.nFileSizeLow
                     or  eax,wb.nFileSizeHigh
@@ -1651,7 +1146,6 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         mov count,ecx
         mov newcount,ecx
         shl ecx,2
-
         .if ( malloc(ecx) == NULL )
             mov hr,E_OUTOFMEMORY
         .endif
@@ -1664,8 +1158,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         .endif
     .endif
     .if SUCCEEDED(hr)
-
-        callback.SetPath( [rsi].WSUB.arch, [rdi].WSUB.path, fp_blk )
+        callback.SetPath( [rsi].WSUB.arch, [rdi].WSUB.path )
     .endif
 
     .if SUCCEEDED(hr)
@@ -1675,7 +1168,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
         xor eax,eax
         rep stosd
 
-        .for ( rdi = fp_blk, rsi = rdi : rdi : rsi = rdi, rdi = [rdi].FBLK.next )
+        .for ( rdi = fp_first, rsi = rdi : rdi : rsi = rdi, rdi = [rdi].FBLK.next )
 
             .ifd FindDuplicate(archive, numItems, rdi, callback)
 
@@ -1687,14 +1180,14 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
 
                 .elseif ( eax == 0 ) ; Jump
 
+                    mov rcx,rdi
                     mov rdi,[rdi].FBLK.next
-                    .if ( rsi == fp_blk )
-                        mov fp_blk,rdi
-                        mov rcx,callback
-                        mov [rcx].CArchiveUpdateCallback.m_curFile,rdi
+                    .if ( rsi == fp_first )
+                        mov fp_first,rdi
                     .else
                         mov [rsi].FBLK.next,rdi
                     .endif
+                    free(rcx)
                     dec blkcount
                     .ifz
                         mov hr,E_ABORT
@@ -1723,7 +1216,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
                 inc eax
             .endif
         .endf
-        .for ( ecx = -1, rdx = fp_blk : rdx : rdx = [rdx].FBLK.next, eax++ )
+        .for ( ecx = -1, rdx = fp_first : rdx : rdx = [rdx].FBLK.next, eax++ )
             mov [rdi+rax*4],ecx
             mov [rdx+FBLK].ZINF.z7id,eax
         .endf
@@ -1736,10 +1229,16 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
     .if SUCCEEDED(hr)
 
         inc tempfile
+        mov fp_count,0
+        progress_set("Update Items...", __outfile, blkcount)
         callback.InitList( indices )
         mov hr,outarch.UpdateItems(stream, newcount, callback)
     .endif
-
+    .for ( rdi = fp_first : rdi : )
+        mov rcx,rdi
+        mov rdi,[rdi].FBLK.next
+        free(rcx)
+    .endf
     free(indices)
     SafeRelease(outarch)
     SafeRelease(callback)
@@ -1755,8 +1254,7 @@ warcadd proc uses rsi rdi rbx dest:PWSUB, wsub:PWSUB, fblk:PFBLK
     .endif
     DisplayError(hr)
     ret
-
-warcadd endp
+    endp
 
 
 ;-------------------------------------------------------------------------
@@ -1765,10 +1263,7 @@ warcadd endp
 
 warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
-    UNREFERENCED_PARAMETER(wsub)
-    UNREFERENCED_PARAMETER(fblk)
     xor eax,eax
-
    .new archive:LPIARCHIVE = rax
    .new outarch:LPOARCHIVE = rax
    .new stream:PSTREAM = rax
@@ -1942,8 +1437,7 @@ warcdelete proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
     .endif
     DisplayError(hr)
     ret
-
-warcdelete endp
+    endp
 
 ;-------------------------------------------------------------------------
 ; View
@@ -1981,8 +1475,7 @@ warcview proc uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
         .endif
     .endif
     ret
-
-warcview endp
+    endp
 
 
 ;-------------------------------------------------------------------------
@@ -2020,7 +1513,6 @@ warctest proc uses rsi rdi rbx fblk:LPSTR, sign:int_t
         .endif
     .endif
     ret
-
-warctest endp
+    endp
 
     end

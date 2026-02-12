@@ -8,23 +8,23 @@ include config.inc
 
     .code
 
-cmpath proc private id:int_t
-
+cmpath proc private uses rsi id:int_t
   local path[_MAX_PATH]:char_t
-
+    ldr esi,id
     .if panel_state(cpanel)
-
-        .if CFGetSectionID("Directory", id)
-
-            .if ( word ptr [rax] != '><' )
-
+        .if CFGetSection("Directory")
+            INIGetNextEntry(rax)
+            .for ( : rax && esi : esi-- )
+                INIGetNextEntry(rax)
+            .endf
+        .endif
+        .if ( rax )
+            mov rax,[rax].S_INI.value
+            .if ( rax && word ptr [rax] != '><' )
                 .if strchr(rax, ',')
-
                     mov rcx,strstart(&[rax+1])
                     expenviron(strnzcpy(&path, rcx, _MAX_PATH-1))
-
                     .if ( path != '[' )
-
                         cpanel_setpath(&path)
                     .endif
                 .endif
@@ -32,14 +32,13 @@ cmpath proc private id:int_t
         .endif
     .endif
     ret
-
-cmpath endp
+    endp
 
 cmpathp macro q
 cmpath&q proc
     cmpath(q)
     ret
-cmpath&q endp
+    endp
     endm
 
 cmpathp 0

@@ -166,14 +166,14 @@ ends
 ZINF		ends
 PZINF		typedef ptr ZINF
 
+PFBLK		typedef ptr FBLK
 FBLK		struct
 flag		dd ?	; _FB_:_A_
 time		dd ?	; date:time
 size		dq ?
 name		LPSTR ?
-next		PZINF ?
+next		PFBLK ?
 FBLK		ends
-PFBLK		typedef ptr FBLK
 
 WSUB		struct
 flag		dd ?
@@ -266,7 +266,7 @@ externdef	crctab:DWORD
 removefile	proto __cdecl :LPSTR
 removetemp	proto __cdecl :LPSTR
 filexist	proto __cdecl :LPSTR
-setfattr	proto __cdecl :LPTSTR, :UINT
+;setfattr	proto __cdecl :LPTSTR, :UINT
 
 eropen		proto __cdecl :LPSTR
 ermkdir		proto __cdecl :LPSTR

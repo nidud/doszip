@@ -3,6 +3,15 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.95 - 12 Feb 2026
+- updated 7z.dll to version 25.01
+- added packing (upx) to dz.exe and 7z.dll
+- changed file-list creation in Archive (speed-up)
+- added progress for file-list creation in Archive
+- changed numeric list entries in .INI files to "0=.."
+- Skip Set/GetCurrentDirectory() on network paths (Alt-P)
+- fixed Make Directory on network
+
 Changes in 3.94 - 17 Des 2025
 - update for 7z.dll Create Archive (BZ2/XZ/..)
 

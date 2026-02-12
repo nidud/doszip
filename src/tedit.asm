@@ -823,130 +823,124 @@ ST_COUNT    equ 9
 
 TIReadLabel proc uses rsi rdi rbx section:LPSTR, buffer:LPSTR, endbuf:LPSTR, attrib:LPSTR
 
-  local st_type,i,p:LPSTR,q:LPSTR
+  local st_type,i,p:LPSTR,q:LPSTR,e:LPINI
+
+    .return .if !INIGetNextEntry(ldr(section))
+
+    mov e,rax
+    mov rax,[rax].S_INI.value
+    mov p,rax
+
+    mov al,[rax]
+    or  al,20h
+    lea rdi,cp_typech
+    mov ecx,sizeof(cp_typech)
+    repnz scasb
+    .return .ifnz
+
+    mov rax,rdi
+    lea rcx,cp_typech
+    sub rax,rcx
+    mov st_type,eax
+
+    mov rdi,buffer
+    mov rdi,[rdi]
+    .return .if rdi >= endbuf
+
+    stosb           ; store type
+    mov rsi,p
+    xor eax,eax
+    mov i,eax
+    lea rcx,_ltype
+
+    .repeat
+        inc rsi
+        mov al,[rsi]
+        .continue .if al == '_'
+    .until !( byte ptr [rcx+rax] & _UPPER or _LOWER or _DIGIT )
 
     .repeat
 
-        .break .if !INIGetEntryID(section, ID_TYPE)
-
+        lodsb
+        .switch
+        .case al == ' '
+            mov rax,rsi
+            .endc
+        .case al
+            .continue
+        .default
+            mov i,1
+            .break .if !INIGetNextEntry(e)
+            mov e,rax
+            mov rax,[rax].S_INI.value
+        .endsw
+        mov rsi,rax
+        add rax,2
         mov p,rax
-        mov al,[rax]
-        or  al,20h
-        lea rdi,cp_typech
-        mov ecx,sizeof(cp_typech)
-        repnz scasb
-
-        .break .ifnz
-        mov rax,rdi
-        lea rcx,cp_typech
-        sub rax,rcx
-        mov st_type,eax
-
-        mov rdi,buffer
-        mov rdi,[rdi]
-        .break .if rdi >= endbuf
-
-        stosb           ; store type
+        __xtol(rsi)         ; Attrib XX
+        mov ecx,[rsi]
+        or  ecx,2020h
+        mov rbx,attrib
+        .switch
+        .case cx == 'xx'
+            mov al,[rbx]
+           .endc
+        .case cl == 'x'     ; Use default background
+            __xtol(&[rsi+1])
+            mov ah,[rbx]
+            and ah,0xF0
+            or  al,ah
+           .endc
+        .case ch == 'x'     ; Use default foreground
+            mov ah,[rbx]
+            and ah,0x0F
+            or  al,ah
+           .endc
+        .endsw
+        stosb               ; store attrib
         mov rsi,p
-        xor eax,eax
-        mov i,eax
-        lea rcx,_ltype
-
-        .repeat
-            inc rsi
-            mov al,[rsi]
-
-            .continue .if al == '_'
-
-        .until !( byte ptr [rcx+rax] & _UPPER or _LOWER or _DIGIT )
-
-        .repeat
-            lodsb
-            .switch
-            .case al == ' '
-                mov rax,rsi
-               .endc
-            .case al
-               .continue
-            .default
-                mov i,1
-               .break .if !INIGetEntryID(section, ID_ATTRIB)
-            .endsw
-
-            mov rsi,rax
-            add rax,2
-            mov p,rax
-
-            __xtol(rsi)       ; Attrib XX
-            mov ecx,[rsi]
-            or  ecx,2020h
-            mov rbx,attrib
-            .switch
-            .case cx == 'xx'
-                mov al,[rbx]
-               .endc
-            .case cl == 'x'   ; Use default background
-                __xtol(&[rsi+1])
-                mov ah,[rbx]
-                and ah,0xF0
-                or  al,ah
-               .endc
-            .case ch == 'x'   ; Use default foreground
-                mov ah,[rbx]
-                and ah,0x0F
-                or  al,ah
-               .endc
-            .endsw
-            stosb       ; store attrib
-
-            mov rsi,p
-            .while byte ptr [rsi] == ' '
-                add rsi,1
-            .endw
-
-            .if st_type == ST_ATTRIB
-
-                mov [rbx],al    ; .stylec[1]
-                .if byte ptr [rsi]
-
-                    __xtol(rsi)
-                    stosb
-                .endif
-                .break
-            .endif
-
-            .while  1
-                .while  1
-                    lodsb
-                    .break .if !al
-                    .break .if rdi >= endbuf
-                    cmp al,' '
-                    sete dl
-                    dec dl
-                    and al,dl
-                    stosb
-                .endw
-                .break .if al
+        .while byte ptr [rsi] == ' '
+            add rsi,1
+        .endw
+        .if st_type == ST_ATTRIB
+            mov [rbx],al    ; .stylec[1]
+            .if byte ptr [rsi]
+                __xtol(rsi)
                 stosb
-                inc i
-                .break .if i == 100
-                .break .if !INIGetEntryID(section, i)
-                mov rsi,rax
-            .endw
-        .until 1
-
-        xor eax,eax
-        .if [rdi-1] != al
-            stosb
+            .endif
+            .break
         .endif
-        stosb
-        mov rcx,buffer
-        mov [rcx],rdi
-        inc eax
+        .while  1
+            .while  1
+                lodsb
+                .break .if !al
+                .break .if rdi >= endbuf
+                cmp al,' '
+                sete dl
+                dec dl
+                and al,dl
+                stosb
+            .endw
+            .break .if al
+            stosb
+            inc i
+            .break .if i == 100
+            .break .if !INIGetNextEntry(e)
+            mov e,rax
+            mov rsi,[rax].S_INI.value
+        .endw
     .until 1
+    xor eax,eax
+    .if [rdi-1] != al
+        stosb
+    .endif
+    stosb
+    mov rcx,buffer
+    mov [rcx],rdi
+    inc eax
     ret
+    endp
 
-TIReadLabel endp
 
 TIDoSection proc uses rsi rdi rbx cfile:LPSTR, sname:LPSTR, buffer:LPSTR, endbuf:LPSTR, attrib:LPSTR
 
@@ -1008,7 +1002,6 @@ TIDoSection proc uses rsi rdi rbx cfile:LPSTR, sname:LPSTR, buffer:LPSTR, endbuf
                 INIClose(rsi)
             .endif
         .else
-
             TIDoSection(cfile, rbx, buffer, endbuf, attrib)
         .endif
 
@@ -1016,18 +1009,14 @@ TIDoSection proc uses rsi rdi rbx cfile:LPSTR, sname:LPSTR, buffer:LPSTR, endbuf
 
         mov section,rax
         mov index,0
-
-        .while INIGetEntryID(section, index)
-
+        .while INIGetNextEntry(section)
             inc index
-
+            mov section,rax
+            mov rax,[rax].S_INI.value
             .if byte ptr [rax] == '['
-
                 mov rdx,rax
                 TIDoSection(cfile, rdx, buffer, endbuf, attrib)
-
             .elseif INIGetSection(cfile, rax)
-
                 TIReadLabel(rax, buffer, endbuf, attrib)
             .endif
         .endw
@@ -1052,48 +1041,35 @@ tireadstyle proc private uses rsi rdi rbx ti:PTINFO
     mov rdi,rax
     add rax,STYLESIZE-4
     mov endbuf,rax
-
     xor eax,eax
     mov ecx,STYLESIZE/4
     rep stosd
-
     strcpy(&section, "style_default")
     strcpy(&file, strfn([rsi].TINFO.file))
     mov rdi,rax
-
     .if byte ptr [rdi+strlen(rdi)-1] == '.'
-
         mov byte ptr [rdi+rax-1],0
     .endif
-
     .if CFGetSection("Style")
-
         mov rbx,rax
         .if !INIGetEntry(rbx, rdi) ; FILENAME[.EXT]
-
             .if strext(rdi)   ; .EXT ?
-
                 inc rax
                 INIGetEntry(rbx, rax)
             .endif
         .endif
     .endif
-
     .if rax
-
         lea rcx,section
         strcpy(rcx, rax)
     .endif
-
     TIDoSection(__CFBase, addr section, addr buffer, endbuf, &[rsi].TINFO.stylec[2])
-
     mov rdi,buffer
     xor eax,eax
     stosw
     inc eax
     ret
-
-tireadstyle endp
+    endp
 
     assume rsi:PTINFO
 

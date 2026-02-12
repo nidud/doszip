@@ -14,18 +14,15 @@ cmegaline proc uses rsi rdi rbx
    .new rc:RECT     = _scrrc
 
     doszip_hide()
-
     lea rbx,cmin
     .if !( cflag & _C_EGALINE )
         lea rbx,cmax
     .endif
-
     .if CFGetSection(".consolesize")
-
         mov rsi,rax
-        mov edi,4
+        mov edi,CON_MAX_X
         .if ( cflag & _C_EGALINE )
-            xor edi,edi
+            mov edi,CON_MIN_X
         .endif
         .if INIGetEntryID(rsi, edi)
             mov _scrrc.left,atol(rax)
@@ -34,12 +31,10 @@ cmegaline proc uses rsi rdi rbx
             mov _scrrc.top,atol(rax)
         .endif
         .if INIGetEntryID(rsi, &[rdi+2])
-
             atol(rax)
             mov [rbx],ax
         .endif
         .if INIGetEntryID(rsi, &[rdi+3])
-
             atol(rax)
             mov [rbx+2],ax
         .endif
@@ -49,7 +44,6 @@ cmegaline proc uses rsi rdi rbx
     mov _scrrc,rc
     doszip_show()
     ret
-
-cmegaline endp
+    endp
 
     end

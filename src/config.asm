@@ -151,18 +151,15 @@ config_table_s LPSTR \
     .code
 
 INIAlloc proc
-
     .if malloc(S_INI)
-
-        mov ecx,0
+        xor ecx,ecx
         mov [rax].S_INI.flags,ecx
         mov [rax].S_INI.entry,rcx
         mov [rax].S_INI.value,rcx
         mov [rax].S_INI.next,rcx
     .endif
     ret
-
-INIAlloc endp
+    endp
 
 
 INIAddEntry proc private uses rsi rdi rbx cf:LPINI, string:LPSTR
@@ -170,72 +167,60 @@ INIAddEntry proc private uses rsi rdi rbx cf:LPINI, string:LPSTR
    .new p:LPINI
 
     xor edi,edi
-    mov rsi,string
-
+    ldr rsi,string
     movzx eax,byte ptr [rsi]
     lea rbx,_ltype
     .while ( byte ptr [rbx+rax] & _SPACE )
-
         inc rsi
         mov al,[rsi]
     .endw
 
     .if ( al == ';' )
-
         .return .if !INIAlloc()
-
         mov rdi,rax
         strtrim(rsi)
         mov [rdi].S_INI.flags,INI_COMMENT
         mov [rdi].S_INI.entry,_strdup(rsi)
         mov rax,rdi
-
     .elseif strchr(rsi, '=')
-
         mov byte ptr [rax],0
         lea rdi,[rax+1]
-
         movzx eax,byte ptr [rdi]
         .while ( byte ptr [rbx+rax] & _SPACE )
-
             inc rdi
             mov al,[rdi]
         .endw
-
         .return .ifd !strtrim(rsi)
         mov rbx,rax
         .return .ifd !strtrim(rdi)
         lea rbx,[rbx+rax+2]
-
-        .if INIGetEntry(cf, rsi)
-
-            mov rax,[rcx].S_INI.next
-            .if !rdx
-                mov rdx,cf
-                mov [rdx].S_INI.value,rax
-            .else
-                mov [rdx].S_INI.next,rax
+        mov eax,[rsi]
+        .if ( ax != '0' )
+            .if INIGetEntry(cf, rsi)
+                mov rax,[rcx].S_INI.next
+                .if !rdx
+                    mov rdx,cf
+                    mov [rdx].S_INI.value,rax
+                .else
+                    mov [rdx].S_INI.next,rax
+                .endif
+                mov p,rcx
+                free([rcx].S_INI.entry)
+                free(p)
             .endif
-            mov p,rcx
-            free([rcx].S_INI.entry)
-            free(p)
         .endif
         .return .if !INIAlloc()
-
         xchg rbx,rax
         .return .if !malloc(eax)
-
         mov [rbx].S_INI.entry,rax
         strcat(strcat(strcpy(rax, rsi), "="), rdi)
         strchr(rax, '=')
         mov byte ptr [rax],0
         inc rax
         mov [rbx].S_INI.value,rax
-
         mov rax,rbx
         mov [rax].S_INI.flags,INI_ENTRY
     .endif
-
     mov rdx,cf
     mov rcx,[rdx].S_INI.value
     .if rcx
@@ -247,8 +232,7 @@ INIAddEntry proc private uses rsi rdi rbx cf:LPINI, string:LPSTR
         mov [rdx].S_INI.value,rax
     .endif
     ret
-
-INIAddEntry endp
+    endp
 
 
 INIRead proc uses rsi rdi rbx ini:LPINI, file:LPSTR
@@ -270,42 +254,31 @@ INIRead proc uses rsi rdi rbx ini:LPINI, file:LPSTR
             mov ini,INIAlloc()
         .endif
         mov rbx,ini
-
         .while 1
-
             mov eax,i_i
             .if eax == i_c
-
                 .break .ifd !osread(i_fh, i_bp, _PAGESIZE_)
-
                 mov i_c,eax
                 xor eax,eax
                 mov i_i,eax
             .endif
-
             inc i_i
             add rax,i_bp
             movzx eax,byte ptr [rax]
-
             mov rdi,o_bp
             mov edx,o_i
             inc o_i
             mov [rdi+rdx],ax
-
-            .if eax == 10 || edx == _PAGESIZE_ - 2
-
+            .if ( eax == 10 || edx == _PAGESIZE_ - 2 )
                 mov o_i,0
                 mov al,[rdi]
-
                 .switch al
-
                   .case 10
                   .case 13
                     .endc
                   .case '['
                     inc rdi
                     .if strchr(rdi, ']')
-
                         mov byte ptr [rax],0
                         .break .if !INIAddSection(ini, rdi)
                         mov rbx,rax
@@ -322,8 +295,7 @@ INIRead proc uses rsi rdi rbx ini:LPINI, file:LPSTR
         xor eax,eax
     .endif
     ret
-
-INIRead endp
+    endp
 
 
     assume rsi:ptr S_INI
@@ -337,22 +309,16 @@ INIWrite proc uses rsi rdi rbx ini:LPINI, file:LPSTR
 
         mov fp,rax
         mov _diskflag,1
-
         mov rsi,ini
         .while rsi
-
             .if [rsi].flags == INI_SECTION
-
                 fprintf(fp, "\n[%s]\n", [rsi].entry)
             .endif
             mov rdi,[rsi].value
             .while rdi
-
                 .if [rdi].flags == INI_ENTRY
-
                     fprintf(fp, "%s=%s\n", [rdi].entry, [rdi].value)
                 .elseif [rdi].flags == INI_COMMENT
-
                     fprintf(fp, "%s\n", [rdi].entry)
                 .else
                     fprintf(fp, ";%s\n", [rdi].entry)
@@ -365,25 +331,18 @@ INIWrite proc uses rsi rdi rbx ini:LPINI, file:LPSTR
         mov eax,1
     .endif
     ret
-
-INIWrite endp
+    endp
 
 INIAddEntryX proc __Cdecl ini:LPINI, format:LPSTR, argptr:VARARG
-
     .ifd vsprintf( &_bufin, format, &argptr )
-
         INIAddEntry(ini, &_bufin)
     .endif
     ret
-
-INIAddEntryX endp
+    endp
 
 INIAddSection proc uses rsi ini:LPINI, section:LPSTR
-
     .if !INIGetSection(ini, section)
-
         .if INIAlloc()
-
             mov rsi,rax
             mov [rsi].S_INI.flags,INI_SECTION
             mov [rsi].S_INI.entry,_strdup(section)
@@ -398,17 +357,13 @@ INIAddSection proc uses rsi ini:LPINI, section:LPSTR
         .endif
     .endif
     ret
-
-INIAddSection endp
+    endp
 
 INIDelEntries proc uses rsi ini:LPINI
-
     mov rax,ini
     mov rsi,[rax].S_INI.value
     mov [rax].S_INI.value,0
-
     .while rsi
-
         .if [rsi].entry
             free([rsi].entry)
         .endif
@@ -418,24 +373,18 @@ INIDelEntries proc uses rsi ini:LPINI
     .endw
     mov rax,ini
     ret
-
-INIDelEntries endp
+    endp
 
 
 INIDelSection proc private uses rbx ini:LPINI, section:LPSTR
-
     .if INIGetSection(ini, section)
-
         .if rdx
-
             mov rcx,[rax].S_INI.next
             mov [rdx].S_INI.next,rcx
         .endif
         mov rbx,[INIDelEntries(rax)].S_INI.entry
         free(rbx)
-
         .if ( rbx == ini )
-
             mov [rbx].S_INI.flags,0
             mov [rbx].S_INI.entry,0
         .else
@@ -444,8 +393,7 @@ INIDelSection proc private uses rbx ini:LPINI, section:LPSTR
         mov rax,ini
     .endif
     ret
-
-INIDelSection endp
+    endp
 
 
 INIGetEntry proc uses rsi rdi ini:LPINI, entry:LPSTR
@@ -455,31 +403,22 @@ INIGetEntry proc uses rsi rdi ini:LPINI, entry:LPSTR
     xor eax,eax
 
     .if rdx && [rdx].S_INI.flags & INI_SECTION
-
         mov rax,[rdx].S_INI.value
-
         .while rax
-
             .if [rax].S_INI.flags & INI_ENTRY
-
                 mov rsi,rax
                 mov rdx,[rax].S_INI.entry
                 mov rcx,entry
-
                 .while 1
-
                     mov al,[rcx]
                     mov ah,[rdx]
                     .break .if !al
-
                     add rcx,1
                     add rdx,1
                     or  eax,0x2020
                     .break .if al != ah
                 .endw
-
                 .if al == ah
-
                     mov rdx,rdi ; mother
                     mov rcx,rsi ; entry
                     ;
@@ -495,13 +434,11 @@ INIGetEntry proc uses rsi rdi ini:LPINI, entry:LPSTR
         .endw
     .endif
     ret
-
-INIGetEntry endp
+    endp
 
 
 INIGetEntryID proc ini:LPINI, entry:UINT
-
-    mov eax,entry ; 0..99
+    ldr eax,entry ; 0..99
     .while  al > 9
         add ah,1
         sub al,10
@@ -512,24 +449,42 @@ INIGetEntryID proc ini:LPINI, entry:UINT
     .endif
     or  al,'0'
     mov entry,eax
-    INIGetEntry(ini, &entry)
+    INIGetEntry(ldr(ini), &entry)
     ret
+    endp
 
-INIGetEntryID endp
+
+INIGetNextEntry proc ini:LPINI
+    ldr rcx,ini
+    xor eax,eax
+    .if ( rcx )
+        .if ( [rcx].S_INI.flags & INI_SECTION )
+            mov rcx,[rcx].S_INI.first
+        .else
+            mov rcx,[rcx].S_INI.next
+        .endif
+        .while ( rcx && [rcx].S_INI.flags == INI_COMMENT )
+            mov rcx,[rcx].S_INI.next
+        .endw
+        .if ( rcx && [rcx].S_INI.flags == INI_ENTRY )
+            mov rax,rcx
+            mov rcx,[rcx].S_INI.entry
+            .if ( !rcx || word ptr [rcx] != '0' )
+                xor eax,eax
+            .endif
+        .endif
+    .endif
+    ret
+    endp
 
 
 INIGetSection proc uses rsi rdi ini:LPINI, section:LPSTR
-
-    mov rax,ini
+    ldr rax,ini
     xor edi,edi
-
     .while rax
-
         .if [rax].S_INI.flags & INI_SECTION
-
             mov rsi,rax
             .ifd !strcmp([rsi].entry, section)
-
                 mov rdx,rdi
                 mov rax,rsi
                .break
@@ -540,24 +495,18 @@ INIGetSection proc uses rsi rdi ini:LPINI, section:LPSTR
         mov rax,[rax].S_INI.next
     .endw
     ret
-
-INIGetSection endp
+    endp
 
 
 INIClose proc uses rsi rdi rbx ini:LPINI
-
     mov rsi,ini
     .while rsi
-
         .if [rsi].entry
-
             free([rsi].entry)
         .endif
         mov rdi,[rsi].value
         .while rdi
-
             .if [rdi].entry
-
                 free([rdi].entry)
             .endif
             mov rax,rdi
@@ -569,74 +518,53 @@ INIClose proc uses rsi rdi rbx ini:LPINI
         free(rax)
     .endw
     ret
-
-INIClose endp
+    endp
 
     assume rsi:nothing
     assume rdi:nothing
 
 __CFExpandCmd proc private uses rsi rdi ini:LPINI, buffer:LPSTR, file:LPSTR
-
    .new tmp:LPSTR = alloca(0x8000)
-
     mov rdi,rax
     mov rsi,rax
-
     .if strrchr(strcpy(rsi, strfn(file)), '.')
-
         .if byte ptr [rax+1] == 0
-
             mov byte ptr [rax],0
         .else
-
             lea rsi,[rax+1]
         .endif
     .endif
-
     .if INIGetEntry(ini, rsi)
-
         mov rsi,rax
         strcpy(rdi, rax)
-
         ExpandEnvironmentStrings(rsi, rdi, 0x8000 - 1)
         CFExpandMac(rdi, file)
         strxchg(rdi, ", ", "\r\n")
         strcpy(buffer, rdi)
     .endif
     ret
+    endp
 
-__CFExpandCmd endp
 
 __CFGetComspec proc private uses rsi rdi rbx ini:LPINI, value:UINT
-
   local buffer[512]:byte
-
     mov esi,value
     mov comspec_type,esi
-
     __initcomspec()
     strcpy(__pCommandArg, "/C")
-
     .if esi
-
         .if INIGetSection(ini, &__comspec)
-
             mov rsi,rax
             lea rbx,buffer
-
-            .if INIGetEntryID(rsi, 0)
-
-                .ifd !_access(expenviron(strcpy(rbx, rax)), 0)
-
+            .if INIGetNextEntry(rsi)
+                mov rsi,rax
+                .ifd !_access(expenviron(strcpy(rbx, [rsi].S_INI.value)), 0)
                     free(__pCommandCom)
                     mov __pCommandCom,_strdup(rbx)
-
                     mov rax,__pCommandArg
                     mov byte ptr [rax],0
-
-                    .if INIGetEntryID(rsi, 1)
-
-                        expenviron(strcpy(rbx, rax))
+                    .if INIGetNextEntry(rsi)
+                        expenviron(strcpy(rbx, [rax].S_INI.value))
                         strncpy(__pCommandArg, rax, 64-1)
                     .endif
                 .endif
@@ -645,163 +573,131 @@ __CFGetComspec proc private uses rsi rdi rbx ini:LPINI, value:UINT
     .endif
     mov rax,__pCommandCom
     ret
+    endp
 
-__CFGetComspec endp
 
 CFError proc section:LPSTR, entry:LPSTR
-
     ermsg("Bad or missing Entry in .INI file",
         "Section: [%s]\nEntry: [%s]", section, entry)
     ret
+    endp
 
-CFError endp
 
 CFRead proc file:LPSTR
-
     mov __CFBase,INIRead(__CFBase, file)
     ret
+    endp
 
-CFRead endp
-
-CFReadFileName proc uses rsi rdi rbx ini:LPINI, index:PVOID, file_flag:UINT
-
+CFReadFileName proc uses rsi rdi rbx ini:LPINI, p:PCFBLK, file_flag:UINT
   local buffer[1024]:sbyte
-
-    mov rax,index
-    mov ebx,[rax]
-    xor edi,edi
-
-    .while INIGetEntryID(ini, ebx)
-
-        mov rsi,rax
-        inc ebx
-
-        mov rdi,index
-        add rdi,4
-
+    ldr rbx,ini
+    ldr rdi,p
+    .while INIGetNextEntry(rbx)
+        mov rbx,rax
+        mov rsi,[rax].S_INI.value
         .while strchr(rsi, ',')
-
             mov rcx,rsi
             lea rsi,[rax+1]
             __xtol(rcx)
             stosd
         .endw
-        xor edi,edi
-
         ExpandEnvironmentStrings(rsi, strcpy(&buffer, rsi), 1024)
-
         lea rsi,buffer
         mov eax,'\\'
         .if ( ax == [rsi] && !( console & CON_NETCFG ) )
+            mov rdi,p
             .continue
         .endif
         .ifd filexist(rsi) == file_flag
-
-            mov rdi,_strdup(rsi)
+            mov [rdi],_strdup(rsi)
+            mov rax,rbx
            .break
         .endif
     .endw
-
-    mov rax,index
-    mov [rax],ebx
-    mov rax,rdi
     ret
-
-CFReadFileName endp
+    endp
 
 
 CFWrite proc private file:LPSTR
-
     mov rax,__CFBase
     .if rax
-
-        INIWrite(rax, file)
+        INIWrite(rax, ldr(file))
     .endif
     ret
-
-CFWrite endp
+    endp
 
 
 CFGetSection proc section:LPSTR
-
     mov rax,__CFBase
     .if rax
-
-        INIGetSection(rax, section)
+        INIGetSection(rax, ldr(section))
     .endif
     ret
+    endp
 
-CFGetSection endp
+
+CFGetSecEntry proc section:LPSTR, entry:LPSTR
+    mov rax,__CFBase
+    .if rax
+        .if INIGetSection(rax, ldr(section))
+            INIGetEntry(rax, entry)
+        .endif
+    .endif
+    ret
+    endp
 
 
 CFGetSectionID proc section:LPSTR, id:UINT
-
     mov rax,__CFBase
     .if rax
-
-        .if INIGetSection(rax, section)
-
+        .if INIGetSection(rax, ldr(section))
             INIGetEntryID(rax, id)
         .endif
     .endif
     ret
-
-CFGetSectionID endp
+    endp
 
 
 CFAddSection proc __section:LPSTR
-
     mov rax,__CFBase
     .if rax
-
-        INIAddSection(rax, __section)
+        INIAddSection(rax, ldr(__section))
     .endif
     ret
-
-CFAddSection endp
+    endp
 
 
 CFGetComspec proc value:UINT
-
     mov rax,__CFBase
     .if rax
-
-        __CFGetComspec(rax, value)
+        __CFGetComspec(rax, ldr(value))
     .endif
     ret
-
-CFGetComspec endp
+    endp
 
 
 CFExpandCmd proc buffer:LPSTR, file:LPSTR, section:LPSTR
-
     mov rax,__CFBase
     .if rax
-
         .if INIGetSection(rax, section)
-
             __CFExpandCmd(rax, buffer, file)
         .endif
     .endif
     ret
+    endp
 
-CFExpandCmd endp
 
-
-CFExecute proc uses rsi ini:LPINI
-
+CFExecute proc uses rsi rdi ini:LPINI
   local cmd[256]:byte
-
+    ldr rdi,ini
     xor esi,esi
-    .while INIGetEntryID(ini, esi)
-
-        mov rdx,rax
-        system(strcpy(&cmd, rdx))
+    .while INIGetNextEntry(rdi)
+        mov rdi,rax
+        system(strcpy(&cmd, [rdi].S_INI.value))
         inc esi
     .endw
     ret
-
-CFExecute endp
+    endp
 
 ;
 ; File macros:
@@ -827,31 +723,21 @@ CFExpandMac proc uses rsi rdi rbx string:LPSTR, file:LPSTR
         S1:UINT,
         drive:UINT
 
-    .if !strchr(string, '!')
-
-        ; "<string> <file>"
-        ; "<string> "<file name>""
-
+    .if !strchr(string, '!')    ; "<string> <file>" | "<string> "<file name>""
         lea rbx,S1
         mov eax,'" '
         mov [rbx],eax
         mov rsi,strchr(file, ' ')
-
         .if !rax
-
             mov [rbx+1],al
         .endif
-
         strcat(strcat(string, rbx), file)
-
         .if rsi
-
             inc rbx
             strcat(rax, rbx)
         .endif
         .return
     .endif
-
     mov longpath,alloca(WMAXPATH*2)
     mov rdi,rax
     mov ecx,WMAXPATH*2
@@ -859,49 +745,31 @@ CFExpandMac proc uses rsi rdi rbx string:LPSTR, file:LPSTR
     mov shortpath,rax
     xor eax,eax
     rep stosb
-
     GetFullPathName(file, WMAXPATH, strcpy(longpath, file), 0)
-
     xor eax,eax
     mov drive,eax
     mov rdi,longpath
     mov ebx,[rdi]
-
     .if bl != '\' && bh != ':'
-
         .return .ifd !GetCurrentDirectory(WMAXPATH, shortpath)
-
         strfcat(longpath, shortpath, file)
     .endif
-
     GetShortPathName(rdi, strcpy(shortpath, rdi), WMAXPATH)
-
     .if bh == ':'
-
         mov word ptr drive,bx
         strcpy(rdi, &[rdi+3])
         mov rcx,shortpath
         strcpy(rcx, &[rcx+3])
     .endif
-
     lea rsi,S1
     lea rdi,S2
     mov rbx,string
-
-    ; remove <!!>
-
-    mov dword ptr [rsi],"!!"
+    mov dword ptr [rsi],"!!"    ; remove <!!>
     mov dword ptr [rdi],"››"
     strxchg(rbx, rsi, rdi)
-
-    ; xchg <!:> -- <<drive>:>
-
-    mov byte ptr [rsi+1],':'
+    mov byte ptr [rsi+1],':'    ; xchg <!:> -- <<drive>:>
     strxchg(rbx, rsi, &drive)
-
-    ; xchg <.!~> -- <Short extension>
-
-    xor eax,eax
+    xor eax,eax                 ; xchg <.!~> -- <Short extension>
     mov [rdi],eax
     mov dword ptr [rsi],"~!."
     strext(shortpath)
@@ -911,18 +779,11 @@ CFExpandMac proc uses rsi rdi rbx string:LPSTR, file:LPSTR
     .endif
     mov p,rdx
     strxchg(rbx, rsi, rdx)
-
-    ; remove short extension
-
-    mov rdx,p
+    mov rdx,p                   ; remove short extension
     .if rdx != rdi
-
         mov byte ptr [rdx],0
     .endif
-
-    ; xchg <.!> -- <Long extension>
-
-    mov dword ptr [rsi],"!."
+    mov dword ptr [rsi],"!."    ; xchg <.!> -- <Long extension>
     strext(longpath)
     mov rdx,rdi
     .if rax
@@ -930,124 +791,81 @@ CFExpandMac proc uses rsi rdi rbx string:LPSTR, file:LPSTR
     .endif
     mov p,rdx
     strxchg(rbx, rsi, rdx)
-
-    ; remove long extension
-
-    mov rdx,p
+    mov rdx,p                   ; remove long extension
     .if rdx != rdi
-
         mov byte ptr [rdx],0
     .endif
-
     mov shortfile,strfn(shortpath)
     .if rax == shortpath
-
         mov shortpath,rdi
     .else
-
         mov byte ptr [rax-1],0
     .endif
-
     mov longfile,strfn(longpath)
     .if rax == longpath
-
         mov longpath,rdi
     .else
-
         mov byte ptr [rax-1],0
     .endif
-
-    ; xchg <!\> -- <Long path>
-
-    mov dword ptr [rsi],"\!"
+    mov dword ptr [rsi],"\!"    ; xchg <!\> -- <Long path>
     strxchg(rbx, rsi, longpath)
-
-    ; xchg <!~\> -- <Short path>
-
-    mov dword ptr [rsi],"\~!"
+    mov dword ptr [rsi],"\~!"   ; xchg <!~\> -- <Short path>
     strxchg(rbx, rsi, shortpath)
-
-    ; xchg <!~> -- <Short file>
-
-    mov dword ptr [rsi],"!~"
+    mov dword ptr [rsi],"!~"    ; xchg <!~> -- <Short file>
     strxchg(rbx, rsi, shortfile)
-
-    ; xchg <!> -- <Long file>
-
-    mov dword ptr [rsi],"!"
+    mov dword ptr [rsi],"!"     ; xchg <!> -- <Long file>
     strxchg(rbx, rsi, longfile)
-
-    ; xchg <››> -- <!>
-
-    mov dword ptr [rsi],"››"
+    mov dword ptr [rsi],"››"    ; xchg <››> -- <!>
     mov dword ptr [rdi],"!"
     strxchg(rbx, rsi, rdi)
     ret
-
-CFExpandMac endp
+    endp
 
 
 CFClose proc
-
     mov rax,__CFBase
     .if rax
-
         INIClose(rax)
         mov __CFBase,0
     .endif
     ret
-
-CFClose endp
+    endp
 
 
 config_create proc uses rsi rdi
-
     xor edi,edi
     mov config.c_cel_indexa,5
-
     .if fopen(__srcfile, "wt")
-
         mov rsi,rax
         mov _diskflag,1
-
         fwrite(&default_ini, 1, strlen(&default_ini), rsi)
         mov edi,eax
         fclose(rsi)
     .endif
     mov eax,edi
     ret
-
-config_create endp
+    endp
 
 config_read proc uses rsi rdi rbx
-
-  local xoff, boff, yoff, loff, entry
-
+  local file:CFBLK
 ifdef _WIN95
     push console
 endif
     mov history,malloc(HISTORY)
     .if rax
-
         mov rdi,rax
         xor eax,eax
         mov ecx,HISTORY
         rep stosb
     .endif
-
     .if CFGetSection(".config")
-
         mov rbx,rax
-
-        .if INIGetEntryID(rbx, 0)
-
+        .if INIGetEntry(rbx, "version")
             .ifd __xtol(rax) <= VERSION && eax >= MINVERS
-
                 mov edi,1
                 lea rsi,config_table_x
                 .repeat
                     .if INIGetEntryID(rbx, edi)
-
                         __xtol(rax)
                         mov rcx,[rsi]
                         mov [rcx],eax
@@ -1056,12 +874,10 @@ endif
                     add rsi,size_t
                     mov rax,[rsi]
                 .until !rax
-
                 lea rsi,config_table_p
                 mov rax,[rsi]
                 .while rax
                     .if INIGetEntryID(rbx, edi)
-
                         mov rcx,[rsi]
                         mov rcx,[rcx]
                         strcpy(rcx, rax)
@@ -1070,12 +886,10 @@ endif
                     add rsi,size_t
                     mov rax,[rsi]
                 .endw
-
                 lea rsi,config_table_s
                 mov rax,[rsi]
                 .while rax
                     .if INIGetEntryID(rbx, edi)
-
                         mov rcx,[rsi]
                         strcpy(rcx, rax)
                     .endif
@@ -1086,50 +900,35 @@ endif
             .endif
         .endif
     .endif
-
     .if CFGetSection(".directory")
-
         mov rdi,history
         .if rdi
-
-            mov entry,0
             mov rbx,rax
-
-            .while CFReadFileName(rbx, addr entry, 2)
-
-                mov [rdi].DIRECTORY.path,rax
-                mov eax,loff
-                mov [rdi].DIRECTORY.flag,eax
-                mov eax,yoff
-                mov [rdi].DIRECTORY.fcb_index,eax
-                mov eax,boff
-                mov [rdi].DIRECTORY.cel_index,eax
+            .while CFReadFileName(rbx, &file, 2)
+                mov rbx,rax
+                mov [rdi].DIRECTORY.path,file.path
+                mov [rdi].DIRECTORY.flag,file.attrib
+                mov [rdi].DIRECTORY.fcb_index,file.fcb_index
+                mov [rdi].DIRECTORY.cel_index,file.cel_index
                 add rdi,DIRECTORY
             .endw
         .endif
     .endif
-
     .if CFGetSection(".doskey")
-
         mov rbx,rax
         mov rax,history
         .if rax
-
             lea rdi,[rax].HISTORY.doskey
             mov esi,MAXDOSKEYS
-            mov entry,0
-
-            .while INIGetEntryID(rbx, entry)
-
-                mov [rdi],_strdup(rax)
+            .while INIGetNextEntry(rbx)
+                mov rbx,rax
+                mov [rdi],_strdup([rax].S_INI.value)
                 add rdi,size_t
-                inc entry
                 dec esi
                .break .ifz
             .endw
         .endif
     .endif
-
 toend:
 ifdef _WIN95
     pop eax
@@ -1137,12 +936,9 @@ ifdef _WIN95
     or  console,eax
 endif
     ret
-config_read endp
+    endp
 
 config_save proc uses rsi rdi rbx
-
-  local boff, xoff, loff
-
     mov config.c_fcb_indexa,spanela.fcb_index
     mov config.c_cel_indexa,spanela.cel_index
     mov config.c_fcb_indexb,spanelb.fcb_index
@@ -1155,19 +951,13 @@ config_save proc uses rsi rdi rbx
     .if prect_b.flag & _D_DOPEN
         or config.c_bpath.flag,_W_VISIBLE
     .endif
-
     .if CFAddSection(".config")
-
         mov rbx,rax
         INIDelEntries(rax)
-
-        xor edi,edi
-        INIAddEntryX(rbx, "%d=%X", edi, VERSION)
-
+        INIAddEntryX(rbx, "version=%X", VERSION)
         or  fsflag,_T_PROMPTONREP
         and fsflag,not IO_SEARCHHEX
-
-        inc edi
+        mov edi,1
         lea rsi,config_table_x
         .while 1
             mov rax,[rsi]
@@ -1195,26 +985,19 @@ config_save proc uses rsi rdi rbx
             add rsi,size_t
         .endw
     .endif
-
     .if CFAddSection(".directory")
-
         .if !(cflag & _C_DELHISTORY)
-
             mov rbx,rax
             INIDelEntries(rax)
-
             mov rdi,history
             .if rdi
-
                 xor esi,esi
                 .while [rdi].DIRECTORY.path
-
-                    INIAddEntryX(rbx, "%d=%X,%X,%X,%s", esi,
+                    INIAddEntryX(rbx, "0=%X,%X,%X,%s",
                         [rdi].DIRECTORY.flag,
                         [rdi].DIRECTORY.fcb_index,
                         [rdi].DIRECTORY.cel_index,
                         [rdi].DIRECTORY.path)
-
                     add rdi,DIRECTORY
                     inc esi
                     .break .if esi == MAXHISTORY
@@ -1222,58 +1005,43 @@ config_save proc uses rsi rdi rbx
             .endif
         .endif
     .endif
-
     .if CFAddSection(".doskey")
-
         .if !(cflag & _C_DELHISTORY)
-
             mov rbx,rax
             INIDelEntries(rax)
-
             mov rax,history
             .if rax
-
                 lea rsi,[rax].HISTORY.doskey
                 xor edi,edi
-
                 .while edi < MAXDOSKEYS
-
                     mov rax,[rsi]
                     add rsi,size_t
-
                     .break .if !rax
                     .break .if byte ptr [rax] == 0
-
-                    INIAddEntryX(rbx, "%d=%s", edi, rax)
+                    INIAddEntryX(rbx, "0=%s", rax)
                     inc edi
                 .endw
             .endif
         .endif
     .endif
-
     INIDelSection(__CFBase, ".openfiles")
     TISaveSession(__CFBase, ".openfiles")
     CFWrite(strfcat(__srcfile, _pgmpath, addr DZ_INIFILE))
     mov eax,1
     ret
-
-config_save endp
+    endp
 
 config_open proc
-
     TIOpenSession(__CFBase, ".openfiles")
     ;
     ; Remove section
     ;
     INIDelSection(__CFBase, ".openfiles")
-
     mov eax,1
     ret
-
-config_open endp
+    endp
 
 setconfirmflag proc
-
     mov edx,CFSELECTED
     mov eax,config.c_cflag
     .if eax & _C_CONFDELETE
@@ -1290,23 +1058,17 @@ setconfirmflag proc
     .endif
     mov confirmflag,edx
     ret
-
-setconfirmflag endp
+    endp
 
 historymove proc private uses rsi rdi direction:int_t
-
   local tmpPath:DIRECTORY
-
     mov rax,history
     .if rax
-
         lea rdi,tmpPath
         mov rsi,rax
         mov ecx,DIRECTORY
         mov edx,DIRECTORY * (MAXHISTORY-1)
-
         .if !direction
-
             add rsi,rdx
             rep movsb
             mov rdi,rax
@@ -1338,43 +1100,31 @@ historymove proc private uses rsi rdi direction:int_t
         rep movsb
     .endif
     ret
-
-historymove endp
+    endp
 
 
 historysave proc uses rsi
-
     mov rax,cpanel
     mov rax,[rax].PANEL.wsub
     mov edx,[rax].WSUB.flag
     xor eax,eax
-
     .if !( ( edx & _W_ARCHIVE or _W_ROOTDIR ) ||
            ( edx & _W_NETWORK && !( console & CON_NETCFG ) ) )
-
         lea rsi,_bufin
-
         .if _getcwd(rsi, _MAX_PATH)
-
             mov rax,history
             .if rax
-
                 mov rax,[rax]
                 .if rax
-
                     .ifd !strcmp(rsi, rax)
-
                         .return
                     .endif
                     xor eax,eax
                 .endif
-
                 historymove(eax)
                 mov rsi,history
                 mov rax,[rsi]
                 free(rax)
-
-
                 mov [rsi],_strdup(addr _bufin)
                 mov rdx,cpanel
                 mov eax,[rdx].PANEL.fcb_index
@@ -1390,24 +1140,18 @@ historysave proc uses rsi
         .endif
     .endif
     ret
-
-historysave endp
+    endp
 
 
 DirectoryToCurrentPanel proc uses rsi rdi directory:PDIRECTORY
-
     mov rsi,directory
     xor eax,eax
     .if rsi
-
         .if rax != [rsi].DIRECTORY.path
-
             mov rdi,cpanel
             mov rdi,[rdi].PANEL.wsub
             mov edx,[rdi].WSUB.flag
-
             .if !( edx & _W_ARCHIVE or _W_ROOTDIR )
-
                 mov eax,edx
                 and eax,_P_FLAGMASK
                 or  eax,[rsi].DIRECTORY.flag
@@ -1417,7 +1161,6 @@ DirectoryToCurrentPanel proc uses rsi rdi directory:PDIRECTORY
                 mov rcx,cpanel
                 mov [rcx].PANEL.fcb_index,eax
                 mov [rcx].PANEL.cel_index,edx
-
                 cpanel_setpath([rsi].DIRECTORY.path)
                 panel_redraw(cpanel)
                 mov eax,1
@@ -1425,51 +1168,40 @@ DirectoryToCurrentPanel proc uses rsi rdi directory:PDIRECTORY
         .endif
     .endif
     ret
-
-DirectoryToCurrentPanel endp
+    endp
 
 
 cmpathleft proc ; Alt-Left - Previous Directory
-
     historysave()
     historymove(1)
     .ifd !DirectoryToCurrentPanel(history)
         historymove(0)
     .endif
     ret
-
-cmpathleft endp
+    endp
 
 
 cmpathright proc ; Alt-Right - Next Directory
-
     historysave()
     historymove(0)
     .ifd !DirectoryToCurrentPanel(history)
         historymove(1)
     .endif
     ret
-
-cmpathright endp
+    endp
 
 doskeysave proc uses rbx
-
     .ifd strtrim(&com_base)
-
         mov rax,history
         .if ( rax == NULL )
-
             .return
         .endif
-
         lea rbx,[rax].HISTORY.doskey
         mov doskey_bindex,0
         mov doskey_isnext,0
         mov rax,[rbx]
         .if rax
-
             .ifd strcmp(&com_base, rax)
-
                 free([rbx + LPSTR * (MAXDOSKEYS - 1)])
                 memmove(&[rbx+LPSTR], rbx, LPSTR * (MAXDOSKEYS - 1))
             .else
@@ -1481,12 +1213,10 @@ doskeysave proc uses rbx
         mov eax,1
     .endif
     ret
-
-doskeysave endp
+    endp
 
 
 doskeytocommand proc private
-
     mov rax,history
     movzx ecx,doskey_bindex
     mov rax,[rax+rcx*LPSTR].HISTORY.doskey
@@ -1494,29 +1224,23 @@ doskeytocommand proc private
         strcpy(&com_base, rax)
     .endif
     ret
-
-doskeytocommand endp
+    endp
 
 
 CommandlineVisible proc private
-
     mov rax,DLG_Commandline
     mov eax,[rax]
     and eax,_D_ONSCR
     ret
-
-CommandlineVisible endp
+    endp
 
 
 cmdoskeyup proc
-
     .ifd CommandlineVisible()
-
         mov eax,1
         .if doskey_isnext == al
             mov com_base,ah
         .else
-
             doskeytocommand()
             inc doskey_bindex
             .if ( doskey_bindex >= MAXDOSKEYS )
@@ -1528,17 +1252,13 @@ cmdoskeyup proc
         mov doskey_isnext,ah
     .endif
     ret
-
-cmdoskeyup endp
+    endp
 
 
 cmdoskeydown proc
-
     .ifd CommandlineVisible()
-
         xor eax,eax
         .if doskey_isnext == al
-
             mov com_base,al
         .else
             .if doskey_bindex == al
@@ -1553,17 +1273,14 @@ cmdoskeydown proc
         mov doskey_isnext,al
     .endif
     ret
-
-cmdoskeydown endp
+    endp
 
 
 history_event_list proc watcall uses rsi rbx dlg:PDOBJ, lst:PLOBJ
-
     mov rbx,dlg
     mov rax,[rbx].DOBJ.object
     mov rsi,rax
     mov ecx,[rdx].LOBJ.dcount
-
     .repeat
         or  [rax].TOBJ.flag,_O_STATE
         add rax,TOBJ
@@ -1572,7 +1289,6 @@ history_event_list proc watcall uses rsi rbx dlg:PDOBJ, lst:PLOBJ
     mov eax,[rdx].LOBJ.index
     mov rdx,[rdx].LOBJ.list
     lea rdx,[rdx+rax*size_t]
-
     .while ecx
         mov rax,[rdx]
         .break .if !rax
@@ -1585,60 +1301,47 @@ history_event_list proc watcall uses rsi rbx dlg:PDOBJ, lst:PLOBJ
     dlinit(rbx)
     mov eax,1
     ret
-
-history_event_list endp
+    endp
 
 
 cmhistory proc uses rdi rbx
-
   local ll:LOBJ
-
     .ifd CommandlineVisible()
-
         .if rsopen(IDD_DZHistory)
-
             mov rbx,rax
             lea rdi,ll
             xor eax,eax
             mov ecx,LOBJ
             rep stosb
-
             mov ll.lproc,&history_event_list
             mov ll.dcount,16
-
             mov rdx,history
             add rdx,HISTORY.doskey
             mov ll.list,rdx
             mov ecx,MAXDOSKEYS
             xor edi,edi
-
             .repeat
                 .if rax != [rdx]
                     inc edi
                 .endif
                 add rdx,size_t
             .untilcxz
-
             mov ll.count,edi
             .if edi > 16
                 mov edi,16
             .endif
-
             mov ll.numcel,edi
             mov al,doskey_bindex
             mov [rbx].DOBJ.index,al
-
             .if al >= 16
                 mov [rbx].DOBJ.index,cl
             .endif
-
             lea rdx,ll
             mov tdllist,rdx
             history_event_list(rbx, rdx)
             dlshow(rbx)
             mov edi,rsevent(IDD_DZHistory, rbx)
             dlclose(rbx)
-
             mov eax,edi
             .if eax
                 dec  eax
@@ -1652,7 +1355,6 @@ cmhistory proc uses rdi rbx
         .endif
     .endif
     ret
-
-cmhistory endp
+    endp
 
     END

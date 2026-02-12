@@ -78,7 +78,6 @@ cp_emaxfb   char_t "This subdirectory contains more",10
     option proc: private
 
 ff_putcelid proc uses rbx
-
     mov rbx,DLG_FindFile
     movzx eax,[rbx].DOBJ.index
     .if al >= ID_FILE
@@ -93,25 +92,20 @@ ff_putcelid proc uses rbx
     mov dl,bh
     scputf(ebx, edx, 0, 0, "[%04d:%04d]", eax, ecx)
     ret
-
-ff_putcelid endp
+    endp
 
 
 ff_event_xcell proc
-
     ff_putcelid()
     dlxcellevent()
     ret
-
-ff_event_xcell endp
+    endp
 
 
 ff_getcurobj proc
-
     xor eax,eax
     mov rdx,tdllist
     .if [rdx].LOBJ.count != eax
-
         mov eax,[rdx].LOBJ.index
         add eax,[rdx].LOBJ.celoff
         mov rdx,[rdx].LOBJ.list
@@ -119,22 +113,18 @@ ff_getcurobj proc
         mov rax,[rdx]
     .endif
     ret
-
-ff_getcurobj endp
+    endp
 
 
 ff_alloc proc uses rsi rdi rbx path:LPSTR, fb:PFBLK
 
     ldr rbx,path
     lea edi,[strlen(rbx)+BLOCKSIZE]
-
     .if malloc(edi)
-
         mov rsi,rax
         lea rcx,[rax+FBLK+ZINF]
         mov [rax].FBLK.name,rcx
         strcpy(rcx, rbx)
-
         mov rbx,tdllist
         mov eax,[rbx].LOBJ.count
 ifdef _WIN64
@@ -162,8 +152,7 @@ endif
         dec  eax
     .endif
     ret
-
-ff_alloc endp
+    endp
 
 
 CompareFileData proc uses rsi rdi rbx A:LPSTR, B:LPSTR
@@ -173,25 +162,18 @@ CompareFileData proc uses rsi rdi rbx A:LPSTR, B:LPSTR
     mov b1,alloca(0x8000)
     add rax,0x4000
     mov b2,rax
-
     .repeat
-
         mov h1,osopen(A, 0, M_RDONLY, A_OPEN)
         .break .if eax == -1
         mov h2,osopen(B, 0, M_RDONLY, A_OPEN)
-
         .if eax == -1
-
             _close(h1)
             mov eax,-1
            .break
         .endif
-
         .while osread(h1, b1, 0x4000)
-
             mov ebx,eax
             .ifd osread(h2, b2, 0x4000) != ebx
-
                 mov eax,-1
                .break
             .endif
@@ -208,8 +190,7 @@ CompareFileData proc uses rsi rdi rbx A:LPSTR, B:LPSTR
         mov eax,ebx
     .until 1
     ret
-
-CompareFileData endp
+    endp
 
 
 ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
@@ -219,62 +200,44 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
 
     xor eax,eax
     mov result,eax
-
     .repeat
-
         .break .if eax == ff_count
-
         mov found,al
         mov rdi,wfblk
         mov edx,MAXHIT
         mov result,edx
         mov rbx,tdllist
-
         .if [rbx].LOBJ.count >= edx
-
             stdmsg(&cp_warning, &cp_emaxfb, edx, edx)
             mov result,2
            .break
         .endif
-
         mov result,eax
         .break .ifd !filter_wblk(rdi)
-
         add rdi,WIN32_FIND_DATA.cFileName
         strfcat(&path, directory, rdi)
         .break .ifd !strwild(fp_maskp, rdi)
-
         mov result,test_userabort()
         .break .if eax
-
         .for rbx = wfblk, edi = ff_count, rsi = ff_table : edi : edi--, rsi += size_t
-
             .if flags & compare_size ; Compare File Size
-
                 mov rcx,[rsi]
                 mov eax,dword ptr [rcx].FBLK.size
                 .continue .if eax != [rbx].WIN32_FIND_DATA.nFileSizeLow
                 mov eax,dword ptr [rcx].FBLK.size[4]
                 .continue .if eax != [rbx].WIN32_FIND_DATA.nFileSizeHigh
             .endif
-
             .if flags & compare_attrib ; Compare File Attributes
-
                 mov eax,[rcx].FBLK.flag
                 .continue .if eax != [rbx].WIN32_FIND_DATA.dwFileAttributes
             .endif
-
             .if flags & compare_time ; Compare Last modification time
-
                 FileTimeToTime(&[rbx].WIN32_FIND_DATA.ftLastWriteTime)
                 mov rcx,[rsi]
                .continue .if eax != [rcx].FBLK.time
             .endif
-
             .if flags & compare_create ; Compare File creation time
-
                 .ifd osopen([rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
-
                     mov h,eax
                     mov t,getftime_create(eax)
                     _close(h)
@@ -283,11 +246,8 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
                 .endif
                 mov rcx,[rsi]
             .endif
-
             .if flags & compare_access ; Compare Last access time
-
                 .ifd osopen([rcx].FBLK.name, 0, M_RDONLY, A_OPEN) != -1
-
                     mov h,eax
                     mov t,getftime_access(eax)
                     _close(h)
@@ -296,32 +256,24 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
                 .endif
                 mov rcx,[rsi]
             .endif
-
             .if flags & compare_name ; Compare File names
-
                 mov rcx,strfn([rcx].FBLK.name)
                .continue .ifd _stricmp(&[rbx].WIN32_FIND_DATA.cFileName, rcx)
                 mov rcx,[rsi]
             .endif
-
             .if flags & compare_data ; Compare File content
-
                 .continue .ifd CompareFileData([rcx].FBLK.name, &path)
                 mov rcx,[rsi]
             .endif
             mov found,1
            .break
         .endf
-
         mov   rax,DLG_FindFile
         movzx eax,[rax].TOBJ.flag[OF_EQUAL]
         and   eax,_O_RADIO
-
         .break .if eax && !found
         .break .if !eax && found
-
         .if !ff_alloc(&path, rcx)
-
             clear_table()
             enomem()
             mov result,-1
@@ -329,12 +281,10 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
     .until 1
     mov eax,result
     ret
-
-ff_fileblock endp
+    endp
 
 
 clear_table proc uses rsi rdi
-
     mov esi,ff_count
     mov rdi,ff_table
     .while esi
@@ -344,12 +294,10 @@ clear_table proc uses rsi rdi
     .endw
     mov ff_count,esi
     ret
-
-clear_table endp
+    endp
 
 
 clear_list proc uses rsi rdi
-
     mov rax,tdllist
     mov rdi,[rax].LOBJ.list
     mov esi,[rax].LOBJ.count
@@ -365,8 +313,7 @@ clear_list proc uses rsi rdi
     mov [rdx].LOBJ.numcel,eax
     mov [rdx].LOBJ.count,eax
     ret
-
-clear_list endp
+    endp
 
 
 ff_addfileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
@@ -379,17 +326,13 @@ ff_addfileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
     mov dword ptr fsize[4],eax
     mov eax,[rdi].WIN32_FIND_DATA.nFileSizeLow
     mov dword ptr fsize,eax
-
     .ifd filter_wblk(rdi)
-
         strfcat(&path, directory, &[rdi].WIN32_FIND_DATA.cFileName)
         mov eax,ff_count
         .if eax < MAXHIT
-
             FileTimeToTime(&[rdi].WIN32_FIND_DATA.ftLastWriteTime)
             mov ecx,eax
             .if fballoc(&path, ecx, fsize, [rdi].WIN32_FIND_DATA.dwFileAttributes)
-
                 mov ecx,ff_count
                 inc ff_count
                 mov rdx,ff_table
@@ -411,12 +354,10 @@ endif
         .endif
     .endif
     ret
-
-ff_addfileblock endp
+    endp
 
 
 clear_slash proc string:LPSTR
-
     mov rax,string
     mov ecx,[rax+1]
     and ecx,0x00FFFFFF
@@ -424,15 +365,12 @@ clear_slash proc string:LPSTR
         mov byte ptr [rax+2],0
     .endif
     ret
-
-clear_slash endp
+    endp
 
 
 ff_directory proc uses rbx directory:LPSTR
-
     mov eax,1
     .if eax != ff_recursive
-
         mov ebx,strlen(source)
         strlen(directory)
         .if eax >= ebx
@@ -449,12 +387,10 @@ ff_directory proc uses rbx directory:LPSTR
         .endif
     .endif
     ret
-
-ff_directory endp
+    endp
 
 
 ffsearchinitpath proc path:LPSTR
-
     ldr rcx,path
     mov edx,' '
     .if [rcx] == dl
@@ -464,18 +400,15 @@ ffsearchinitpath proc path:LPSTR
         inc rcx
         mov dl,'"'
     .endif
-
     mov rax,rcx
     .repeat
-
         mov dh,[rcx]
         inc rcx
        .return .if !dh
     .until dl == dh
     mov byte ptr [rcx-1],0
     ret
-
-ffsearchinitpath endp
+    endp
 
 
 ff_searchpath proc uses rsi rdi rbx directory:LPSTR
@@ -487,27 +420,21 @@ ff_searchpath proc uses rsi rdi rbx directory:LPSTR
     mov ff_basedir,strcpy(&path, directory)
     xor ecx,ecx
     xor ebx,ebx
-
     .if path == cl
-
         mov path,'"'
         inc rax
         mov rdx,com_wsub
         strcpy(rax, [rdx].WSUB.path)
     .endif
-
     .repeat
         ;
         ; Multi search using quotes:
         ; Find Files: ["Long Name.type" *.c *.asm.......]
         ; Location:   ["D:\My Documents" c: f:\doc......]
         ;
-
         mov ff_basedir,ffsearchinitpath(ff_basedir)
         mov rdi,rcx
-
         .ifd strlen(rax)
-
             mov len,eax
             add rax,ff_basedir
             .if byte ptr [rax-1] == '\'
@@ -515,24 +442,19 @@ ff_searchpath proc uses rsi rdi rbx directory:LPSTR
             .endif
             mov rcx,DLG_FindFile
             mov fp_maskp,[rcx].TOBJ.data[OF_MASK]
-
             .repeat
-
                 mov fp_maskp,ffsearchinitpath(fp_maskp)
                 mov rsi,rcx
                 mov retval,edx
-
                 mov rdx,DLG_FindFile
                 .if [rdx].TOBJ.flag[OF_SUBD] & _O_FLAGB
                     scan_directory(1, ff_basedir)
                 .else
                     fp_directory(ff_basedir)
                 .endif
-
                 mov edx,retval
                 mov retval,eax
                 mov fp_maskp,rsi
-
                 .if dl == '"'
                     mov [rsi-1],dl
                 .endif
@@ -546,8 +468,7 @@ ff_searchpath proc uses rsi rdi rbx directory:LPSTR
         .break .if byte ptr [rsi] == 0
     .until !eax
     .return(retval)
-
-ff_searchpath endp
+    endp
 
 
 event_find proc uses rsi rdi rbx
@@ -556,10 +477,8 @@ event_find proc uses rsi rdi rbx
 
     _getcursor(&cursor)
     _cursoroff()
-
     clear_table()
     clear_list()
-
     mov rbx,DLG_FindFile
     dlinit(rbx)
     mov rsi,clear_slash(source)
@@ -567,7 +486,6 @@ event_find proc uses rsi rdi rbx
     mov fp_directory,&ff_directory
     mov fp_fileblock,&ff_addfileblock
     mov ff_recursive,1
-
     progress_open("Read Source", 0)
     progress_set(rsi, 0, MAXHIT)
     mov fp_maskp,&cp_stdmask
@@ -578,18 +496,14 @@ event_find proc uses rsi rdi rbx
         ff_directory(rsi)
     .endif
     progress_close()
-
     xor eax,eax
     mov ff_recursive,eax
     mov fp_fileblock,&ff_fileblock
-
     .if ff_count != eax && !( [rbx].TOBJ.flag[OF_GOTO] & _O_STATE )
-
         mov ax,[rbx+4]
         add ax,0x0F03
         mov dl,ah
         scputw(eax, edx, 15, U_LIGHT_HORIZONTAL)
-
         progress_open("Compare", 0)
         progress_set(target, 0, MAXHIT+2)
         ff_searchpath(target)
@@ -605,29 +519,21 @@ event_find proc uses rsi rdi rbx
     .endif
     _setcursor(&cursor)
     ret
-
-event_find endp
+    endp
 
 
 event_help proc
-
     view_readme(HELPID_14)
     ret
-
-event_help endp
+    endp
 
 
 event_mklist proc uses rsi rdi rbx
-
     mov rsi,tdllist
     xor eax,eax
-
     .if [rsi].LOBJ.count != eax
-
         .ifd mklistidd()
-
             .for ( edi = 0 : edi < [rsi].LOBJ.count : edi++ )
-
                 mov rdx,[rsi].LOBJ.list
                 mov rbx,[rdx+rdi*size_t]
                 strfn([rbx].FBLK.name)
@@ -641,14 +547,11 @@ event_mklist proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-event_mklist endp
+    endp
 
 
 event_list proc uses rsi rdi rbx
-
     dlinit(DLG_FindFile)
-
     mov rax,DLG_FindFile
     mov ebx,[rax].DOBJ.rc
     add ebx,0x0204
@@ -657,7 +560,6 @@ event_list proc uses rsi rdi rbx
     shl edi,(2+size_t/8)
     add rdi,[rax].LOBJ.list
     mov esi,[rax].LOBJ.numcel
-
     .while esi
         mov rax,[rdi]
         mov dl,bh
@@ -668,32 +570,26 @@ event_list proc uses rsi rdi rbx
     .endw
     mov eax,1
     ret
-
-event_list endp
+    endp
 
 
 update_cellid proc
-
     ff_putcelid()
     event_list()
     ff_update_cellid()
     ret
-
-update_cellid endp
+    endp
 
 
 event_delete proc
-
     ff_deleteobj()
     update_cellid()
     mov eax,_C_NORMAL
     ret
-
-event_delete endp
+    endp
 
 
 event_path proc
-
     mov rax,panela ; Source - Panel-A
     mov rcx,[rax].PANEL.wsub
     strcpy(source, [rcx].WSUB.path)
@@ -706,21 +602,17 @@ event_path proc
     .endif
     mov eax,_C_NORMAL
     ret
-
-event_path endp
+    endp
 
 
 event_advanced proc
-
     CompareOptions(&flags)
     mov eax,_C_NORMAL
     ret
-
-event_advanced endp
+    endp
 
 
 event_flip proc
-
     mov rax,DLG_FindFile
     .if rax
         mov rcx,[rax].TOBJ.data[OF_SOURCE]
@@ -733,14 +625,11 @@ event_flip proc
     .endif
     mov eax,_C_NORMAL
     ret
-
-event_flip endp
+    endp
 
 
 ff_event_edit proc uses rbx
-
     .if ff_getcurobj()
-
         mov rbx,rax
         dlhide(DLG_FindFile)
         tedit([rbx].FBLK.name, [rbx+FBLK].ZINF.line)
@@ -748,20 +637,16 @@ ff_event_edit proc uses rbx
     .endif
     mov eax,_C_NORMAL
     ret
-
-ff_event_edit endp
+    endp
 
 
 ff_event_exit proc
-
     mov eax,_C_ESCAPE
     ret
-
-ff_event_exit endp
+    endp
 
 
 ff_event_view proc
-
     mov rax,DLG_FindFile
     .if [rax].DOBJ.index < ID_FILE
         .if ff_getcurobj()
@@ -770,14 +655,11 @@ ff_event_view proc
     .endif
     mov eax,_C_NORMAL
     ret
-
-ff_event_view endp
+    endp
 
 
 ff_event_filter proc
-
     cmfilter()
-
     mov  rdx,DLG_FindFile
     mov  cx,[rdx+4]
     add  cx,0x1410
@@ -791,12 +673,10 @@ ff_event_filter proc
     scputw(ecx, edx, 1, eax)
     mov eax,_C_NORMAL
     ret
-
-ff_event_filter endp
+    endp
 
 
 ff_update_cellid proc uses rdi rbx
-
     mov rbx,DLG_FindFile
     mov rdi,tdllist
     mov ecx,ID_FILE
@@ -815,28 +695,22 @@ ff_update_cellid proc uses rdi rbx
     .endw
     mov eax,_C_NORMAL
     ret
-
-ff_update_cellid endp
+    endp
 
 
 ff_deleteobj proc uses rbx
-
     .if ff_getcurobj()
-
         .repeat
             mov rcx,[rdx+size_t]
             mov [rdx],rcx
             add rdx,size_t
         .until !rcx
-
         free(rax)
-
         mov rbx,tdllist
         dec [rbx].LOBJ.count
         mov eax,[rbx].LOBJ.count
         mov edx,[rbx].LOBJ.index
         mov ecx,[rbx].LOBJ.celoff
-
         .ifz
             mov edx,eax
             mov ecx,eax
@@ -857,13 +731,11 @@ ff_deleteobj proc uses rbx
                 dec ecx
             .endif
         .endif
-
         mov rbx,tdllist
         mov [rbx].LOBJ.index,edx
         mov [rbx].LOBJ.celoff,ecx
         mov [rbx].LOBJ.numcel,eax
         mov rbx,DLG_FindFile
-
         test eax,eax
         mov al,cl
         .ifz
@@ -873,17 +745,14 @@ ff_deleteobj proc uses rbx
         mov eax,1
     .endif
     ret
-
-ff_deleteobj endp
+    endp
 
 ff_close proc uses rsi rdi
-
     mov rdi,tdllist
     mov rsi,[rdi].LOBJ.list
     .if rsi
         mov edi,[rdi].LOBJ.count
         .while edi
-
             mov rcx,[rsi]
             add rsi,size_t
             free(rcx)
@@ -893,22 +762,16 @@ ff_close proc uses rsi rdi
         free([rdi].LOBJ.list)
     .endif
     ret
-
-ff_close endp
+    endp
 
 ff_close_dlg proc uses rsi
-
     mov byte ptr fsflag,ah
     movzx esi,[rbx].DOBJ.index
     dlclose(rbx)
-
     .if esi == ID_GOTO
-
         mov rbx,tdllist
         .if [rbx].LOBJ.count
-
             .if panel_state(cpanel)
-
                 mov eax,[rbx].LOBJ.index
                 add eax,[rbx].LOBJ.celoff
                 mov rbx,[rbx].LOBJ.list
@@ -922,8 +785,7 @@ ff_close_dlg proc uses rsi
         .endif
     .endif
     ret
-
-ff_close_dlg endp
+    endp
 
 cmcompsub proc PUBLIC uses rsi rdi rbx
 
@@ -939,23 +801,21 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
     mov DLG_FindFile,0
     strcpy(&fmask, &cp_stdmask)
     event_path()
-
     .if CFGetSection(".compsubdir")
         mov rbx,rax
-        .if INIGetEntryID(rbx, 0)
+        .if INIGetEntry(rbx, "flag")
             mov flags,__xtol(rax)
         .endif
-        .if INIGetEntryID(rbx, 1)
+        .if INIGetEntry(rbx, "mask")
             strcpy(&fmask, rax)
         .endif
-        .if INIGetEntryID(rbx, 2)
+        .if INIGetEntry(rbx, "src")
             strcpy(source, rax)
         .endif
-        .if INIGetEntryID(rbx, 3)
+        .if INIGetEntry(rbx, "dst")
             strcpy(target, rax)
         .endif
     .endif
-
     mov ff_count,0
     mov old_thelp,thelp
     mov thelp,&event_help
@@ -967,18 +827,13 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
     mov ecx,LOBJ
     xor eax,eax
     rep stosb
-
     mov [rdx].LOBJ.dcount,ID_FILE
     mov [rdx].LOBJ.lproc,&event_list
-
     .if malloc((MAXHIT * 8) + 4)
-
         mov ll.list,rax
         add rax,(MAXHIT*4)+4
         mov ff_table,rax
-
         .if rsopen(IDD_DZCompareDirectories)
-
             mov DLG_FindFile,rax
             mov rbx,rax
             mov [rbx].TOBJ.data[OF_GCMD],&GCMD_search
@@ -991,7 +846,6 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
             mov [rbx].TOBJ.tproc[OF_FIND],&event_find
             mov [rbx].TOBJ.tproc[OF_FILT],&ff_event_filter
             mov [rbx].TOBJ.tproc[OF_SAVE],&event_mklist
-
             mov ecx,flags
             mov al,_O_RADIO
             .if ecx & compare_equal
@@ -999,14 +853,11 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
             .else
                 or [rbx+OF_DIFFER],al
             .endif
-
             and fsflag,not IO_SEARCHSUB
             .if ecx & compare_subdir
-
                 or byte ptr [rbx+OF_SUBD],_O_FLAGB
                 or fsflag,IO_SEARCHSUB
             .endif
-
             lea rdx,[rbx].TOBJ.tproc[TOBJ]
             mov ecx,ID_FILE
             lea rax,ff_event_xcell
@@ -1014,13 +865,10 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
                 mov [rdx],rax
                 add rdx,TOBJ
             .untilcxz
-
             dlshow(rbx)
             dlinit(rbx)
-
             mov filter,NULL
             .while rsevent(IDD_DZCompareDirectories, rbx)
-
                 mov esi,eax
                 mov edi,ecx
                 mov al,[rbx].DOBJ.index
@@ -1031,7 +879,6 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
                     event_find()
                 .endif
             .endw
-
             mov ah,byte ptr fsflag
             and ah,not IO_SEARCHSUB
             and flags,NOT (compare_equal or compare_subdir)
@@ -1042,7 +889,6 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
                 or flags,compare_subdir
                 or ah,IO_SEARCHSUB
             .endif
-
             ff_close_dlg()
             clear_list()
             clear_table()
@@ -1051,21 +897,17 @@ cmcompsub proc PUBLIC uses rsi rdi rbx
         .endif
         free(ll.list)
     .endif
-
     .if CFAddSection(".compsubdir")
-
         mov rbx,rax
-        INIAddEntryX(rbx, "0=%X", flags)
-        INIAddEntryX(rbx, "1=%s", &fmask)
-        INIAddEntryX(rbx, "2=%s", &spath)
-        INIAddEntryX(rbx, "3=%s", &tpath)
+        INIAddEntryX(rbx, "flag=%X", flags)
+        INIAddEntryX(rbx, "mask=%s", &fmask)
+        INIAddEntryX(rbx, "src=%s", &spath)
+        INIAddEntryX(rbx, "dst=%s", &tpath)
     .endif
-
     _setcursor(&cursor)
     mov thelp,old_thelp
     xor eax,eax
     ret
-
-cmcompsub endp
+    endp
 
     end

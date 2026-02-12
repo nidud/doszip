@@ -171,24 +171,19 @@ dlgflags        db 5 dup(0)
     .code
 
 apiidle proc
-
     .if cflag & _C_MENUSLINE
-
         tupdtime()
     .endif
     xor eax,eax
     ret
-
-apiidle endp
+    endp
 
 apiopen proc
-
     ConsolePush()
     oswrite(1, "\r\n", 2)
     mov DLG_Commandline,rsopen(IDD_Commandline)
     mov DLG_Menusline,rsopen(IDD_Menusline)
     mov DLG_Statusline,rsopen(IDD_Statusline)
-
     movzx eax,console_cu.y
     mov com_info.ypos,eax
     mov eax,_scrrow
@@ -210,7 +205,6 @@ apiopen proc
     mov [rcx].DOBJ.rc.col,dl
     mov rcx,DLG_Menusline
     mov [rcx].DOBJ.rc.col,dl
-
     .if cflag & _C_MENUSLINE
         dlshow(DLG_Menusline)
         tupdtime()
@@ -220,51 +214,40 @@ apiopen proc
     .endif
     comshow()
     ret
-
-apiopen endp
+    endp
 
 apiclose proc
-
     dlclose(DLG_Menusline)
     dlclose(DLG_Commandline)
     dlclose(DLG_Statusline)
     ret
-
-apiclose endp
+    endp
 
 apiupdate proc
-
     comhide()
     doszip_hide()
     mov time_id,61
     doszip_show()
     ret
-
-apiupdate endp
+    endp
 
 
 apiega proc
-
     and cflag,not _C_EGALINE
     mov eax,_scrcol
     mov edx,_scrrow
     inc edx
     .if dx >= _scrmax.Y && ax >= _scrmax.X
-
         or cflag,_C_EGALINE
     .endif
     ret
-
-apiega endp
+    endp
 
 UpdateWindowSize proc uses rsi rdi size:COORD
-
     movzx esi,size.X
     movzx edi,size.Y
     dec edi
-
     .if ( edi != _scrrow || esi != _scrcol )
-
         comhide()
         doszip_hide()
         mov _scrrow,edi
@@ -273,12 +256,10 @@ UpdateWindowSize proc uses rsi rdi size:COORD
         apiega()
     .endif
     ret
-
-UpdateWindowSize endp
+    endp
 
 
 apimode proc
-
     mov eax,_scrrow
     inc eax
     shl eax,16
@@ -289,23 +270,18 @@ apimode proc
     conssetl(eax)
     apiega()
     ret
-
-apimode endp
+    endp
 
 
 open_idd proc private uses rsi rdi rbx id:int_t, lpMTitle:ptr
-
     mov time_id,61
     lea rcx,menus_iddtable
     mov eax,id
     mov rax,[rcx+rax*PIDD]
     mov rax,[rax]
-
     .if rsopen(rax)
-
         mov rbx,rax
         .if ( cflag & _C_MENUSLINE )
-
             mov eax,id
             lea rcx,menus_xtitle
             lea rdx,menus_xpos
@@ -320,14 +296,11 @@ open_idd proc private uses rsi rdi rbx id:int_t, lpMTitle:ptr
         mov rax,rbx
     .endif
     ret
-
-open_idd endp
+    endp
 
 
 close_idd proc private id:uint_t, wpMenusTitle:ptr
-
     .if ( cflag & _C_MENUSLINE )
-
         mov eax,id
         lea rdx,menus_xtitle
         lea rcx,menus_xpos
@@ -336,14 +309,11 @@ close_idd proc private id:uint_t, wpMenusTitle:ptr
         scputws(ecx, 0, edx, wpMenusTitle)
     .endif
     ret
-
-close_idd endp
+    endp
 
 
 modal_idd proc private uses rsi rdi rbx index:int_t, stInfo:ptr, dialog:PDOBJ, wpMenusTitle:ptr
-
   local stBuffer[MAXCOLS]:CHAR_INFO
-
     lea rsi,stBuffer
     mov rdi,dialog
     wcpushst(rsi, stInfo)
@@ -351,59 +321,44 @@ modal_idd proc private uses rsi rdi rbx index:int_t, stInfo:ptr, dialog:PDOBJ, w
     dlshow(rdi)
     msloop()
     mov ebx,dlevent(rdi)
-
     movzx eax,[rdi].DOBJ.index
     imul  eax,eax,TOBJ
     add   rax,[rdi].DOBJ.object
     movzx edi,[rax].TOBJ.flag
     and   edi,_O_STATE or _O_FLAGB
-
     wcpopst(rsi)
     close_idd(index, wpMenusTitle)
     mov edx,edi
     mov eax,ebx
     ret
+    endp
 
-modal_idd endp
 
-
-readtools proc private uses rsi rdi rbx section:LPSTR, dialog:PDOBJ, index:int_t, lsize:int_t
-
+readtools proc private uses rsi rdi rbx section:LPSTR, dialog:PDOBJ, lsize:int_t
   local handle:ptr, p:ptr, buffer[512]:char_t, col:int_t
-
     mov rax,dialog
     mov rbx,[rax].DOBJ.object
-    mov edi,index
-
+    xor edi,edi
     .if CFGetSection(section)
-
         mov handle,rax
-
-        .while INIGetEntryID(handle, edi)
-
+        .while INIGetNextEntry(handle)
+            mov handle,rax
             lea rsi,buffer
-            strcpy(rsi, rax)
-
+            strcpy(rsi, [rax].S_INI.value)
             mov rsi,strstart(rsi)
             mov p,rsi
             mov ecx,36
-
             .repeat
-
                 lodsb
                 .switch al
-
                   .case ','
-
                     mov byte ptr [rsi-1],0  ; terminate text line
                     mov rsi,strstart(rsi)   ; start of command tail
                     mov ecx,lsize
                     mov rdx,[rbx].TOBJ.data
                     xchg rdi,rdx
                     xor eax,eax
-
                     .while ecx
-
                         lodsb
                         .break .if !al
                         .break .if al == ']'
@@ -414,20 +369,16 @@ readtools proc private uses rsi rdi rbx section:LPSTR, dialog:PDOBJ, index:int_t
                         stosb
                         dec ecx
                     .endw
-
                     mov ecx,1
                     mov al,0
                     stosb
                     mov rdi,rdx
                    .endc .if !ah
-
                     or [rbx].TOBJ.flag,_O_FLAGB
                    .endc
-
                   .case '<'
                     mov ecx,1
                    .endc
-
                   .case 0
                    error:
                     CFError(section, p)
@@ -435,7 +386,6 @@ readtools proc private uses rsi rdi rbx section:LPSTR, dialog:PDOBJ, index:int_t
                    .break( 1 )
                 .endsw
             .untilcxz
-
             mov rcx,dialog
             mov eax,edi
             mul [rcx].DOBJ.rc.col
@@ -446,26 +396,19 @@ readtools proc private uses rsi rdi rbx section:LPSTR, dialog:PDOBJ, index:int_t
             mov rsi,p
             mov rdx,[rcx].DOBJ.wp
             lea rcx,[rdx+rax*4]
-
             .if byte ptr [rsi] == '<'
-
                 wcputw(rcx, col, U_LIGHT_HORIZONTAL)
                 and [rbx].TOBJ.flag,not _O_FLAGB
-
             .else
-
                 add rcx,2*4
                 wcputs(rcx, 32, rsi)
                 mov eax,not _O_STATE
                 and [rbx].TOBJ.flag,ax
-
                 .if strchr(rsi, '&')
-
                     mov al,[rax+1]
                     mov [rbx].TOBJ.ascii,al
                 .endif
             .endif
-
             add rbx,TOBJ
             inc edi
             .break .if edi >= 20
@@ -473,27 +416,20 @@ readtools proc private uses rsi rdi rbx section:LPSTR, dialog:PDOBJ, index:int_t
     .endif
     mov eax,edi
     ret
-
-readtools endp
+    endp
 
 
 tools_idd proc uses rsi rdi rbx lsize:int_t, p:LPSTR, section:LPSTR
-
   local mtitle:ptr, tbuf[256]:byte
-
     .while 1
-
         xor esi,esi
         .break .if !open_idd(ID_MTOOLS, &mtitle)
-
         mov rbx,rax
-        .ifd !readtools(section, rax, esi, lsize)
-
+        .ifd !readtools(section, rax, lsize)
             close_idd(ID_MTOOLS, mtitle)
             dlclose(rbx)
            .break
         .endif
-
         mov [rbx].DOBJ.count,al
         add al,2
         mov [rbx].DOBJ.rc.row,al
@@ -501,44 +437,34 @@ tools_idd proc uses rsi rdi rbx lsize:int_t, p:LPSTR, section:LPSTR
         mov al,[rbx].DOBJ.rc.col
         movzx edx,al
         shl eax,16
-
         rcframe(eax, [rbx].DOBJ.wp, edx, BOX_SINGLE)
         strnzcpy(&tbuf, section, 16)
         modal_idd(ID_MTOOLS, rax, rbx, mtitle)
-
         mov esi,eax ; dlevent() | key (Left/Right)
         mov edi,edx ; flag _O_STATE or _O_FLAGB
         movzx edx,[rbx].DOBJ.count
-
         .if ( eax && edx >= eax )
-
             imul eax,eax,TOBJ
             lea rdx,[rbx+rax]
             strnzcpy(&tbuf, [rdx].TOBJ.data, lsize)
         .endif
-
         mov rcx,rbx
         movzx ebx,[rbx].DOBJ.count
         dlclose(rcx)
-
         .if ( esi && ebx >= esi )
-
             lea rax,tbuf
             mov rcx,p
             .if ( edi == _O_FLAGB )
-
                 mov section,rax
                .continue
             .endif
             .if rcx
-
                 strcpy(rcx, rax)
                 msloop()
                .break
             .endif
             mov esi,command(rax)
         .endif
-
         .ifd mousep()
             mov esi,MOUSECMD
         .endif
@@ -546,112 +472,94 @@ tools_idd proc uses rsi rdi rbx lsize:int_t, p:LPSTR, section:LPSTR
     .endw
     mov eax,esi
     ret
+    endp
 
-tools_idd endp
 
-
-cmtool proc private i:int_t
-
+cmtool proc private uses rsi rdi i:int_t
   local tool[128]:char_t
-
-    .if CFGetSectionID("Tools", i)
-
-        mov rcx,rax
-        mov eax,[rax]
-
+    ldr esi,i
+    .if CFGetSection("Tools")
+        .for ( : rax && esi : esi-- )
+            INIGetNextEntry(rax)
+        .endf
+        .if ( rax )
+            INIGetNextEntry(rax)
+        .endif
+    .endif
+    .if ( rax )
+        mov rcx,[rax].S_INI.value
+        mov eax,[rcx]
         .if ( ax != '><' )
-
             .if strchr(rcx, ',')
-
                 inc rax
                 strstart(rax)
                 mov rdx,rax
                 strnzcpy(&tool, rdx, 128-1)
-
                 .if ( tool != '[' )
-
                     command(rax)
                 .else
-
                     lea rcx,[rax+1]
                     .if strchr(strcpy(rax, rcx), ']')
-
                         mov byte ptr [rax],0
-                        tools_idd(128, 0, &tool)
+                        tools_idd(128, NULL, &tool)
                     .endif
                 .endif
             .endif
         .endif
     .endif
     ret
-
-cmtool endp
+    endp
 
 cmtool1 proc
     cmtool(0)
     ret
-cmtool1 endp
-
+    endp
 cmtool2 proc
     cmtool(1)
     ret
-cmtool2 endp
-
+    endp
 cmtool3 proc
     cmtool(2)
     ret
-cmtool3 endp
-
+    endp
 cmtool4 proc
     cmtool(3)
     ret
-cmtool4 endp
-
+    endp
 cmtool5 proc
     cmtool(4)
     ret
-cmtool5 endp
-
+    endp
 cmtool6 proc
     cmtool(5)
     ret
-cmtool6 endp
-
+    endp
 cmtool7 proc
     cmtool(6)
     ret
-cmtool7 endp
-
+    endp
 cmtool8 proc
     cmtool(7)
     ret
-cmtool8 endp
-
+    endp
 cmtool9 proc
     cmtool(8)
     ret
-cmtool9 endp
+    endp
 
 
 menus_modalidd proc private uses rsi rdi rbx id:int_t
-
   local object:PTOBJ, mtitle:LPSTR, dialog:PDOBJ
-
     xor esi,esi
     .if ( id == ID_MTOOLS )
-
         mov esi,tools_idd(128, 0, "Tools")
-
     .else
-
         mov rax,IDD_DZMenuPanel
         mov [rax].RIDD.rc.x,0
         .if ( id == ID_MPANELB )
             mov [rax].RIDD.rc.x,42
         .endif
-
         .if open_idd(id, &mtitle)
-
             mov     dialog,rax
             mov     rbx,rax
             add     rax,DOBJ
@@ -661,16 +569,13 @@ menus_modalidd proc private uses rsi rdi rbx id:int_t
             mov     edx,id
             lea     rax,menus_oid
             mov     rdx,[rax+rdx*PMOBJ]
-
             .while ecx
-
                 mov rax,[rdx].MOBJ.name
                 mov [rbx],rax
                 add rbx,TOBJ
                 add rdx,MOBJ
                 dec ecx
             .endw
-
             mov eax,id
             xor edx,edx
             .if !eax
@@ -678,20 +583,16 @@ menus_modalidd proc private uses rsi rdi rbx id:int_t
             .elseif eax == ID_MPANELB
                 mov edx,config.c_bpath.flag
             .endif
-
             .if edx
-
                 mov rbx,object
                 mov eax,_O_FLAGB
                 mov ecx,_W_LONGNAME
-
                 push 0
                 push _W_DRVINFO
                 push _W_MINISTATUS
                 push _W_HIDDEN
                 push _W_WIDEVIEW
                 push _W_DETAIL
-
                 .while ecx
                     .if edx & ecx
                         or [rbx].TOBJ.flag,ax
@@ -699,72 +600,60 @@ menus_modalidd proc private uses rsi rdi rbx id:int_t
                     add rbx,TOBJ
                     pop rcx
                 .endw
-
                 mov eax,_O_RADIO
                 and edx,_W_SORTSIZE or _W_NOSORT
                 .switch edx
-                  .case _W_SORTNAME
+                .case _W_SORTNAME
                     or [rbx+0*TOBJ].TOBJ.flag,ax
                     .endc
-                  .case _W_SORTTYPE
+                .case _W_SORTTYPE
                     or [rbx+1*TOBJ].TOBJ.flag,ax
                     .endc
-                  .case _W_SORTDATE
+                .case _W_SORTDATE
                     or [rbx+2*TOBJ].TOBJ.flag,ax
                     .endc
-                  .case _W_SORTSIZE
+                .case _W_SORTSIZE
                     or [rbx+3*TOBJ].TOBJ.flag,ax
                     .endc
-                  .default
+                .default
                     or [rbx+4*TOBJ].TOBJ.flag,ax
                 .endsw
             .endif
-
             lea  rdx,menus_TOBJ
             mov  eax,id
             imul eax,eax,TOBJ
             add  rdx,rax
-
             mov esi,modal_idd(id, [rdx].TOBJ.data, dialog, mtitle)
             mov edi,edx
             mov rax,dialog
             movzx ebx,[rax].DOBJ.count
-
             dlclose(dialog)
-
             .if esi && ebx >= esi
-
                 mov edx,id
                 mov menus_idd,edx
                 mov eax,esi
                 dec eax
                 mov menus_obj,eax
                 .if !( edi & _O_STATE )
-
                     lea rcx,menus_oid
                     mov rdx,[rcx+rdx*PMOBJ]
                     imul eax,eax,MOBJ
                     [rdx+rax].MOBJ.cmd()
                 .endif
             .endif
-
             .ifd mousep()
                 mov esi,MOUSECMD
             .endif
         .endif
     .endif
     .return(esi)
-
-menus_modalidd endp
+    endp
 
 
 menus_event proc private uses rsi rdi rbx id:uint_t, key:uint_t
-
     mov edi,key
     mov esi,1
-
-    .while  1
-
+    .while 1
         .switch edi
         .case MOUSECMD
             xor edi,edi
@@ -774,19 +663,15 @@ menus_event proc private uses rsi rdi rbx id:uint_t, key:uint_t
         .case KEY_RIGHT
             mov eax,edi
            .break .if !esi
-
             mov eax,id
             .if edi == KEY_RIGHT
-
                 inc eax
                 .if eax > ID_MPANELB
-
                     xor eax,eax
                 .endif
             .else
                 dec eax
                 .if eax == -1
-
                     mov eax,ID_MPANELB
                 .endif
             .endif
@@ -806,9 +691,7 @@ menus_event proc private uses rsi rdi rbx id:uint_t, key:uint_t
             .endif
             .endc .if !edi
             .for ( rcx = &menus_shortkeys, ebx = 0 : ebx < 7 : ebx++ )
-
                 .if ( edi == [rcx+rbx*4] )
-
                     mov id,ebx
                     menus_modalidd(ebx)
                     mov edi,eax
@@ -819,36 +702,27 @@ menus_event proc private uses rsi rdi rbx id:uint_t, key:uint_t
             mov eax,edi
            .break .if !esi
         .endsw
-
         .if ( esi == 0 )
-
             mov edi,tgetevent()
             .if eax == MOUSECMD
                 xor edi,edi
             .endif
         .endif
-
         .if ( cflag & _C_MENUSLINE && !keybmouse_y && !edi )
-
             .ifd mousep()
-
                 mov eax,keybmouse_x
                 mov edx,eax
                 mov ecx,ID_MPANELB
-
                 .if eax >= 57
-
                     mov eax,MOUSECMD
                    .break
                 .endif
-
                 lea rdi,menus_TOBJ
                 .repeat
                     imul ebx,ecx,TOBJ
                     dec ecx
                     add rbx,rdi
                 .until al >= [rbx+4]
-
                 mov ah,[rbx].TOBJ.ascii
                 mov al,0
                 mov edi,eax
@@ -861,20 +735,16 @@ menus_event proc private uses rsi rdi rbx id:uint_t, key:uint_t
        .break .if !edi
     .endw
     ret
-
-menus_event endp
+    endp
 
 
 menus_getevent proc
-
     menus_event(0, MOUSECMD)
     ret
-
-menus_getevent endp
+    endp
 
 
 cmlastmenu proc uses rbx
-
     mov eax,menus_obj
     mov ebx,menus_idd
     lea rcx,menus_iddtable
@@ -882,7 +752,6 @@ cmlastmenu proc uses rbx
     mov [rcx].RIDD.index,al
     menus_event(ebx, menus_modalidd(ebx))
     ret
-
-cmlastmenu endp
+    endp
 
     end

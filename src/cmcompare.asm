@@ -20,17 +20,11 @@ CompareOptions proc uses rsi rdi rbx options:ptr compare_options
         dlinit(rsi)
 
         .while rsevent(IDD_CompareOptions, rsi)
-
             togetbitflag([rsi].DOBJ.object, compare_count, _O_FLAGB)
-
             .if ( ( eax & compare_data ) && !( eax & compare_size ) )
-
                 ermsg("Compare Options", "Option File Content needs Size")
-
             .elseif ( eax == 0 )
-
                 ermsg("Compare Options", "At least one Option needed")
-
             .else
                 mov ebx,eax
                .break
@@ -38,9 +32,7 @@ CompareOptions proc uses rsi rdi rbx options:ptr compare_options
         .endw
         mov edi,eax
         dlclose(rsi)
-
         .if edi
-
             mov rcx,options
             mov eax,[rcx]
             and eax,compare_equal or compare_subdir
@@ -50,30 +42,23 @@ CompareOptions proc uses rsi rdi rbx options:ptr compare_options
         mov eax,edi
     .endif
     ret
-
-CompareOptions endp
+    endp
 
 cmcompoption proc
-
     .new options:compare_options = compare_default
-
     .if CFGetSection(".compsubdir")
-        .if INIGetEntryID(rax, 0)
+        .if INIGetEntry(rax, "flag")
             mov options,__xtol(rax)
         .endif
     .endif
-
     .ifd CompareOptions(&options)
-
         .if CFAddSection(".compsubdir")
-
             mov rcx,rax
-            INIAddEntryX(rcx, "0=%X", options)
+            INIAddEntryX(rcx, "flag=%X", options)
         .endif
     .endif
     .return(_C_NORMAL)
-
-cmcompoption endp
+    endp
 
 
 ComapareFBLK proc private uses rsi rdi rbx a:PFBLK, b:PFBLK, options:compare_options
@@ -83,33 +68,28 @@ ComapareFBLK proc private uses rsi rdi rbx a:PFBLK, b:PFBLK, options:compare_opt
     mov ebx,1
 
     .if ( options & compare_size ) ; Compare File Size
-
         .if ( [rsi].FBLK.size != [rdi].FBLK.size )
             xor ebx,ebx
         .endif
     .endif
     .if ( options & compare_attrib ) ; Compare File Attributes
-
         .if ( [rsi].FBLK.flag != [rdi].FBLK.flag )
             xor ebx,ebx
         .endif
     .endif
     .if ( options & compare_time ) ; Compare Last modification time
-
         .if ( [rsi].FBLK.time != [rdi].FBLK.time )
             xor ebx,ebx
         .endif
     .endif
     .if ( options & compare_name ) ; Compare File name
-
         .if ( _stricmp([rsi].FBLK.name, [rdi].FBLK.name) )
             xor ebx,ebx
         .endif
     .endif
     mov eax,ebx
     ret
-
-ComapareFBLK endp
+    endp
 
 
 cmcompare proc uses rsi rdi rbx
@@ -120,14 +100,16 @@ cmcompare proc uses rsi rdi rbx
     .new options:compare_options = compare_default
 
     .if CFGetSection(".compsubdir")
-        .if INIGetEntryID(rax, 0)
+        .if INIGetEntry(rax, "flag")
             mov options,__xtol(rax)
         .endif
     .endif
-
     .if !(options & compare_default)
-
-        ermsg("Warning", "The Compare Options flag is zero\n(nothing to do)\n\nUse Alt-O to reset the flags")
+        ermsg("Warning",
+            "The Compare Options flag is zero\n"
+            "(nothing to do)\n"
+            "\n"
+            "Use Alt-O to reset the flags")
     .endif
 
     mov rsi,panela
@@ -145,7 +127,6 @@ cmcompare proc uses rsi rdi rbx
     and eax,_W_LONGNAME ; Need equal file names
     and edx,_W_LONGNAME
     .if eax != edx
-
         stdmsg("Compare directories", "Only one panel use Long File Names")
        .return
     .endif
@@ -167,13 +148,11 @@ cmcompare proc uses rsi rdi rbx
     mov rbx,fcb_A
 
     .while ecx
-
         dec ecx
         mov rsi,[rbx]
         or  [rsi].FBLK.flag,_FB_SELECTED
         add rbx,PFBLK
         .if [rsi].FBLK.flag & _A_SUBDIR
-
             and [rsi].FBLK.flag,not _FB_SELECTED
             dec count_A
         .endif
@@ -181,13 +160,11 @@ cmcompare proc uses rsi rdi rbx
     mov rbx,fcb_B
 
     .while eax
-
         dec eax
         mov rsi,[rbx]
         or  [rsi].FBLK.flag,_FB_SELECTED
         add rbx,PFBLK
         .if [rsi].FBLK.flag & _A_SUBDIR
-
             and [rsi].FBLK.flag,not _FB_SELECTED
             dec count_B
         .endif
@@ -200,7 +177,6 @@ cmcompare proc uses rsi rdi rbx
     ; If both panels have zero files they are identical
     ;
     .ifz
-
         stdmsg("Compare directories", "The two folders seems\nto be identical")
        .return
     .endif
@@ -210,7 +186,6 @@ cmcompare proc uses rsi rdi rbx
     ;
     xor eax,eax
     .if eax == count_A || eax == count_B
-
         panel_putitem(rsi, 0)
         panel_putitem(rdi, 0)
        .return
@@ -242,18 +217,14 @@ cmcompare proc uses rsi rdi rbx
 
                 mov a,rsi
                 mov b,rdi
-
                 mov rsi,fcb_A
                 mov eax,loopc_A
                 mov rsi,[rsi+rax*PFBLK]
                 mov fblk_A,rsi
                 xor eax,eax
-
                 .if !( [rsi].FBLK.flag & _A_SUBDIR)
-
                     ComapareFBLK(rsi, fblk_B, options)
                 .endif
-
                 mov rdi,b
                 mov rsi,a
                 .if eax
@@ -269,7 +240,6 @@ cmcompare proc uses rsi rdi rbx
         .endw
         inc loopc_A
     .endw
-
     panel_putitem(rsi, 0)
     panel_putitem(rdi, 0)
     mov eax,count_A
@@ -277,7 +247,6 @@ cmcompare proc uses rsi rdi rbx
         stdmsg("Compare directories", "The two folders seems\nto be identical")
     .endif
     ret
-
-cmcompare endp
+    endp
 
     END

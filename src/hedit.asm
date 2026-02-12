@@ -53,20 +53,14 @@ savefile proc uses rsi rdi rbx file:LPSTR, buffer:ptr, fsize:dword
   local path[1024]:byte
   local flags:dword
     lea rdi,path
-
     .ifd getfattr(strcpy(rdi, file)) == -1
-
         .return( 0 )
     .endif
-
     mov flags,eax
     .if eax & _A_RDONLY
-
         ermsg(0, "The file is Read-Only")
     .endif
-
     .ifsd ogetouth(strfxcat(rdi, ".$$$"), M_WRONLY) <= 0
-
         .return( 0 )
     .endif
     mov esi,eax
@@ -83,21 +77,17 @@ savefile proc uses rsi rdi rbx file:LPSTR, buffer:ptr, fsize:dword
         mov eax,ebx
     .endif
     ret
-
-savefile endp
+    endp
 
 LToString proc uses rsi rdi lp:ptr LINE, source:LPSTR, dest:LPSTR
 
     ldr rcx,lp
     ldr rdi,source
     ldr rsi,dest
-
     movzx eax,[rcx].LINE.flags
     mov ecx,eax
     and eax,T_BYTE or T_WORD or T_DWORD or T_QWORD
-
     .switch eax
-
     .case T_BYTE
         movzx edx,byte ptr [rdi]
         lea rax,@CStr("%u")
@@ -109,7 +99,6 @@ LToString proc uses rsi rdi lp:ptr LINE, source:LPSTR, dest:LPSTR
         .endif
         sprintf(rsi, rax, edx)
        .endc
-
     .case T_WORD
         movzx edx,word ptr [rdi]
         lea rax,@CStr("%u")
@@ -121,7 +110,6 @@ LToString proc uses rsi rdi lp:ptr LINE, source:LPSTR, dest:LPSTR
         .endif
         sprintf(rsi, rax, edx)
        .endc
-
     .case T_DWORD
         lea rax,@CStr("%u")
         .if cl & T_SIGNED
@@ -132,7 +120,6 @@ LToString proc uses rsi rdi lp:ptr LINE, source:LPSTR, dest:LPSTR
         mov ecx,[rdi]
         sprintf(rsi, rax, ecx)
        .endc
-
     .case T_QWORD
         lea rax,@CStr("%llu")
         .if cl & T_SIGNED
@@ -144,13 +131,12 @@ LToString proc uses rsi rdi lp:ptr LINE, source:LPSTR, dest:LPSTR
        .endc
     .endsw
     ret
-
-LToString endp
+    endp
 
 local_update proc
     xor eax,eax
     ret
-local_update endp
+    endp
 
 hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
 
@@ -189,7 +175,6 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     mov rc.y,1
     mov rc.col,_MAXTEXT
     mov rc.row,1
-
     mov ecx,_MAXL
     lea rdi,lbh
     mov eax,0x1000
@@ -197,44 +182,35 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     mov ecx,_MAXL
     mov eax,0x0104
     rep stosd
-
     xor eax,eax
     lea rdi,STDI
     mov ecx,IOST
     rep stosb
-
     mov cline,eax
     mov index,eax
     mov x,12
     mov modified,al
     mov STDI.flag,eax
-
     mov ecx,_scrrow
     mov eax,_scrcol
     mov cools,rax
     inc cl
     mov rsrows,cl
-
     mov flags,_USEMLINE or _USESLINE or _HEXOFFSET
-
     .if CFGetSection(".hexedit")
-
         mov rbx,rax
         .if INIGetEntry(rbx, "Flags")
-
             __xtol(rax)
             mov flags,al
         .endif
         .for ( edi = 0 : edi < _MAXL: edi++ )
-
-            .break .if !INIGetEntryID(rbx, edi)
-
+            lea edx,[rdi+1]
+            .break .if !INIGetEntryID(rbx, ecx)
             __xtol(rax)
             mov lbc[rdi*4].bytes,al
             mov lbc[rdi*4].flags,ah
         .endf
     .endif
-
     movzx eax,rsrows
     .if flags & _USEMLINE
         dec eax
@@ -246,58 +222,45 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     add eax,2
     mul _scrcol
     mov esi,eax
-
     lea rax,lbh
     .if flags & _CLASSMODE
         lea rax,lbc
     .endif
     mov lptr,rax
-
     .ifd ( osopen(file, 0, M_RDONLY, A_OPEN) == -1 )
-
         .return( 0 )
     .endif
-
     mov ebx,eax
     _filelength(ebx)
-
     .if ( ( !eax && !edx ) || edx )
-
         .if edx
             enomem()
         .endif
         _close(ebx)
         .return( 0 )
     .endif
-
     mov fsize,eax
     mov STDI.flag,IO_MEMBUF
     mov STDI.cnt,eax
     mov STDI.fsize_l,eax
-
     add eax,esi
     .if !malloc(eax)
-
         enomem()
         _close(ebx)
         .return( 0 )
     .endif
-
     mov screen,rax
     add rax,rsi
     mov fbuff,rax
     mov STDI.base,rax
     osread(ebx, rax, fsize)
     _close(ebx)
-
     mov al,at_background[B_TextView]
     or  al,at_foreground[F_TextView]
     .if !dlscreen(&dlgobj, eax)
-
         free(screen)
        .return( 1 )
     .endif
-
     mov dialog,rax
     dlshow(rax)
     mov rdi,rsopen(IDD_HEMenusline)
@@ -313,7 +276,6 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     .if flags & _USESLINE
         dlshow(rbx)
     .endif
-
     scpath(1, 0, 41, file)
     mov ecx,_scrcol
     sub ecx,38
@@ -321,45 +283,33 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     mov ecx,_scrcol
     sub ecx,5
     scputs(ecx, 0, 0, 0, "100%")
-
     .if !( flags & _USEMLINE )
-
         dlhide(menusline)
     .endif
-
     _getcursor(&cursor)
     _cursoron()
-
     mov update,tupdate
     mov tupdate,&local_update
-
     msloop()
     mov esi,1
-
     .while 1
-
         .if esi
-
             mov eax,cline
             .if flags & _USEMLINE
                 inc eax
             .endif
             _gotoxy(x, eax)
-
             mov eax,_scrcol
             mul rowcnt
             mov ecx,eax
             mov rdi,screen
             mov eax,0x20
             rep stosb
-
             mov esi,fsize
             sub esi,loffs
-
             .for ( rbx = lptr,
                    edx = 0,
                    ecx = 0 : edx < esi, ecx < rowcnt: ecx++ )
-
                 movzx eax,[rbx+rcx*4].LINE.bytes
                 mov [rbx+rcx*4].LINE.boffs,dx
                 add edx,eax
@@ -369,17 +319,13 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
             .endif
             mov scount,edx
             mov lcount,ecx
-
             .for ( : edx < esi && ecx < rowcnt : ecx++ )
-
                 movzx eax,[rbx+rcx*4].LINE.bytes
                 mov [rbx+rcx*4].LINE.boffs,dx
                 add edx,eax
             .endf
             mov bcount,edx
-
             .for ( rsi = screen, ebx = 0 : ebx < lcount : ebx++, rsi += cools )
-
                 lea rax,@CStr("%010u  ")
                 .if flags & _HEXOFFSET
                     lea rax,@CStr("%010X  ")
@@ -388,15 +334,12 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                 movzx edi,[rdx+rbx*4].LINE.boffs
                 add edi,loffs
                 sprintf(rsi, rax, edi)
-
                 mov ecx,fsize
                 sub ecx,edi
                 add rdi,fbuff
-
                 mov rdx,lptr
                 movzx eax,[rdx+rbx*4].LINE.flags
                 and eax,T_NUMBER or T_ARRAY
-
                 .switch eax
                 .case T_STRING
                     push rsi
@@ -414,7 +357,6 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                     lea rcx,[rsi+51+12]
                     sprintf(rcx, "CHAR[%u]", eax)
                    .endc
-
                 .case T_BINARY
                     movzx eax,[rdx+rbx*4].LINE.bytes
                     .if ecx > eax
@@ -445,7 +387,6 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                     lea rcx,[rsi+51+12]
                     sprintf(rcx, "BYTE[%u]", n)
                    .endc
-
                 .case T_BYTE
                 .case T_WORD
                 .case T_DWORD
@@ -475,7 +416,6 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                     lea rax,[rsi+51+12]
                     sprintf(rax, "%s(%s)", rdx, rcx)
                    .endc
-
                 .default
                     .if ecx > 16
                         mov ecx,16
@@ -517,11 +457,8 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                 .endsw
                 mov eax,1
             .endf
-
             .if eax
-
                 .if flags & _USEMLINE
-
                     mov eax,scount
                     add eax,loffs
                     .ifz
@@ -545,9 +482,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                         scputc(0, 0, 1, ' ')
                     .endif
                 .endif
-
                 .if flags & _USESLINE
-
                     mov rdx,statusline
                     movzx rdx,[rdx].DOBJ.rc.y
                     .if flags & _CLASSMODE
@@ -567,24 +502,19 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                 .endif
             .endif
         .endif
-
         mov ebx,cline
         mov rdx,lptr
         mov al,[rdx+rbx*4].LINE.flags
         and al,T_ARRAY or T_NUMBER
-
         .if al
-
             mov ecx,fsize
             movzx esi,[rdx+rbx*4].LINE.boffs
             add esi,loffs
             sub ecx,esi
             add rsi,fbuff
             lea rdi,lbuff
-
             mov p,rsi
             mov q,rdi
-
             .switch al
             .case T_STRING
                 movzx eax,[rdx+rbx*4].LINE.bytes
@@ -613,7 +543,6 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
             .endsw
             mov rdi,q
             mov rsi,p
-
             mov eax,ebx
             mov rdx,lptr
             lea rbx,[rdx+rbx*4]
@@ -667,15 +596,12 @@ endif
         .else
             tgetevent()
         .endif
-
         xor esi,esi
         mov ebx,cline
         mov rdi,lptr
         lea rdi,[rdi+rbx*4]
-
         .switch eax
         .case MOUSECMD
-
             .endc .ifd mousep() == 2
             .endc .if !eax
             mousey()
@@ -706,7 +632,6 @@ endif
             .endif
             msloop()
            .endc
-
         .case KEY_F1
             view_readme(HELPID_16)
            .endc
@@ -741,10 +666,8 @@ endif
                 inc esi
             .endif
             .endc
-
         .case KEY_F4
             .if rsopen(IDD_TVSeek)
-
                 mov rbx,rax
                 mov edx,loffs
                 sprintf([rbx+24], "%08Xh", edx)
@@ -758,7 +681,6 @@ endif
                 dlclose(rbx)
             .endif
             .endc
-
         .case KEY_F5
             xor flags,_CLASSMODE
             lea rax,lbh
@@ -768,23 +690,18 @@ endif
             mov lptr,rax
             mov esi,1
            .endc
-
         .case KEY_F6
             xor flags,_HEXOFFSET
             mov esi,1
            .endc
-
         .case KEY_F8
             .ifd wgetfile(&lbuff, "*.cl", _WSAVE)
                 _close(eax)
                 .if INIAlloc()
-
                     mov rsi,rax
                     .if INIAddSection(rsi, ".")
-
                         mov rbx,rax
                         .for ( edi = 0 : edi < rowcnt: edi++ )
-
                             movzx eax,lbc[rdi*4].bytes
                             mov ah,lbc[rdi*4].flags
                             INIAddEntryX(rbx, "%d=%X", edi, eax)
@@ -796,19 +713,14 @@ endif
                 .endif
             .endif
             .endc
-
         .case KEY_F9
             .ifd wgetfile(&lbuff, "*.cl", _WOPEN)
-
                 _close(eax)
                 .if INIRead(0, &lbuff)
-
                     mov rsi,rax
                     .if INIGetSection(rsi, ".")
-
                         mov rbx,rax
                         .for ( edi = 0 : edi < _MAXL : edi++ )
-
                             .break .if !INIGetEntryID(rbx, edi)
                             __xtol(rax)
                             mov lbc[rdi*4].bytes,al
@@ -820,7 +732,6 @@ endif
                 .endif
             .endif
             .endc
-
         .case KEY_F10
         .case KEY_ESC
         .case KEY_ALTX
@@ -830,7 +741,6 @@ endif
                 .endif
             .endif
             .break
-
         .case KEY_ALTF5
         .case KEY_CTRLB
             dlhide(dialog)
@@ -838,7 +748,6 @@ endif
             .endw
             dlshow(dialog)
            .endc
-
         .case KEY_CTRLM
             xor flags,_USEMLINE
             .if flags & _USEMLINE
@@ -850,11 +759,9 @@ endif
             .endif
             mov esi,1
            .endc
-
         .case KEY_CTRLS
             xor flags,_USESLINE
             .if flags & _USESLINE
-
                 dlshow(statusline)
                 dec rowcnt
                 mov rdx,statusline
@@ -872,10 +779,8 @@ endif
             .endif
             mov esi,1
            .endc
-
         .case KEY_F11
             .if !( flags & _USESLINE or _USEMLINE )
-
                 PushEvent(KEY_CTRLS)
                .gotosw(KEY_CTRLM)
             .endif
@@ -891,10 +796,8 @@ endif
 
         .case KEY_CTRLE
         .case KEY_UP
-
             xor eax,eax
             .if eax == cline
-
                 mov eax,loffs
                 .if eax
                     .if eax > fsize
@@ -917,7 +820,6 @@ endif
                 mov esi,1
             .endif
             .endc
-
         .case KEY_TAB
             .endc .if flags & _CLASSMODE
             mov eax,cline
@@ -940,7 +842,6 @@ endif
             mov dl,x_cpos
             mov x,edx
             mov index,0
-
         .case KEY_CTRLX
         .case KEY_DOWN
             movzx ecx,[rdi].LINE.bytes
@@ -968,7 +869,6 @@ endif
             .endif
             mov esi,1
            .endc
-
         .case KEY_CTRLR
         .case KEY_PGUP
             .endc .if !loffs
@@ -979,7 +879,6 @@ endif
              sub loffs,eax
              mov esi,1
             .endc
-
         .case KEY_CTRLC
         .case KEY_PGDN
             mov eax,bcount
@@ -992,7 +891,6 @@ endif
             mov loffs,eax
             mov esi,1
            .endc
-
         .case KEY_LEFT
             .endc .if flags & _CLASSMODE
             mov eax,index
@@ -1015,7 +913,6 @@ endif
                 mov esi,1
             .endif
             .endc
-
         .case KEY_RIGHT
             .endc .if flags & _CLASSMODE
             mov eax,index
@@ -1041,7 +938,6 @@ endif
                 mov esi,1
             .endif
             .endc
-
         .case KEY_CTRLHOME
         .case KEY_HOME
             xor eax,eax
@@ -1052,7 +948,6 @@ endif
             mov x,eax
             mov esi,1
            .endc
-
         .case KEY_CTRLEND
         .case KEY_END
             mov ecx,fsize
@@ -1086,24 +981,20 @@ endif
             mov cline,ecx
             mov esi,1
            .endc
-
         .case KEY_MOUSEUP
             PushEvent(KEY_UP)
             PushEvent(KEY_UP)
             PushEvent(KEY_UP)
            .endc
-
         .case KEY_MOUSEDN
             PushEvent(KEY_DOWN)
             PushEvent(KEY_DOWN)
             PushEvent(KEY_DOWN)
            .endc
-
         .case KEY_SHIFTF3
         .case KEY_CTRLL
             mov esi,continuesearch(&loffs)
            .endc
-
         .case KEY_ENTER
            .endc .if !(flags & _CLASSMODE)
            .endc .if !rsopen(IDD_HELine)
@@ -1168,7 +1059,6 @@ endif
             .endif
             mov esi,1
            .endc
-
         .default
            .endc .if flags & _CLASSMODE
             movzx eax,al
@@ -1205,22 +1095,19 @@ endif
            .gotosw(KEY_RIGHT)
         .endsw
     .endw
-
     .if CFAddSection(".hexedit")
-
         mov rbx,rax
         mov esi,rowcnt
         movzx ecx,flags
         INIAddEntryX(rbx, "Flags=%X", ecx)
         inc esi
         .for ( edi = 0 : edi <= esi : edi++ )
-
             movzx eax,lbc[rdi*4].bytes
             mov ah,lbc[rdi*4].flags
-            INIAddEntryX(rbx, "%d=%X", edi, eax)
+            lea ecx,[rdi+1]
+            INIAddEntryX(rbx, "%d=%X", ecx, eax)
         .endf
     .endif
-
     free(screen)
     dlclose(statusline)
     dlclose(menusline)
@@ -1229,7 +1116,6 @@ endif
     mov tupdate,update
     xor eax,eax
     ret
-
-hedit endp
+    endp
 
     end

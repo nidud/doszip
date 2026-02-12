@@ -1,5 +1,8 @@
 ; CMCOMPRESS.ASM--
 ; Copyright (C) 2016 Doszip Developers -- see LICENSE.TXT
+;
+; Change history:
+; 2026-01-29 - Section list entries to '0'
 
 include doszip.inc
 include io.inc
@@ -19,38 +22,30 @@ PackerGetSection proc private uses rsi rdi rbx section:LPSTR, result:LPSTR
 
         mov rbx,rax
         xor esi,esi
-
         .if CFGetSection(section)
-
             mov d,rbx
             mov rdi,rax
             mov rbx,[rbx].DOBJ.object
-
-            .while INIGetEntryID(rdi, esi)
-
-                strnzcpy([rbx].TOBJ.data, rax, 128-1)
+            .while INIGetNextEntry(rdi)
+                mov rdi,rax
+                strnzcpy([rbx].TOBJ.data, [rdi].S_INI.value, 128-1)
                 and [rbx].TOBJ.flag,not (_O_STATE or _O_LLIST)
-                inc esi
                 add rbx,TOBJ
+                inc esi
+                .break .if esi > 15
             .endw
             mov rbx,d
         .endif
-
         mov eax,esi
         .if eax
-
             mov [rbx].DOBJ.count,al
-
             dlinit(rbx)
             dlshow(rbx)
-
             movzx ecx,[rbx].DOBJ.rc.x
             movzx edx,[rbx].DOBJ.rc.y
             add ecx,8
             scputf(ecx, edx, 0, 0, "Select External Tool")
-
             .ifd rsevent(IDD_DZHistory, rbx)
-
                 imul eax,eax,TOBJ
                 strcpy(result, [rbx+rax].TOBJ.data)
             .endif
@@ -60,8 +55,7 @@ PackerGetSection proc private uses rsi rdi rbx section:LPSTR, result:LPSTR
         mov rax,rdi
     .endif
     ret
-
-PackerGetSection endp
+    endp
 
 cmcompress proc uses rsi rdi rbx
 
@@ -74,28 +68,19 @@ cmcompress proc uses rsi rdi rbx
     lea rdi,default_arc
 
     .if cpanel_findfirst() && !( ecx & _FB_ROOTDIR or _FB_ARCHIVE )
-
         .if cpanel_gettarget()
-
             strfcat(rsi, rax, rdi)
-
             .if PackerGetSection("Compress", &section)
-
-                .if CFGetSectionID(rax, 2)
-
+                .if CFGetSecEntry(rax, "ext")
                     strfxcat(rsi, rax)
                 .endif
-
                 .if rsopen(IDD_DZCopy)
-
-                        mov rbx,rax
+                    mov rbx,rax
                     mov filter,0
                     mov [rbx].TOBJ.data[TOBJ],rsi
                     mov byte ptr [rbx].TOBJ.count[TOBJ],16
                     mov [rbx].TOBJ.tproc[3*TOBJ],&cpyevent_filter
-
                     wcenter([rbx].DOBJ.wp, 59, "Compress")
-
                     .ifd dlmodal(rbx)
 
                         ;------------------------------------------
@@ -105,27 +90,20 @@ cmcompress proc uses rsi rdi rbx
                         mov eax,mklist.flag
                         and eax,not (_MKL_UNIX or _MKL_MASK)
                         mov mklist.flag,eax
-
                         .ifd mkziplst_open(&list)
-
                             .ifd mkziplst()
                                 xor eax,eax
                             .else
                                 or  eax,mklist.count
                             .endif
                         .endif
-
                         .if eax
-
                             strcpy(rdi, strfn(rsi))
                             lea rbx,section
-
-                            .if CFGetSectionID(rbx, 0)
-
+                            .if CFGetSecEntry(rbx, "cmd")
                                 lea rdi,cmd
                                 strcat(strcat(strcat(strcpy(rdi, rax), " "), rsi), " ")
-
-                                .if !CFGetSectionID(rbx, 1)
+                                .if !CFGetSecEntry(rbx, "lst")
                                     lea rax,@CStr("@")
                                 .endif
                                 strcat(rdi, rax)
@@ -138,8 +116,7 @@ cmcompress proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmcompress endp
+    endp
 
 
 cmdecompress proc uses rsi rdi rbx
@@ -153,37 +130,25 @@ cmdecompress proc uses rsi rdi rbx
     lea rbx,section
 
     .if cpanel_findfirst() && !( ecx & _A_SUBDIR or _FB_ROOTDIR or _FB_ARCHIVE )
-
         mov archive,rax
-
         .if cpanel_gettarget()
-
             strcpy(rsi, rax)
-
             .if PackerGetSection("Decompress", rbx)
-
                 .if rsopen(IDD_DZDecompress)
-
                     mov rdi,rax
                     mov [rdi].TOBJ.count[TOBJ],256/16
                     mov [rdi].TOBJ.data[TOBJ],rsi
-
                     dlinit(rdi)
                     dlshow(rdi)
-
                     mov ax,[rdi+4]
                     add ax,0x020E
                     mov dl,ah
                     scpath(eax, edx, 50, archive)
-
                     .ifd dlmodal(rdi)
-
-                        .if CFGetSectionID(rbx, 0)
-
+                        .if CFGetSecEntry(rbx, "cmd")
                             lea rdi,cmd
                             strcat(strcpy(rdi, rax), " ")
-
-                            .if CFGetSectionID(rbx, 1)
+                            .if CFGetSecEntry(rbx, "out")
 
                                 ; <command> -o"<out_path>" <archive>
 
@@ -204,7 +169,6 @@ cmdecompress proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmdecompress endp
+    endp
 
     end

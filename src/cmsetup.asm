@@ -86,35 +86,29 @@ color_Table LPSTR \
 event_help proc private
     view_readme(HELPID_15)
     ret
-event_help endp
+    endp
 
 cmsystem proc uses rsi rdi rbx
 
     .new th:DPROC = thelp
-
     .if rsopen(IDD_DZSystemOptions)
-
         mov rbx,rax
         mov thelp,&event_help
         mov eax,cflag
         .if eax & _C_DELHISTORY
             or [rbx].TOBJ.flag[ID_DELHISTORY],_O_FLAGB
         .endif
-
         .if eax & _C_ESCUSERSCR
             or [rbx].TOBJ.flag[ID_ESCUSERSCR],_O_FLAGB
         .endif
         tosetbitflag([rbx].DOBJ.object, 8, _O_FLAGB, console)
         dlinit(rbx)
         mov esi,rsevent(IDD_DZSystemOptions, rbx)
-
         togetbitflag([rbx].DOBJ.object, 10, _O_FLAGB)
         dlclose(rbx)
-
         mov thelp,th
         mov eax,esi
         .if eax
-
             mov eax,edx
             mov edx,cflag
             and edx,not (_C_DELHISTORY or _C_ESCUSERSCR)
@@ -145,17 +139,14 @@ cmsystem proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmsystem endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     option proc:private
 
 event_reload proc
-
     .if cf_panel == 0
-
         dlhide(tdialog)
         apiupdate()
         dlshow(tdialog)
@@ -167,15 +158,11 @@ event_reload proc
         mov eax,_C_ESCAPE
     .endif
     ret
-
-event_reload endp
+    endp
 
 event_loadcolor proc uses rsi
-
   local path[_MAX_PATH]:byte
-
     .ifd wgetfile(&path, "*.pal", _WOPEN)
-
         mov esi,eax
         osread(esi, &at_foreground, COLOR)
         xchg eax,esi
@@ -186,52 +173,41 @@ event_loadcolor proc uses rsi
         .endif
     .endif
     ret
-
-event_loadcolor endp
+    endp
 
 event_savecolor proc uses rbx
-
   local path[_MAX_PATH]:byte
-
     .ifd wgetfile(&path, "*.pal", _WSAVE)
-
         mov ebx,eax
         oswrite(eax, &at_foreground, COLOR)
         _close(ebx)
     .endif
     mov eax,_C_NORMAL
     ret
-
-event_savecolor endp
+    endp
 
 ifdef __AT__
 
 event_editat proc
-
     .ifd editattrib()
         event_reload()
     .else
         mov eax,_C_NORMAL
     .endif
     ret
-
-event_editat endp
+    endp
 
 endif
 
 event_standard proc
-
     mov rax,tdialog
     mov eax,[rax].DOBJ.rc
     add eax,0x0B0C
     mov rcx,IDD_DZDefaultColor
     mov [rcx].RIDD.rc.x,al
     mov [rcx].RIDD.rc.y,ah
-
     .ifd rsmodal(rcx)
-
         .if eax < 6
-
             dec eax
             lea rcx,color_Table
             mov rax,[rcx+rax*size_t]
@@ -244,17 +220,13 @@ event_standard proc
         inc eax
     .endif
     ret
-
-event_standard endp
+    endp
 
     option proc: PUBLIC
 
 cmscreen proc uses rsi rdi
-
     mov cf_screen_upd,0
-
     .if rsopen(IDD_DZScreenOptions)
-
         mov rdi,rax
         mov dl,_O_FLAGB
         mov eax,cflag
@@ -343,14 +315,12 @@ endif
         mov eax,_C_NORMAL
     .endif
     ret
-cmscreen endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cmpanel proc uses rsi rdi rbx
-
     .if rsopen(IDD_DZPanelOptions)
-
         mov rbx,rax
         mov edx,_O_FLAGB
         mov eax,cflag
@@ -373,9 +343,7 @@ cmpanel proc uses rsi rdi rbx
         mov esi,rsevent(IDD_DZPanelOptions, rbx)
         mov edi,togetbitflag([rbx].DOBJ.object, 5, _O_FLAGB)
         dlclose(rbx)
-
         .if esi
-
             mov eax,edi
             and path_a.flag,not _W_SORTSUB
             and path_b.flag,not _W_SORTSUB
@@ -406,15 +374,12 @@ cmpanel proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmpanel endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cmconfirm proc uses rsi rdi rbx
-
     .if rsopen(IDD_DZConfirmations)
-
         mov rbx,rax
         mov eax,config.c_cflag
         shr eax,16
@@ -423,9 +388,7 @@ cmconfirm proc uses rsi rdi rbx
         mov esi,rsevent(IDD_DZConfirmations, rbx)
         mov edi,togetbitflag([rbx].DOBJ.object, 7, _O_FLAGB)
         dlclose(rbx)
-
         .if esi
-
             mov eax,config.c_cflag
             and eax,not 0x007F0000
             shl edi,16
@@ -434,52 +397,39 @@ cmconfirm proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmconfirm endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cmcompression proc uses rbx
-
     .if rsopen(IDD_DZCompression)
-
         mov rbx,rax
         mov eax,compresslevel
-
         .if al > 9
             mov al,6
             mov compresslevel,eax
         .endif
-
         inc eax
         imul eax,eax,TOBJ
         or [rbx+rax].DOBJ.flag,_O_RADIO
-
         .if cflag & _C_ZINCSUBDIR
-
             or [rbx].DOBJ.flag[11*TOBJ],_O_FLAGB
         .endif
-
         dlinit(rbx)
-
         .ifd rsevent(IDD_DZCompression, rbx)
-
             mov eax,cflag
             and eax,not _C_ZINCSUBDIR
             .if [rbx].DOBJ.flag[11*TOBJ] & _O_FLAGB
                 or eax,_C_ZINCSUBDIR
             .endif
             mov cflag,eax
-
             xor eax,eax
             mov rdx,rbx
-
             .repeat
                 add rdx,TOBJ
                 .break .if [rdx].DOBJ.flag & _O_RADIO
                 inc eax
             .until eax == 10
-
             .if eax == 10
                 mov eax,6
             .endif
@@ -488,18 +438,14 @@ cmcompression proc uses rbx
         dlclose(rbx)
     .endif
     ret
-
-cmcompression endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cmoptions proc uses rsi rsi rbx
-
     mov cf_panel,1
     mov cf_panel_upd,0
-
     .if rsopen(IDD_DZConfiguration)
-
         mov rbx,rax
         mov [rbx].TOBJ.tproc[4*TOBJ],&toption
         mov [rbx].TOBJ.tproc[5*TOBJ],&cmconfirm
@@ -507,16 +453,13 @@ cmoptions proc uses rsi rsi rbx
         mov [rbx].TOBJ.tproc[1*TOBJ],&cmsystem
         mov [rbx].TOBJ.tproc[2*TOBJ],&cmscreen
         mov [rbx].TOBJ.tproc[3*TOBJ],&cmpanel
-
         .if cflag & _C_AUTOSAVE
             or byte ptr [rbx+7*TOBJ],_O_FLAGB
         .endif
-
         dlinit(rbx)
         mov esi,rsevent(IDD_DZConfiguration, rbx)
         mov edi,[rbx+7*TOBJ]
         dlclose(rbx)
-
         mov cf_panel_upd,0
         .if esi
             and cflag,not _C_AUTOSAVE
@@ -528,7 +471,7 @@ cmoptions proc uses rsi rsi rbx
     .endif
     mov cf_panel,0
     ret
-cmoptions endp
+    endp
 
 .enumt ConsoleSize:TOBJ {
     ID_ConsoleSize,
@@ -544,18 +487,13 @@ cmoptions endp
     }
 
 cmscreensize proc uses rsi rdi rbx
-
-  local ci:CONSOLE_SCREEN_BUFFER_INFO,
-    rc:RECT, maxcol, maxrow
-
+  local ci:CONSOLE_SCREEN_BUFFER_INFO, rc:RECT, maxcol, maxrow
     .repeat
-
         .break .ifd !GetConsoleScreenBufferInfo(_confh, addr ci)
          mov rcx,GetConsoleWindow()
         .break .ifd !GetWindowRect(rcx, addr rc)
         .break .if !rsopen(IDD_ConsoleSize)
         mov rbx,rax
-
         strcpy([rbx+ID_MIN_X].TOBJ.data, "0")
         strcpy([rbx+ID_MIN_Y].TOBJ.data, "0")
         strcpy([rbx+ID_MAX_X].TOBJ.data, "0")
@@ -566,27 +504,19 @@ cmscreensize proc uses rsi rdi rbx
         sprintf([rbx+ID_MAX_COL].TOBJ.data, "%d", eax)
         movzx eax,ci.dwMaximumWindowSize.Y
         sprintf([rbx+ID_MAX_ROW].TOBJ.data, "%d", eax)
-
         .if CFGetSection(".consolesize")
-
-            .for rsi=rax, edi=0: edi < 8, INIGetEntryID(rsi, edi): edi++
-
-                lea ecx,[rdi+1]
-                imul ecx,ecx,TOBJ
+            .for ( rsi = rax, edi = CON_MIN_X : edi < CON_USEDEFAULT, INIGetEntryID(rsi, edi) : edi++ )
+                imul ecx,edi,TOBJ
                 strcpy([rbx+rcx].TOBJ.data, rax)
             .endf
-            .if INIGetEntryID(rsi, 8)
-
+            .if INIGetEntryID(rsi, CON_USEDEFAULT)
                 .if byte ptr [rax] == '1'
-
                     or [rbx+ID_DEFAULT].TOBJ.flag,_O_FLAGB
                 .endif
             .endif
         .endif
-
         dlinit(rbx)
         dlshow(rbx)
-
         movzx esi,[rbx].DOBJ.rc.x
         movzx edi,[rbx].DOBJ.rc.y
         add esi,11
@@ -609,9 +539,7 @@ cmscreensize proc uses rsi rdi rbx
         scputf(esi, edi, 0, 0, "%d\n%d", eax, ecx)
         add esi,24
         scputf(esi, edi, 0, 0, "%d\n%d", maxcol, maxrow)
-
         .whiled rsevent(IDD_ConsoleSize, rbx)
-
             xor esi,esi
             .ifd atol([rbx+ID_MIN_ROW].TOBJ.data) < MINROWS
                 sprintf([rbx+ID_MIN_ROW].TOBJ.data, "%d", MINROWS)
@@ -620,7 +548,6 @@ cmscreensize proc uses rsi rdi rbx
                 sprintf([rbx+ID_MIN_ROW].TOBJ.data, "%d", MAXROWS)
                 inc esi
             .endif
-
             .ifd atol([rbx+ID_MIN_COL].TOBJ.data) < MINCOLS
                 sprintf([rbx+ID_MIN_COL].TOBJ.data, "%d", MINCOLS)
                 inc esi
@@ -628,7 +555,6 @@ cmscreensize proc uses rsi rdi rbx
                 sprintf([rbx+ID_MIN_COL].TOBJ.data, "%d", MAXCOLS)
                 inc esi
             .endif
-
             .ifd atol([rbx+ID_MAX_ROW].TOBJ.data) < MINROWS
                 sprintf([rbx+ID_MAX_ROW].TOBJ.data, "%d", MINROWS)
                 inc esi
@@ -636,7 +562,6 @@ cmscreensize proc uses rsi rdi rbx
                 sprintf([rbx+ID_MAX_ROW].TOBJ.data, "%d", MAXROWS)
                 inc esi
             .endif
-
             .ifd atol([rbx+ID_MAX_COL].TOBJ.data) < MINCOLS
                 sprintf([rbx+ID_MAX_COL].TOBJ.data, "%d", MINCOLS)
                 inc esi
@@ -644,28 +569,20 @@ cmscreensize proc uses rsi rdi rbx
                 sprintf([rbx+ID_MAX_COL].TOBJ.data, "%d", MAXCOLS)
                 inc esi
             .endif
-
-
             .if !esi
-
                 .if CFAddSection(".consolesize")
-
-                    .for rsi=rax, edi=0: edi < 8: edi++
-
-                        lea ecx,[rdi+1]
-                        imul ecx,ecx,TOBJ
+                    .for ( rsi = rax, edi = CON_MIN_X : edi < CON_USEDEFAULT : edi++ )
+                        imul ecx,edi,TOBJ
                         INIAddEntryX(rsi, "%d=%s", edi, [rbx+rcx].TOBJ.data)
                     .endf
                     xor eax,eax
                     .if [rbx+ID_DEFAULT].TOBJ.flag & _O_FLAGB
-
                         inc eax
                     .endif
-                    INIAddEntryX(rsi, "8=%d", eax)
+                    INIAddEntryX(rsi, "%d=%d", CON_USEDEFAULT, eax)
                 .endif
                 mov eax,1
                .break
-
             .endif
             dlinit(rbx)
         .endw
@@ -674,8 +591,6 @@ cmscreensize proc uses rsi rdi rbx
         mov eax,edi
     .until 1
     ret
-
-cmscreensize endp
+    endp
 
     END
-
