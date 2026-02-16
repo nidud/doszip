@@ -3,6 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.96 - 16 Feb 2026
+- regression from v3.95: adding a single file to archive failed
+
 Changes in 3.95 - 12 Feb 2026
 - updated 7z.dll to version 25.01
 - added packing (upx) to dz.exe and 7z.dll

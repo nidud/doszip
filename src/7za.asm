@@ -487,13 +487,15 @@ CArchiveUpdateCallback::GetProperty proc WINAPI uses rsi rdi index:DWORD, propID
             mov rax,[rdi].FBLK.next
             mov [rdi].FBLK.next,NULL
             .if ( rcx == rdi )
-                mov fp_first,rax
+                .if ( rax )
+                    mov fp_first,rax
+                .endif
             .else
                 mov [rcx].FBLK.next,rax
             .endif
             mov rdx,fp_last
             mov fp_last,rdi
-            .if ( rdx )
+            .if ( rdx && rdx != rdi )
                 mov [rdx].FBLK.next,rdi
             .endif
             .endc
@@ -519,13 +521,15 @@ CArchiveUpdateCallback::GetStream proc WINAPI uses rsi rdi index:DWORD, inStream
         mov rax,[rdi].FBLK.next
         mov [rdi].FBLK.next,NULL
         .if ( rcx == rdi )
-            mov fp_first,rax
+            .if ( rax )
+                mov fp_first,rax
+            .endif
         .else
             mov [rcx].FBLK.next,rax
         .endif
         mov rdx,fp_last
         mov fp_last,rdi
-        .if ( rdx )
+        .if ( rdx && rdx != rdi )
             mov [rdx].FBLK.next,rdi
         .endif
         strfcat(__srcfile, m_srcPath, [rdi].FBLK.name)
