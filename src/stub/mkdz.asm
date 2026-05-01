@@ -6,6 +6,7 @@
 
 include stdio.inc
 include direct.inc
+include string.inc
 include tchar.inc
 
 .data
