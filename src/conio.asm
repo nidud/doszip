@@ -109,81 +109,60 @@ public time_id
 tdummy proc private
     xor eax,eax
     ret
-tdummy endp
+    endp
 
 _wherex proc private
-
   local ci:CONSOLE_SCREEN_BUFFER_INFO
-
     .ifd GetConsoleScreenBufferInfo(_confh, addr ci)
-
         movzx eax,ci.dwCursorPosition.X
         movzx edx,ci.dwCursorPosition.Y
     .endif
     ret
-
-_wherex endp
+    endp
 
 _gotoxy proc x:int_t, y:int_t
-
     mov eax,y
     shl eax,16
     mov ax,word ptr x
     SetConsoleCursorPosition(_confh, eax)
     ret
-
-_gotoxy endp
+    endp
 
 _cursoron proc
-
   local cu:CONSOLE_CURSOR_INFO
-
     mov cu.dwSize,CURSOR_NORMAL
     mov cu.bVisible,1
     SetConsoleCursorInfo(_confh, &cu)
     ret
-
-_cursoron endp
+    endp
 
 _cursoroff proc uses rax
-
   local cu:CONSOLE_CURSOR_INFO
-
     mov cu.dwSize,CURSOR_NORMAL
     mov cu.bVisible,0
     SetConsoleCursorInfo(_confh, &cu)
     ret
-
-_cursoroff endp
+    endp
 
 _getcursor proc uses rbx cursor:PCURSOR
-
   local ci:CONSOLE_SCREEN_BUFFER_INFO
-
     mov rbx,cursor
-
     .ifd GetConsoleScreenBufferInfo(_confh, &ci)
-
         mov eax,ci.dwCursorPosition
         mov dword ptr [rbx].CURSOR.x,eax
     .endif
-
     GetConsoleCursorInfo(_confh, rbx)
     mov eax,[rbx].CURSOR.bVisible
     ret
-
-_getcursor endp
+    endp
 
 _setcursor proc uses rax Cursor:PCURSOR
-
     mov rax,Cursor
     mov eax,dword ptr [rax].CURSOR.x
-
     SetConsoleCursorPosition(_confh, eax)
     SetConsoleCursorInfo(_confh, Cursor)
     ret
-
-_setcursor endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -195,51 +174,38 @@ getxya proc private x:uint_t, y:uint_t
     movzx ecx,byte ptr y
     shl   ecx,16
     mov   cl,byte ptr x   ; COORD
-
     .ifd ReadConsoleOutputAttribute(_confh, &Attribute, 1, ecx, &NumberOfAttributesRead)
-
         mov eax,Attribute
         and eax,0xFF
     .endif
     ret
-
-getxya endp
+    endp
 
 getxyc proc x:uint_t, y:uint_t
-
   local Character:uint_t
   local NumberOfCharsRead:uint_t
-
     movzx ecx,byte ptr y
     shl   ecx,16
     mov   cl,byte ptr x
-
     .ifd ReadConsoleOutputCharacterW(_confh, &Character, 1, ecx, &NumberOfCharsRead)
-
         mov eax,Character
         and eax,0xFFFF
     .endif
     ret
-
-getxyc endp
+    endp
 
 scputa proc x:uint_t, y:uint_t, l:uint_t, a:uint_t
-
   local NumberOfAttrsWritten:uint_t
-
     movzx ecx,byte ptr a
     movzx eax,byte ptr x
     movzx edx,byte ptr y
     shl   edx,16
     mov   dx,ax
-
     FillConsoleOutputAttribute(_confh, cx, l, edx, &NumberOfAttrsWritten)
     ret
-
-scputa endp
+    endp
 
 scputfg proc uses rbx x:uint_t, y:uint_t, l:uint_t, a:uint_t
-
     mov ebx,a
     and bl,0x0F
     .repeat
@@ -251,29 +217,22 @@ scputfg proc uses rbx x:uint_t, y:uint_t, l:uint_t, a:uint_t
         dec l
     .untilz
     ret
-
-scputfg endp
+    endp
 
 scputc proc x:uint_t, y:uint_t, l:uint_t, c:uint_t
-
   local NumberOfCharsWritten:uint_t
-
     ldr eax,x
     ldr edx,y
     ldr ecx,c
-
     movzx eax,al
     movzx edx,dl
     shl   edx,16
     or    edx,eax
-
     FillConsoleOutputCharacterW(_confh, cx, l, edx, &NumberOfCharsWritten)
     ret
-
-scputc endp
+    endp
 
 scputw proc x:uint_t, y:uint_t, l:uint_t, w:uint_t
-
     ldr eax,w
     .if eax & 0x00FF0000
         shr eax,16
@@ -281,28 +240,22 @@ scputw proc x:uint_t, y:uint_t, l:uint_t, w:uint_t
     .endif
     scputc(x, y, l, w)
     ret
-
-scputw endp
+    endp
 
 scputs proc uses rsi rdi rbx x:uint_t, y:uint_t, a:uint_t, maxlen:uint_t, string:LPSTR
-
     ldr ebx,maxlen
     .if ( ebx == 0 )
         dec ebx
     .endif
-
     .for ( edi = x, rsi = string : ebx && byte ptr [rsi] : ebx--, edi++ )
-
         _utftow(rsi)
         add rsi,rcx
         .if ( eax == 10 )
-
             inc y
             mov edi,x
             dec edi
            .continue
         .elseif ( eax == 9 )
-
             add edi,4
             and edi,-4
             dec edi
@@ -310,35 +263,29 @@ scputs proc uses rsi rdi rbx x:uint_t, y:uint_t, a:uint_t, maxlen:uint_t, string
         .endif
         scputc(edi, y, 1, ax)
         .if ( byte ptr a )
-
             scputa(edi, y, 1, a)
         .endif
     .endf
     sub rsi,string
     mov eax,esi
     ret
-
-scputs endp
+    endp
 
 scputf proc __Cdecl x:int_t, y:int_t, a:int_t, l:int_t, format:LPSTR, argptr:vararg
-
     vsprintf( &_bufin, format, &argptr )
     scputs(x, y, a, l, &_bufin)
     ret
-
-scputf endp
+    endp
 
 scgetws proc uses rbx x:uint_t, y:uint_t, l:uint_t
 
   local rc:SMALL_RECT
   local b:ptr
-
     movzx eax,byte ptr x
     movzx edx,byte ptr y
     mov   rc.Left,ax
     mov   rc.Top,dx
     mov   ebx,l
-
     .ifs ebx < 0
         not ebx
         mov l,ebx
@@ -350,21 +297,17 @@ scgetws proc uses rbx x:uint_t, y:uint_t, l:uint_t
         add eax,ebx
         add ebx,10000h
     .endif
-
     mov rc.Right,ax
     mov rc.Bottom,dx
     mov eax,l
     shl eax,2
-
     .if malloc(eax)
-
         mov b,rax
         ReadConsoleOutputW(_confh, b, ebx, 0, &rc)
         mov rax,b
     .endif
     ret
-
-scgetws endp
+    endp
 
 scputws proc x:uint_t, y:uint_t, l:uint_t, wp:ptr
 
@@ -391,11 +334,9 @@ scputws proc x:uint_t, y:uint_t, l:uint_t, wp:ptr
     WriteConsoleOutputW(_confh, wp, ecx, 0, &rc)
     free(wp)
     ret
-
-scputws endp
+    endp
 
 scenter proc uses rsi x:uint_t, y:uint_t, l:uint_t, s:LPSTR
-
     ldr rsi,s
     .ifd strlen(rsi) > l
         add rsi,rax
@@ -411,8 +352,7 @@ scenter proc uses rsi x:uint_t, y:uint_t, l:uint_t, s:LPSTR
     .endif
     scputs(x, y, 0, l, rsi)
     ret
-
-scenter endp
+    endp
 
 
 scpath proc uses rsi rbx x:int_t, y:int_t, maxlen:int_t, string:LPSTR
@@ -424,14 +364,11 @@ scpath proc uses rsi rbx x:int_t, y:int_t, maxlen:int_t, string:LPSTR
     ldr rbx,string
 
     .ifd ( _utfslen(rbx) > esi )
-
         mov ecx,[rbx]
         lea rdx,b
         add eax,4
         mov count,4
-
         .if ( ch == ':' )
-
             mov [rdx],cx
             add rdx,2
             add eax,2
@@ -441,7 +378,6 @@ scpath proc uses rsi rbx x:int_t, y:int_t, maxlen:int_t, string:LPSTR
         mov [rdx],ecx
         sub eax,esi
         .for ( rdx = &_lookuptrailbytes : eax : eax-- )
-
             movzx ecx,byte ptr [rbx]
             movzx ecx,byte ptr [rdx+rcx]
             lea rbx,[rbx+rcx+1]
@@ -453,8 +389,7 @@ scpath proc uses rsi rbx x:int_t, y:int_t, maxlen:int_t, string:LPSTR
     scputs( x, y, 0, esi, rbx )
     add eax,count
     ret
-
-scpath endp
+    endp
 
 
 scpathl proc uses rsi rdi rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
@@ -471,14 +406,10 @@ scpathl proc uses rsi rdi rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
     mov     ecx,esi
     rep     stosw
     mov     rdi,rdx
-
     .ifd _utfslen(rbx) > esi
-
         mov ecx,[rbx]
         add eax,4
-
         .if ch == ':'
-
             mov [rdi],cl
             mov [rdi+2],ch
             add rdi,4
@@ -493,33 +424,26 @@ scpathl proc uses rsi rdi rbx x:uint_t, y:uint_t, maxlen:uint_t, string:LPSTR
         add rdi,8
         sub ecx,esi
         .for ( rdx = &_lookuptrailbytes : ecx : ecx-- )
-
             movzx eax,byte ptr [rbx]
             movzx eax,byte ptr [rdx+rax]
             lea rbx,[rbx+rax+1]
         .endf
     .endif
-
     .while ( byte ptr [rbx] )
-
         _utftow(rbx)
         add rbx,rcx
         stosw
     .endw
-
     movzx eax,byte ptr x
     movzx edx,byte ptr y
     shl   edx,16
     mov   dx,ax
-
     WriteConsoleOutputCharacterW(_confh, &lbuf, esi, edx, &pcx)
     mov eax,pcx
     ret
-
-scpathl endp
+    endp
 
 scgetidchar proc fastcall private uses rdi x:byte, y:byte
-
     mov edx,getxyc(ecx, edx)
     .if ( al >= 'A' && al <= 'Z' )
         or al,0x20
@@ -529,13 +453,10 @@ scgetidchar proc fastcall private uses rdi x:byte, y:byte
     repnz scasb
     movzx eax,byte ptr [rdi-1]
     ret
-
-scgetidchar endp
+    endp
 
 scgetword proc uses rsi rdi rbx linebuf:LPSTR
-
     ldr rdi,linebuf
-
     mov ebx,_wherex() ; get cursor x,y pos
     mov esi,eax
     mov bh,dl
@@ -557,13 +478,11 @@ scgetword proc uses rsi rdi rbx linebuf:LPSTR
         mov rax,rdx
     .endif
     ret
-
-scgetword endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 wcputxg proc private
-
     add rcx,2
     .repeat
         and [rcx],ah
@@ -572,22 +491,18 @@ wcputxg proc private
         dec edx
     .until !edx
     ret
-
-wcputxg endp
+    endp
 
 wcputa proc private p:PCHAR_INFO, l:uint_t, attrib:uint_t
-
     ldr eax,attrib
     and eax,0xFF
     ldr rcx,p
     ldr edx,l
     wcputxg()
     ret
-
-wcputa endp
+    endp
 
 wcputbg proc private p:PCHAR_INFO, l:uint_t, attrib:uint_t
-
     ldr eax,attrib
     mov ah,0x0F
     and al,0xF0
@@ -595,11 +510,9 @@ wcputbg proc private p:PCHAR_INFO, l:uint_t, attrib:uint_t
     ldr edx,l
     wcputxg()
     ret
-
-wcputbg endp
+    endp
 
 wcputfg proc private p:PCHAR_INFO, l:uint_t, attrib:uint_t
-
     ldr eax,attrib
     mov ah,0x70
     and al,0x0F
@@ -607,13 +520,11 @@ wcputfg proc private p:PCHAR_INFO, l:uint_t, attrib:uint_t
     ldr edx,l
     wcputxg()
     ret
-
-wcputfg endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 rcbprc proc rc:TRECT, p:PCHAR_INFO, cols:uint_t
-
     mov     eax,cols
     mul     rc.y
     movzx   edx,rc.x
@@ -621,8 +532,7 @@ rcbprc proc rc:TRECT, p:PCHAR_INFO, cols:uint_t
     shl     eax,2
     add     rax,p
     ret
-
-rcbprc endp
+    endp
 
 rcmemsize proc private rc:TRECT, shade:uint_t
 
@@ -641,15 +551,12 @@ rcmemsize proc private rc:TRECT, shade:uint_t
         add eax,ecx
     .endif
     ret
-
-rcmemsize endp
+    endp
 
 rcalloc proc rc:TRECT, shade:UINT
-
     malloc(rcmemsize(rc, shade))
     ret
-
-rcalloc endp
+    endp
 
 rcread proc uses rbx rsi rdi rc:TRECT, p:PCHAR_INFO
 
@@ -690,8 +597,7 @@ rcread proc uses rbx rsi rdi rc:TRECT, p:PCHAR_INFO
         .endif
     .endif
     ret
-
-rcread endp
+    endp
 
 rcwrite proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO
 
@@ -712,7 +618,6 @@ rcwrite proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO
     mov     sr.Right,ax
 
     .ifd !WriteConsoleOutputW(_confh, p, bz, 0, &sr)
-
         mov     sr.Bottom,sr.Top
         mov     rdi,p
         movzx   ebx,bz.Y
@@ -732,21 +637,17 @@ rcwrite proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO
         .endif
     .endif
     ret
-
-rcwrite endp
+    endp
 
 rcxchg proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO
-
    .new b:ptr
     movzx eax,rc.row
     mul rc.col
     mov ebx,eax
     shl eax,2
     .if malloc(eax)
-
         mov b,rax
         .ifd rcread(rc, rax)
-
             rcwrite(rc, p)
             mov rdi,p
             mov rsi,b
@@ -758,13 +659,11 @@ rcxchg proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO
         mov eax,ebx
     .endif
     ret
-
-rcxchg endp
+    endp
 
 rcshade proc private uses rbx rc:TRECT, wp:PCHAR_INFO, shade:int_t
 
    .new b:TRECT, r:TRECT
-
     mov b,rc
     mov r,eax
     shr eax,16
@@ -775,23 +674,18 @@ rcshade proc private uses rbx rc:TRECT, wp:PCHAR_INFO, shade:int_t
     add b.y,ah
     mov b.row,1
     add b.x,2
-
     movzx eax,rc.col
     mul rc.row
     lea rbx,[rax*4]
     add rbx,wp
-
     .if ( shade )
-
         rcread(b, rbx)
         movzx eax,b.col
         rcread(r, &[rbx+rax*4])
-
         movzx edx,b.col
         add dl,r.row
         add dl,r.row
         .for ( rax = rbx : edx : edx--, rax += 4 )
-
             mov byte ptr [rax+2],0x08
         .endf
     .endif
@@ -799,11 +693,9 @@ rcshade proc private uses rbx rc:TRECT, wp:PCHAR_INFO, shade:int_t
     movzx eax,b.col
     rcxchg(r, &[rbx+rax*4])
     ret
-
-rcshade endp
+    endp
 
 rchide proc rc:TRECT, flag:uint_t, p:PCHAR_INFO
-
     ldr eax,flag
     and eax,_D_DOPEN or _D_ONSCR
     .ifnz
@@ -817,11 +709,9 @@ rchide proc rc:TRECT, flag:uint_t, p:PCHAR_INFO
         .endif
     .endif
     ret
-
-rchide endp
+    endp
 
 rcshow proc rc:TRECT, flag:uint_t, p:PCHAR_INFO
-
     ldr eax,flag
     and eax,_D_DOPEN or _D_ONSCR
     .ifnz
@@ -835,14 +725,11 @@ rcshow proc rc:TRECT, flag:uint_t, p:PCHAR_INFO
         .endif
     .endif
     ret
-
-rcshow endp
+    endp
 
 rcopen proc rc:TRECT, flag:uint_t, attrib:uint_t, title:string_t, p:ptr
-
     ldr eax,flag
     .if !( eax & _D_MYBUF )
-
         and eax,_D_SHADE
         .if !rcalloc(rc, eax)
             .return
@@ -850,15 +737,12 @@ rcopen proc rc:TRECT, flag:uint_t, attrib:uint_t, title:string_t, p:ptr
         mov p,rax
     .endif
     rcread(rc, p)
-
     mov edx,flag
     and edx,_D_CLEAR or _D_BACKG or _D_FOREG
     .ifnz
-
         movzx eax,rc.row
         mul rc.col
         mov ecx,attrib
-
         .switch edx
           .case _D_CLEAR : wcputw (p, eax, ' ') : .endc
           .case _D_COLOR : wcputa (p, eax, ecx) : .endc
@@ -869,18 +753,15 @@ rcopen proc rc:TRECT, flag:uint_t, attrib:uint_t, title:string_t, p:ptr
             mov cl,' '
             wcputw(p, eax, ecx)
         .endsw
-
         mov rax,title
         .if rax
-
             movzx edx,rc.col
             wctitle(p, edx, rax)
         .endif
     .endif
     mov rax,p
     ret
-
-rcopen endp
+    endp
 
 
 rcmove proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, direction:UINT
@@ -981,19 +862,16 @@ rcmove proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, direction:UINT
     .endsw
 
     .if rcalloc(rc, 0)
-
         mov rdi,rax
         rcread(r1, &l1)
         rcread(rc, rdi)
         rcwrite(r0, rdi)
         rcwrite(r2, &l2)
         free(rdi)
-
         .switch ebx
         .case RC_MOVELEFT
              std
             .for ( rbx = rsi, edx = 0 : dl < rc.row : edx++ )
-
                 movzx   eax,rc.col
                 mov     ecx,eax
                 imul    eax,edx
@@ -1009,7 +887,6 @@ rcmove proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, direction:UINT
             .endc
         .case RC_MOVERIGHT
             .for ( rdi = rsi, rsi+=4, edx = 0 : dl < rc.row : edx++ )
-
                 mov     eax,l1[rdx*4]
                 movzx   ecx,rc.col
                 dec     ecx
@@ -1052,8 +929,7 @@ rcmove proc uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO, direction:UINT
         .return(r0)
     .endif
     .return(rc)
-
-rcmove endp
+    endp
 
 
 rcmsmove proc private uses rsi rdi rbx rc:PTRECT, p:PCHAR_INFO, flag:uint_t
@@ -1068,14 +944,11 @@ rcmsmove proc private uses rsi rdi rbx rc:PTRECT, p:PCHAR_INFO, flag:uint_t
     .endif
     _getcursor(&cursor)
     _cursoroff()
-
     mousex()
     movzx ecx,bl
     sub eax,ecx
     mov relx,eax
-
     .while mousep() == 1
-
         mousex()
         movzx ecx,bl
         add ecx,relx
@@ -1092,15 +965,13 @@ rcmsmove proc private uses rsi rdi rbx rc:PTRECT, p:PCHAR_INFO, flag:uint_t
             mov ebx,rcmove(ebx, p, RC_MOVEUP)
         .endif
     .endw
-
     _setcursor(&cursor)
     .if flag & _D_SHADE
         rcshade(ebx, p, 1)
     .endif
     mov [rdi],ebx
     ret
-
-rcmsmove endp
+    endp
 
 rcframe proc uses rsi rdi rbx rc:TRECT, wp:PCHAR_INFO, lsize:uint_t, type:uint_t
 
@@ -1148,7 +1019,6 @@ rcframe proc uses rsi rdi rbx rc:TRECT, wp:PCHAR_INFO, lsize:uint_t, type:uint_t
         mov ft.BottomLeft,  U_LIGHT_UP_AND_RIGHT
         mov ft.BottomRight, U_LIGHT_UP_AND_LEFT
     .endsw
-
     mov     eax,lsize
     mul     rc.y
     mov     edi,eax
@@ -1156,14 +1026,12 @@ rcframe proc uses rsi rdi rbx rc:TRECT, wp:PCHAR_INFO, lsize:uint_t, type:uint_t
     add     edi,eax
     shl     edi,2
     add     rdi,wp
-
     mov     al,rc.col
     sub     al,2
     mov     cols,al
     mov     al,rc.row
     sub     al,2
     mov     rows,al
-
     mov     eax,type
     shr     eax,8
     and     eax,0xFF
@@ -1172,9 +1040,7 @@ rcframe proc uses rsi rdi rbx rc:TRECT, wp:PCHAR_INFO, lsize:uint_t, type:uint_t
     lea     rbx,[rdi+rdx]
     shl     eax,16
     mov     ax,ft.TopLeft
-
     .ifnz
-
         stosd
         mov     ax,ft.Horizontal
         movzx   ecx,cols
@@ -1183,14 +1049,11 @@ rcframe proc uses rsi rdi rbx rc:TRECT, wp:PCHAR_INFO, lsize:uint_t, type:uint_t
         stosd
         mov     ax,ft.Vertical
         movzx   ecx,cols
-
         .for (  : rows : rows-- )
-
             mov     [rbx],eax
             mov     [rbx+rcx*4+4],eax
             add     rbx,rdx
         .endf
-
         mov     rdi,rbx
         mov     ax,ft.BottomLeft
         stosd
@@ -1199,66 +1062,50 @@ rcframe proc uses rsi rdi rbx rc:TRECT, wp:PCHAR_INFO, lsize:uint_t, type:uint_t
         rep     stosd
         mov     ax,ft.BottomRight
         stosd
-
     .else
-
         mov     [rdi],ax
         mov     ax,ft.Horizontal
         add     rdi,4
-
         .for ( cl = 0 : cl < cols : cl++, rdi += 4 )
-
             mov [rdi],ax
         .endf
-
         mov     ax,ft.TopRight
         mov     [rdi],ax
         mov     ax,ft.Vertical
         movzx   ecx,cols
-
         .for ( : rows : rows-- )
-
             mov rdi,rbx
             add rbx,rdx
             mov [rdi],ax
             mov [rdi+rcx*4+4],ax
         .endf
-
         mov     rdi,rbx
         mov     ax,ft.BottomLeft
         mov     [rdi],ax
         add     rdi,4
         mov     ax,ft.Horizontal
-
         .for ( cl = 0 : cl < cols : cl++, rdi += 4 )
-
             mov [rdi],ax
         .endf
         mov     ax,ft.BottomRight
         mov     [rdi],ax
     .endif
     ret
-
-rcframe endp
+    endp
 
 rcpush proc private lines:UINT
-
     mov eax,_scrcol
     mov ah,byte ptr lines
     shl eax,16
     rcopen(eax, 0, 0, 0, 0)
     ret
-
-rcpush endp
+    endp
 
 rcunzip proc private uses rsi rdi rbx rc:TRECT, dst:PCHAR_INFO, src:ptr
-
    .new count:int_t
-
     movzx eax,rc.col
     mul rc.row
     mov count,eax
-
     mov rsi,src
     mov rdi,dst
     mov ecx,count
@@ -1278,7 +1125,6 @@ rcunzip proc private uses rsi rdi rbx rc:TRECT, dst:PCHAR_INFO, src:ptr
     ret
 
 decompress:
-
     .repeat
         lodsb
         mov dl,al
@@ -1304,23 +1150,17 @@ decompress:
         .endif
     .untilcxz
     retn
-
-rcunzip endp
+    endp
 
 rcunzipat proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO
-
    .new count:int_t
-
     movzx eax,rc.col
     mul rc.row
     mov count,eax
-
     ldr rbx,p
     lea rdi,at_foreground
     lea rsi,at_background
-
     .for ( ecx = 0 : ecx < count : ecx++ )
-
         mov     al,[rbx+rcx*4+2]
         mov     ah,al
         and     eax,0x0FF0
@@ -1332,8 +1172,7 @@ rcunzipat proc private uses rsi rdi rbx rc:TRECT, p:PCHAR_INFO
         mov     [rbx+rcx*4+2],al
     .endf
     ret
-
-rcunzipat endp
+    endp
 
 ifdef __BMP__
 
@@ -1420,22 +1259,17 @@ compress:
     jnz     compress
 .8:
     retn
-
-rczip endp
+    endp
 
 endif
 
 
 __wcpath proc private uses rbx b:PCHAR_INFO, l:dword, p:LPSTR
-
     mov ecx,strlen( p )
     mov rdx,p
     mov rax,b
-
     .repeat
-
         .break .if ecx <= l
-
         mov ebx,[rdx]
         add rdx,rcx
         mov ecx,l
@@ -1460,15 +1294,11 @@ __wcpath proc private uses rbx b:PCHAR_INFO, l:dword, p:LPSTR
         sub ecx,4
     .until 1
     ret
-
-__wcpath endp
+    endp
 
 wcpath proc uses rbx b:PCHAR_INFO, l:uint_t, p:LPSTR
-
     __wcpath(b, l, p)
-
     .if ecx
-
         mov rbx,rax
         xor eax,eax
         .repeat
@@ -1479,18 +1309,13 @@ wcpath proc uses rbx b:PCHAR_INFO, l:uint_t, p:LPSTR
         .untilcxz
     .endif
     ret
-
-wcpath endp
+    endp
 
 wcenter proc uses rbx wp:PCHAR_INFO, l:uint_t, string:LPSTR
-
     ldr rbx,wp
     __wcpath(rbx, l, string)
-
     .if ecx
-
         .if rbx == rax
-
             mov eax,l
             sub eax,ecx
             shr eax,1
@@ -1506,14 +1331,12 @@ wcenter proc uses rbx wp:PCHAR_INFO, l:uint_t, string:LPSTR
         .untilcxz
     .endif
     ret
-
-wcenter endp
+    endp
 
 wcpbutt proc uses rsi rdi rbx wp:PCHAR_INFO, l:uint_t, x:uint_t, string:LPSTR
 
     ldr rdi,wp
     ldr ecx,x
-
     xor eax,eax
     mov al,at_background[B_PushButt]
     or  al,at_foreground[F_Title]
@@ -1522,14 +1345,12 @@ wcpbutt proc uses rsi rdi rbx wp:PCHAR_INFO, l:uint_t, x:uint_t, string:LPSTR
     mov rbx,rdi
     mov rdx,rdi
     rep stosd
-
     mov eax,[rdi+2]
     and eax,11110000B
     or  al,at_foreground[F_PBShade]
     shl eax,16
     mov ax,U_LOWER_HALF_BLOCK
     stosd
-
     mov ecx,l
     inc ecx
     shl ecx,2
@@ -1537,7 +1358,6 @@ wcpbutt proc uses rsi rdi rbx wp:PCHAR_INFO, l:uint_t, x:uint_t, string:LPSTR
     mov ecx,x
     mov ax,U_UPPER_HALF_BLOCK
     rep stosd
-
     mov rsi,string
     mov rdi,rbx
     add rdi,8
@@ -1545,14 +1365,10 @@ wcpbutt proc uses rsi rdi rbx wp:PCHAR_INFO, l:uint_t, x:uint_t, string:LPSTR
     mov al,at_background[B_PushButt]
     or  al,at_foreground[F_TitleKey]
     shl eax,16
-
     .while 1
-
         lodsb
         .break .if !al
-
         .if al != '&'
-
             mov [rdi],al
             add rdi,4
             .continue(0)
@@ -1564,33 +1380,26 @@ wcpbutt proc uses rsi rdi rbx wp:PCHAR_INFO, l:uint_t, x:uint_t, string:LPSTR
     .endw
     mov rax,wp
     ret
-
-wcpbutt endp
+    endp
 
 wcstline proc private
-
     mov ecx,_scrcol
     mov ch,1
     shl ecx,16
     mov ch,byte ptr _scrrow
     rcxchg(ecx, rax)
     ret
-
-wcstline endp
+    endp
 
 wcpushst proc uses rbx wc:PCHAR_INFO, cp:LPSTR
-
     .if wcvisible == 1
-
         ldr rax,wc
         wcstline()
     .endif
-
     movzx eax,at_background[B_Menus]
     or    al,at_foreground[F_KeyBar]
     shl   eax,16
     mov   al,' '
-
     wcputw(wc, _scrcol, eax)
     mov rbx,wc
     mov word ptr [rbx+18*4],U_LIGHT_VERTICAL
@@ -1600,20 +1409,16 @@ wcpushst proc uses rbx wc:PCHAR_INFO, cp:LPSTR
     wcstline()
     mov wcvisible,1
     ret
-
-wcpushst endp
+    endp
 
 wcpopst proc wp:PCHAR_INFO
-
     mov rax,wp
     wcstline()
     xor wcvisible,1
     ret
-
-wcpopst endp
+    endp
 
 wcputw proc p:PCHAR_INFO, l:uint_t, w:uint_t
-
     ldr eax,w
     ldr rcx,p
     ldr edx,l
@@ -1630,21 +1435,17 @@ wcputw proc p:PCHAR_INFO, l:uint_t, w:uint_t
         .until !edx
     .endif
     ret
-
-wcputw endp
+    endp
 
 
 wcputs proc uses rsi rdi rbx p:PCHAR_INFO, m:uint_t, string:LPSTR
-
     ldr rsi,string
     ldr rdi,p
     ldr ebx,m
-
     .if !bl
         dec bl
     .endif
     .while ( bl && byte ptr [rsi] )
-
         _utftow(rsi)
         add rsi,rcx
         .if bh
@@ -1656,41 +1457,33 @@ wcputs proc uses rsi rdi rbx p:PCHAR_INFO, m:uint_t, string:LPSTR
         dec bl
     .endw
     ret
-
-wcputs endp
+    endp
 
 wcputf proc __Cdecl b:PCHAR_INFO, m:uint_t, format:LPSTR, argptr:VARARG
-
     vsprintf( &_bufin, format, &argptr )
     wcputs(b, m, addr _bufin)
     ret
-
-wcputf endp
+    endp
 
 wctitle proc p:PCHAR_INFO, l:dword, string:LPSTR
-
     movzx   eax,at_background[B_Title]
     or      al,at_foreground[F_Title]
     shl     eax,16
     mov     al,' '
-
     wcputw(p, l, eax)
     wcenter(p, l, string)
     ret
-
-wctitle endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ClipboardFree proc
-
     free(clipboard)
     xor eax,eax
     mov clipbsize,eax
     mov clipboard,rax
     ret
-
-ClipboardFree endp
+    endp
 
 ClipboardCopy proc uses rsi rdi rbx string:LPSTR, len:UINT
 
@@ -1705,12 +1498,9 @@ else
     .if eax
 endif
         .ifd OpenClipboard(0)
-
             EmptyClipboard()
             inc edi
-
             .if GlobalAlloc(GMEM_MOVEABLE or GMEM_DDESHARE, edi)
-
                 dec edi
                 mov rsi,rax
                 mov rbx,memcpy(GlobalLock(rax), string, edi)
@@ -1726,7 +1516,6 @@ endif
     .else
         inc edi
         .if malloc(edi)
-
             dec edi
             memcpy(rax, string, edi)
             mov byte ptr [rax+rdi],0
@@ -1736,8 +1525,7 @@ endif
         mov eax,edi
     .endif
     ret
-
-ClipboardCopy endp
+    endp
 
 ClipboardPaste proc uses rbx
     mov eax,console
@@ -1749,18 +1537,13 @@ else
     .if eax
 endif
         .ifd IsClipboardFormatAvailable(CF_TEXT)
-
             .ifd OpenClipboard(0)
-
                 .if GetClipboardData(CF_TEXT)
-
                     mov rbx,rax
                     .ifd strlen(rax)
-
                         mov clipbsize,eax
                         inc eax
                         .if malloc(eax)
-
                             strcpy(rax, rbx)
                             mov clipboard,rax
                         .else
@@ -1768,7 +1551,6 @@ endif
                         .endif
                     .endif
                 .endif
-
                 mov rbx,rax
                 CloseClipboard()
                 mov rax,rbx
@@ -1781,50 +1563,39 @@ endif
     .endif
     mov ecx,clipbsize
     ret
-
-ClipboardPaste endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     assume rbx:PDOBJ
 
 dlopen proc uses rbx dobj:PDOBJ, at:uint_t, ttl:LPSTR
-
     ldr rbx,dobj
     ldr edx,at
     and edx,0xFF
     mov [rbx].wp,rcopen([rbx].rc, [rbx].flag, edx, ttl, [rbx].wp)
-
     .if rax
-
         or  [rbx].flag,_D_DOPEN
         mov eax,1
     .endif
     ret
-
-dlopen endp
+    endp
 
 dlshow proc uses rbx dobj:PDOBJ
-
     ldr rbx,dobj
     .ifd rcshow([rbx].rc, [rbx].flag, [rbx].wp)
-
         or [rbx].flag,_D_ONSCR
     .endif
     ret
-
-dlshow endp
+    endp
 
 dlhide proc uses rbx dobj:PDOBJ
-
     ldr rbx,dobj
     .ifd rchide([rbx].rc, [rbx].flag, [rbx].wp)
-
         and [rbx].flag,not _D_ONSCR
     .endif
     ret
-
-dlhide endp
+    endp
 
 dlclose proc uses rbx dobj:PDOBJ
 
@@ -1832,37 +1603,27 @@ dlclose proc uses rbx dobj:PDOBJ
    .new retval:int_t = 0
 
     ldr rbx,dobj
-
     .if ( [rbx].flag & _D_DOPEN )
-
         inc retval
-
         .if ( [rbx].flag & _D_ONSCR )
-
             inc retval
             rcwrite([rbx].rc, [rbx].wp)
             .if ( [rbx].flag & _D_SHADE )
-
                 rcshade([rbx].rc, [rbx].wp, 0)
             .endif
         .endif
-
         and [rbx].flag,not (_D_DOPEN or _D_ONSCR)
         .if !( [rbx].flag & _D_MYBUF )
-
             free([rbx].wp)
             mov [rbx].wp,0
         .endif
-
         .if ( [rbx].flag & _D_RCNEW )
-
             free(rbx)
         .endif
     .endif
      mov edx,prevret
     .return( retval )
-
-dlclose endp
+    endp
 
     assume rbx:nothing
 
@@ -1874,13 +1635,10 @@ dlinit proc uses rsi rdi rbx td:PDOBJ
     mov edi,[rbx]
 
     .if ( edi & _D_ONSCR )
-
         mov wp,[rbx].DOBJ.wp
         .if ( rcalloc([rbx].DOBJ.rc, 0) == NULL )
-
             .return
         .endif
-
         mov [rbx].DOBJ.wp,rax
         rcread( [rbx].DOBJ.rc, rax)
     .endif
@@ -1931,7 +1689,6 @@ dlinit proc uses rsi rdi rbx td:PDOBJ
             .endif
             mov [rdi+4],ax
            .endc
-
         .case _O_XCELL
             .for ( ecx = 0 : cl < [rbx].TOBJ.rc.col : ecx++ )
                 mov word ptr [rdi+rcx*4],' '
@@ -1944,7 +1701,6 @@ dlinit proc uses rsi rdi rbx td:PDOBJ
                 wcpath(rdi, edx, rsi)
             .endif
             .endc
-
         .case _O_TEDIT
             mov edx,U_MIDDLE_DOT
             .for ( ecx = 0 : cl < [rbx].TOBJ.rc.col : ecx++ )
@@ -1953,7 +1709,6 @@ dlinit proc uses rsi rdi rbx td:PDOBJ
             mov rsi,[rbx].TOBJ.data
             .if rsi
                 .for ( eax = 0, ecx = 0 : cl < [rbx].TOBJ.rc.col : ecx++ )
-
                     mov al,[rsi+rcx]
                     .break .if !al
                     mov [rdi+rcx*4],ax
@@ -1969,17 +1724,14 @@ dlinit proc uses rsi rdi rbx td:PDOBJ
             .endc
         .endsw
     .endf
-
     .if ( flags & _D_ONSCR )
-
         mov rbx,td
         rcwrite([rbx].DOBJ.rc, [rbx].DOBJ.wp)
         free([rbx].DOBJ.wp)
         mov [rbx].DOBJ.wp,wp
     .endif
     ret
-
-dlinit endp
+    endp
 
     option proc:private
 
@@ -1987,12 +1739,9 @@ dlinit endp
     assume rdx:PTEDIT
 
 getline proc uses rsi rdi
-
     mov rdx,TI
     mov rax,[rdx].base
-
     .if rax
-
         mov     rsi,rax
         mov     rdi,rax
         mov     ecx,[rdx].bcol   ; terminate line
@@ -2011,44 +1760,34 @@ getline proc uses rsi rdi
         mov     rax,[rdx].base
     .endif
     ret
-
-getline endp
+    endp
 
 
 curlptr proc uses rbx
-
     .if getline()
-
         mov ebx,[rdx].boffs
         add ebx,[rdx].xoffs
         add rax,rbx
     .endif
     ret
-
-curlptr endp
+    endp
 
 event_home proc
-
     .if !getline()
-
         .return(_TE_CMFAILED)
     .endif
     xor eax,eax
     mov [rdx].boffs,eax
     mov [rdx].xoffs,eax
     ret
-
-event_home endp
+    endp
 
 event_toend proc
-
     event_home()
     .if !getline()
         .return(_TE_CMFAILED)
     .endif
-
     .ifd stripend(rax)
-
         mov eax,[rdx].cols
         dec eax
         .ifs ecx <= eax
@@ -2070,11 +1809,9 @@ event_toend proc
     .endif
     xor eax,eax
     ret
-
-event_toend endp
+    endp
 
 event_left proc
-
     xor eax,eax
     .if eax != [rdx].xoffs
         dec [rdx].xoffs
@@ -2087,34 +1824,25 @@ event_left proc
         .endif
     .endif
     ret
-
-event_left endp
+    endp
 
 event_right proc uses rbx
-
     mov rcx,curlptr()
     mov ebx,[rdx].xoffs
     sub rcx,rbx
-
     mov al,[rax]
     .if al
-
         mov eax,[rdx].cols
         dec eax
-
         .if eax > [rdx].xoffs
-
             inc [rdx].xoffs
            .return( 0 )
         .endif
     .endif
-
     mov rbx,rdx
     strlen(rcx)
     mov rdx,rbx
-
     .if eax >= [rdx].cols
-
         inc [rdx].boffs
        .return( 0 )
     .endif
@@ -2123,18 +1851,13 @@ event_right proc uses rbx
         mov eax,_TE_RETEVENT
     .endif
     ret
-
-event_right endp
+    endp
 
 event_delete proc uses rbx
-
     .if curlptr()
-
         stripend(rax)
         curlptr()
-
         .if ecx && byte ptr [rax]
-
             dec [rdx].bcount
             mov rcx,rax
             mov rbx,rdx
@@ -2146,13 +1869,10 @@ event_delete proc uses rbx
     .endif
     tinocando()
     ret
-
-event_delete endp
+    endp
 
 event_backsp proc
-
     .if getline()
-
         mov eax,[rdx].xoffs
         add eax,[rdx].boffs
         .if !eax || !ecx
@@ -2166,8 +1886,7 @@ event_backsp proc
         .endif
     .endif
     ret
-
-event_backsp endp
+    endp
 
 
 event_add proc uses rbx
@@ -2178,26 +1897,17 @@ event_add proc uses rbx
     .endif
     movzx eax,bl
     lea rcx,_ltype
-
     .if ( byte ptr [rcx+rax] & _CONTROL )
-
         .if ( !eax || !( [rdx].flags & _TE_USECONTROL ) )
-
             .return( _TE_RETEVENT )
         .endif
     .endif
-
     mov eax,[rdx].bcount
     inc eax
-
     .if ( eax < [rdx].bcol )
-
         .ifd tiincx(rdx)
-
             inc [rdx].bcount
-
             .if getline()
-
                 or [rdx].flags,_TE_MODIFIED
                 mov eax,[rdx].boffs
                 add eax,[rdx].xoffs
@@ -2213,13 +1923,10 @@ event_add proc uses rbx
     mov [rdx].bcount,eax
     tinocando()
     ret
-
-event_add endp
+    endp
 
 setcursor proc
-
   local cursor:CURSOR
-
     mov rdx,TI
     mov eax,[rdx].xpos
     add eax,[rdx].xoffs
@@ -2230,41 +1937,32 @@ setcursor proc
     mov cursor.dwSize,CURSOR_NORMAL
     _setcursor(&cursor)
     ret
-
-setcursor endp
+    endp
 
 ti_event proc uses rsi rbx
 
     mov rdx,TI
     mov ecx,[rdx].flags
-
     .switch eax
-
     .case _TE_CONTINUE
         xor eax,eax ; _TI_CONTINUE - continue edit
        .endc
-
     .case KEY_CTRLRIGHT
-
         .endc .if !curlptr()
-
         mov rdx,rax ; to end of word
         mov rcx,rax
         xor eax,eax
         lea rbx,_ltype
-
         .repeat
             mov al,[rcx]
             inc rcx
         .until !( byte ptr [rbx+rax] & _LABEL or _DIGIT )
         .endc .if !al
-
         .repeat         ; to start of word
             mov al,[rcx]
             inc rcx
            .endc .if !al
         .until ( byte ptr [rbx+rax] & _LABEL or _DIGIT )
-
         dec rcx
         sub rcx,rdx
         mov rdx,TI
@@ -2272,7 +1970,6 @@ ti_event proc uses rsi rbx
         add eax,[rdx].xoffs
         add eax,ecx
         .endc .if ( eax > [rdx].bcount )
-
         sub eax,[rdx].boffs
         mov ecx,[rdx].cols
         .if eax >= ecx
@@ -2285,49 +1982,36 @@ ti_event proc uses rsi rbx
         .endif
         mov eax,_TE_CONTINUE
        .endc
-
     .case KEY_CTRLLEFT
-
         .endc .if !getline()
-
         mov rcx,rax
         mov eax,[rdx].boffs
         add eax,[rdx].xoffs
         .endc .ifz
-
         lea rdx,[rax+rcx-1]
         movzx eax,byte ptr [rdx]
         lea rbx,_ltype
-
         .while ( rcx < rdx && !( byte ptr [rbx+rax] & _LABEL or _DIGIT ) )
-
             dec rdx
             mov al,[rdx]
         .endw
         .while ( rcx < rdx && ( byte ptr [rbx+rax] & _LABEL or _DIGIT ) )
-
             dec rdx
             mov al,[rdx]
         .endw
-
         .if !( byte ptr [rbx+rax] & _LABEL or _DIGIT )
-
             mov al,[rdx+1]
             .if ( byte ptr [rbx+rax] & _LABEL or _DIGIT )
-
                 inc rdx
             .endif
         .endif
-
         mov  rax,TI
         xchg rax,rdx
         mov ebx,[rdx].boffs
         add ebx,[rdx].xoffs
         add rcx,rbx
         sub rcx,rax
-
         .if ( ecx > [rdx].xoffs )
-
             sub ecx,[rdx].xoffs
             mov [rdx].xoffs,0
             sub [rdx].boffs,ecx
@@ -2336,7 +2020,6 @@ ti_event proc uses rsi rbx
         .endif
         mov eax,_TE_CONTINUE
        .endc
-
     .case KEY_LEFT
         event_left()
        .endc
@@ -2355,19 +2038,14 @@ ti_event proc uses rsi rbx
     .case KEY_DEL
         event_delete()
        .endc
-
     .case MOUSECMD
         mov ecx,keybmouse_x
         mov eax,[rdx].xpos
-
         .if ecx >= eax
-
             add eax,[rdx].cols
             .if ecx < eax
-
                 mov eax,[rdx].ypos
                 .if eax == keybmouse_y
-
                     mov ebx,ecx
                     mov rsi,rdx
                     .if getline()
@@ -2387,7 +2065,6 @@ ti_event proc uses rsi rbx
                 .endif
             .endif
         .endif
-
     .case KEY_UP
     .case KEY_DOWN
     .case KEY_PGUP
@@ -2407,7 +2084,6 @@ ti_event proc uses rsi rbx
        .endc
     .case KEY_TAB
         .if !( ecx & _TE_USECONTROL )
-
             mov eax,_TE_RETEVENT ; return current event (keystroke)
            .endc
         .endif
@@ -2417,80 +2093,62 @@ ti_event proc uses rsi rbx
        .endc
     .endsw
     ret
-
-ti_event endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ClipIsSelected proc
-
     mov rdx,TI
     mov eax,[rdx].clip_eo
     sub eax,[rdx].clip_so
     ret
-
-ClipIsSelected endp
+    endp
 
 ClipSet proc
-
     mov rdx,TI
     mov eax,[rdx].xoffs
     add eax,[rdx].boffs
     mov [rdx].clip_so,eax
     mov [rdx].clip_eo,eax
     ret
-
-ClipSet endp
+    endp
 
 ClipDelete proc uses rsi rbx
-
     .ifd ClipIsSelected()
-
         mov ebx,[rdx].clip_so
         mov esi,[rdx].xoffs
         add esi,[rdx].boffs
-
         .if esi < ebx
-
             .repeat
                 .break .ifd !tiincx(rdx)
                 inc esi
             .until ( ebx == esi )
             inc esi
-
         .elseif ( esi > ebx )
-
             .repeat
                 .break .ifd !tidecx(rdx)
                 dec esi
             .until ( ebx == esi )
             inc esi
         .endif
-
         or [rdx].flags,_TE_MODIFIED
         mov eax,[rdx].clip_so
         mov esi,[rdx].clip_eo
         add rax,[rdx].base
         add rsi,[rdx].base
-
         strcpy(rax, rsi)
         getline()
         ClipSet()
         mov eax,1
     .endif
     ret
-
-ClipDelete endp
+    endp
 
 ClipCC proc uses rsi rdi cut:int_t
-
     mov rsi,TI
     mov edi,cut ; Copy == 0, Cut == 1
-
     .repeat
-
         .ifd ClipIsSelected() ; get size of selection
-
             mov rdx,TI
             mov eax,[rdx].clip_so
             add rax,[rdx].base
@@ -2505,18 +2163,17 @@ ClipCC proc uses rsi rdi cut:int_t
     .until 1
     xor eax,eax
     ret
-
-ClipCC endp
+    endp
 
 ClipCopy proc
     ClipCC(0)
     ret
-ClipCopy endp
+    endp
 
 ClipCut proc
     ClipCC(1)
     ret
-ClipCut endp
+    endp
 
 ClipPaste proc uses rsi rdi rbx
 
@@ -2524,21 +2181,17 @@ ClipPaste proc uses rsi rdi rbx
    .new b:uint_t
 
     mov rdx,TI
-
     .if ( [rdx].flags & _TE_OVERWRITE )
         ClipDelete()
     .else
         ClipSet()
     .endif
-
     .if ClipboardPaste()
-
         mov rdx,TI
         mov rdi,rax
         mov esi,ecx ; clipbsize
         mov x,[rdx].xoffs
         mov b,[rdx].boffs
-
         .repeat
             movzx eax,byte ptr [rdi]
             .break .if !eax
@@ -2547,7 +2200,6 @@ ClipPaste proc uses rsi rdi rbx
             dec esi
         .untilz
         ClipboardFree()
-
         mov rdx,TI
         mov [rdx].boffs,b
         mov [rdx].xoffs,x
@@ -2555,18 +2207,14 @@ ClipPaste proc uses rsi rdi rbx
     ClipSet()
     xor eax,eax
     ret
-
-ClipPaste endp
+    endp
 
 ClipEvent proc uses rsi rdi rbx
 
     mov esi,eax
-
     .ifd !ClipIsSelected()
-
         ClipSet() ; reset clipboard if not selected
     .endif
-
     .switch esi
     .case KEY_CTRLINS
     .case KEY_CTRLC
@@ -2579,11 +2227,9 @@ ClipEvent proc uses rsi rdi rbx
         ClipCut()
        .endc
     .default
-
         mov rax,keyshift
         mov eax,[rax]
         .if eax & SHIFT_KEYSPRESSED
-
             .switch esi
             .case KEY_INS     ; Shift-Insert -- Paste()
                 .gotosw(1:KEY_CTRLV)
@@ -2593,29 +2239,21 @@ ClipEvent proc uses rsi rdi rbx
             .case KEY_LEFT
             .case KEY_RIGHT
             .case KEY_END
-
                 mov eax,esi ; consume event, return null
                 ti_event()
                 .if ( eax == _TE_CMFAILED || eax == _TE_RETEVENT )
-
                     .return( 0 )
                 .endif
-
                 mov rbx,TI
                 mov eax,[rbx].TEDIT.boffs
                 add eax,[rbx].TEDIT.xoffs
-
                 .if ( eax >= [rbx].TEDIT.clip_so )
-
                     .if ( esi == KEY_RIGHT )
-
                         mov edx,eax
                         dec edx
                         .if ( edx == [rbx].TEDIT.clip_so )
-
                             .if ( edx != [rbx].TEDIT.clip_eo )
-
-                                mov [rbx].TEDIT.clip_so,eax
+                               mov [rbx].TEDIT.clip_so,eax
                                .return( 0 )
                             .endif
                         .endif
@@ -2627,11 +2265,8 @@ ClipEvent proc uses rsi rdi rbx
                .return( 0 )
             .endsw
         .endif
-
         .if esi == KEY_DEL     ; Delete selected text ?
-
             .ifd !ClipDelete()
-
                 ClipSet()      ; set clipboard to cursor
                 mov eax,esi    ; return event
                .endc
@@ -2639,7 +2274,6 @@ ClipEvent proc uses rsi rdi rbx
             xor eax,eax
            .endc
         .endif
-
         xor ecx,ecx
         .switch esi
         .case KEY_ESC
@@ -2663,8 +2297,7 @@ ClipEvent proc uses rsi rdi rbx
         mov eax,esi         ; return event
     .endsw
     ret
-
-ClipEvent endp
+    endp
 
 putline proc uses rsi rdi rbx
 
@@ -2682,16 +2315,11 @@ putline proc uses rsi rdi rbx
     mov rsi,[rdx].base
     strlen(rsi)
     mov rdx,TI
-
     .if ( eax > [rdx].boffs )
-
         mov edi,[rdx].boffs
         add rsi,rdi
-
         .for ( rdi = &ci, ebx = 0 : byte ptr [rsi] && ebx < cols : ebx++, rsi++, rdi+=4 )
-
             .ifd !MultiByteToWideChar(_consolecp, 0, rsi, 1, rdi, 1)
-
                 mov al,[rsi]
                 mov [rdi],al
             .endif
@@ -2701,17 +2329,13 @@ putline proc uses rsi rdi rbx
 
     mov edi,[rdx].boffs
     mov ecx,[rdx].clip_eo
-
     .if edi < ecx
-
         sub ecx,edi
         xor eax,eax
         .if ecx >= cols
-
             mov ecx,cols
         .endif
         .if [rdx].clip_so >= edi
-
             mov eax,[rdx].clip_so
             sub eax,edi
             .if eax <= ecx
@@ -2721,7 +2345,6 @@ putline proc uses rsi rdi rbx
             .endif
         .endif
         .if ecx
-
             lea rdi,ci
             lea rdi,[rdi+rax*4+2]
             mov al,at_background[B_Inverse]
@@ -2731,7 +2354,6 @@ putline proc uses rsi rdi rbx
             .untilcxz
         .endif
     .endif
-
     mov ecx,cols
     mov bz.X,cx
     mov eax,[rdx].xpos
@@ -2745,13 +2367,10 @@ putline proc uses rsi rdi rbx
     mov bz.Y,1
     WriteConsoleOutputW(_confh, &ci, bz, 0, &rc)
     ret
-
-putline endp
+    endp
 
 modal proc uses rsi rdi
-
     xor esi,esi
-
     .repeat
         .if !esi
             getline()
@@ -2764,8 +2383,7 @@ modal proc uses rsi rdi
     getline()
     mov eax,edi ; return current event (keystroke)
     ret
-
-modal endp
+    endp
 
     option proc:public
 
@@ -2785,7 +2403,6 @@ dledit proc uses rdi rbx b:LPSTR, rc:TRECT, bz, oflag
     mov rdi,TI
     lea rax,t
     mov TI,rax
-
     movzx eax,rc.x
     mov t.xpos,eax
     mov al,rc.y
@@ -2819,8 +2436,7 @@ dledit proc uses rdi rbx b:LPSTR, rc:TRECT, bz, oflag
     mov eax,ebx
     mov TI,rdi
     ret
-
-dledit endp
+    endp
 
 dledite proc uses rdi rbx t:PVOID, event
 
@@ -2845,8 +2461,7 @@ dledite proc uses rdi rbx t:PVOID, event
     .endif
     mov TI,rdi
     ret
-
-dledite endp
+    endp
 
     assume rdx:nothing
 
@@ -2858,16 +2473,11 @@ PrevItem proc private uses rsi
     mov   edx,ecx
     imul  edx,edx,TOBJ
     add   rdx,[rsi].DOBJ.object
-
     .repeat
-
         .if ecx
-
             sub rdx,TOBJ
             .repeat
-
                 .if !( [rdx].TOBJ.flag & _O_DEACT )
-
                     dec ecx
                     mov [rsi].DOBJ.index,cl
                     mov eax,1
@@ -2877,21 +2487,15 @@ PrevItem proc private uses rsi
             .untilcxz
             xor ecx,ecx
         .endif
-
         add cl,[rsi].DOBJ.count
         .ifnz
-
             movzx  eax,[rsi].DOBJ.index
             lea    edx,[rcx-1]
             imul   edx,edx,TOBJ
             add    rdx,[rsi].DOBJ.object
-
             .repeat
-
                 .break .if eax > ecx
-
                 .if !( [rdx].TOBJ.flag & _O_DEACT )
-
                     dec ecx
                     mov [rsi].DOBJ.index,cl
                     mov eax,1
@@ -2904,8 +2508,7 @@ PrevItem proc private uses rsi
     .until 1
     mov result,eax
     ret
-
-PrevItem endp
+    endp
 
 NextItem proc private uses rsi
 
@@ -2916,13 +2519,9 @@ NextItem proc private uses rsi
     imul    edx,edx,TOBJ
     add     rdx,[rsi].DOBJ.object
     add     ecx,2
-
     .repeat
-
         .while ecx <= eax
-
             .if !( [rdx].TOBJ.flag & _O_DEACT )
-
                 dec ecx
                 mov [rsi].DOBJ.index,cl
                 mov eax,1
@@ -2931,16 +2530,12 @@ NextItem proc private uses rsi
             inc ecx
             add rdx,TOBJ
         .endw
-
         mov     rdx,[rsi].DOBJ.object
         movzx   eax,[rsi].DOBJ.index
         inc     eax
         mov     ecx,1
-
         .while ecx <= eax
-
             .if !( [rdx].TOBJ.flag & _O_DEACT )
-
                 dec ecx
                 mov [rsi].DOBJ.index,cl
                 mov eax,1
@@ -2953,8 +2548,7 @@ NextItem proc private uses rsi
     .until 1
     mov result,eax
     ret
-
-NextItem endp
+    endp
 
 MouseDelay proc private
 
@@ -2965,8 +2559,7 @@ MouseDelay proc private
         or eax,1
     .endif
     ret
-
-MouseDelay endp
+    endp
 
 test_event proc private uses rsi rdi rbx cmd, extended
 
@@ -2998,7 +2591,6 @@ test_event proc private uses rsi rdi rbx cmd, extended
     .case KEY_ALTRIGHT
         movzx ecx,[rsi].DOBJ.flag
         .if ( ecx & _D_DMOVE )
-
             mov rdi,[rsi].DOBJ.wp
             mov ebx,[rsi].DOBJ.rc
             .if ( ecx & _D_SHADE )
@@ -3024,15 +2616,11 @@ test_event proc private uses rsi rdi rbx cmd, extended
     .case KEY_KPENTER
         mov eax,_C_RETURN
         .if ( edi & _O_CHILD )
-
             mov rax,[rbx].TOBJ.tproc
             .if rax
-
                 call rax
                 mov edi,eax
-
                 .if ( eax == _C_REOPEN )
-
                     mov bl,[rsi].DOBJ.index
                     dlinit(rsi)
                     mov [rsi].DOBJ.index,bl
@@ -3050,7 +2638,6 @@ test_event proc private uses rsi rdi rbx cmd, extended
         mov result,_C_NORMAL
 
         .ifd !rcxyrow([rsi].DOBJ.rc, mx, my)
-
             mov result,_C_ESCAPE
            .return
         .endif
@@ -3080,33 +2667,25 @@ test_event proc private uses rsi rdi rbx cmd, extended
                 mov flag,eax
 
                 .if !( eax & _O_DEACT )
-
                     mov [rsi].DOBJ.index,bl
                     and eax,0x0F
-
                     .if ( al == _O_TBUTT || al == _O_PBUTT )
-
                         mov al,[rsi].DOBJ.rc.x
                         add al,[rdi].TOBJ.rc.x
                         mov x,eax
-
                         mov al,[rsi].DOBJ.rc.y
                         add al,[rdi].TOBJ.rc.y
                         mov y,eax
-
                         mov al,[rdi].TOBJ.rc.col
                         mov l,eax
-
                         add eax,x
                         dec eax
                         mov x2,eax
                         mov ebx,eax
-
                         mov c1,getxyc(x, y)
                         mov c2,getxyc(ebx, y)
                         scputc(x, y, 1, ' ')
                         scputc(x2, y, 1, ' ')
-
                         inc ebx
                         mov c3,getxyc(ebx, y)
                         sub ebx,l
@@ -3117,87 +2696,63 @@ test_event proc private uses rsi rdi rbx cmd, extended
                         mov eax,flag
                         and eax,0x0F
                         mov n,eax
-
                         .ifz
-
                             mov eax,y
                             inc eax
                             scputc(ebx, eax, l, ' ')
-
                             add ebx,l
                             dec ebx
                             scputc(ebx, y, 1, ' ')
                         .endif
-
                         msloop()
-
                         scputc(x, y, 1, c1)
                         scputc(x2, y, 1, c2)
-
                         .if ( n == 0 )
-
                             mov ebx,x
                             inc ebx
                             mov edx,y
                             inc edx
                             scputc(ebx, edx, l, c4)
-
                             add ebx,l
                             dec ebx
                             scputc(ebx, y, 1, c3)
                         .endif
                     .endif
-
                     mov eax,flag
                     .if ( eax & _O_DEXIT )
                         mov result,_C_ESCAPE
                     .endif
-
                     .if ( eax & _O_CHILD )
-
                         mov rax,[rdi].TOBJ.tproc
                         .if rax
-
                             call rax
                             mov result,eax
-
                             .if ( eax == _C_REOPEN )
-
                                 mov bl,[rsi].DOBJ.index
                                 dlinit(rsi)
                                 mov [rsi].DOBJ.index,bl
                             .endif
                         .endif
-
                     .else
-
                         and eax,0x0F
                         .if ( al == _O_TBUTT ||
                               al == _O_PBUTT ||
                               al == _O_MENUS ||
                               al == _O_XHTML )
-
                             mov result,_C_RETURN
                         .endif
                     .endif
-
                 .else
-
                     and eax,0x0F
                     .if ( al == _O_LLMSU )
-
                         mov rdx,tdllist
                         xor eax,eax
-
                         .repeat
-
                             .if ( eax != [rdx].LOBJ.count )
-
                                 mov [rdx].LOBJ.celoff,eax
                                 mov eax,[rdx].LOBJ.dlgoff
                                 cmp al,[rsi].DOBJ.index
                                 mov [rsi].DOBJ.index,al
-
                                 .break .ifnz
                                 .while test_event(KEY_UP, 1)
                                     .break .ifd !MouseDelay()
@@ -3206,21 +2761,15 @@ test_event proc private uses rsi rdi rbx cmd, extended
                             msloop()
                             mov eax,_C_NORMAL
                         .until 1
-
                     .elseif ( al == _O_LLMSD )
-
                         mov rdx,tdllist
                         xor eax,eax
-
                         .repeat
-
                             .if ( eax != [rdx].LOBJ.count )
-
                                 mov [rdx].LOBJ.celoff,eax
                                 mov eax,[rdx].LOBJ.dlgoff
                                 cmp al,[rsi].DOBJ.index
                                 mov [rsi].DOBJ.index,al
-
                                 .break .ifnz
                                 .while test_event(KEY_DOWN, 1)
                                     .break .ifd !MouseDelay()
@@ -3229,19 +2778,13 @@ test_event proc private uses rsi rdi rbx cmd, extended
                             msloop()
                             mov eax,_C_NORMAL
                         .until 1
-
                     .elseif ( al == _O_MOUSE )
-
                         .if ( flag & _O_CHILD )
-
                             mov rax,[rdi].TOBJ.tproc
                             .if rax
-
                                 call rax
                                 mov result,eax
-
                                 .if eax == _C_REOPEN
-
                                     mov bl,[rsi].DOBJ.index
                                     dlinit(rsi)
                                     mov [rsi].DOBJ.index,bl
@@ -3250,15 +2793,11 @@ test_event proc private uses rsi rdi rbx cmd, extended
                         .endif
                     .endif
                 .endif
-
                 .break
-
             .endif
-
             add rbx,TOBJ
             dec i
         .endw
-
         mov eax,row
         .if eax == 1
             dlmove(rsi)
@@ -3275,32 +2814,23 @@ test_event proc private uses rsi rdi rbx cmd, extended
             .if ( edi & _O_LLIST )
                 .gotosw(KEY_PGUP)
             .endif
-
             mov eax,edi
             and eax,0x0F
             .if ( al == _O_MENUS )
-
                 mov result,0
                .return
             .endif
-
             movzx ecx,[rsi].DOBJ.index
             .if !ecx
-
                 mov result,ecx
                .return
             .endif
-
             mov rdx,rbx
             mov eax,[rdx].TOBJ.rc
             sub rdx,TOBJ ; prev object
-
             .repeat
-
                 .if ( ah == [rdx].TOBJ.rc.y && al > [rdx].TOBJ.rc.x )
-
                     .if !( [rdx].TOBJ.flag & _O_DEACT)
-
                         dec ecx
                         mov [rsi].DOBJ.index,cl
                         mov result,1
@@ -3311,27 +2841,19 @@ test_event proc private uses rsi rdi rbx cmd, extended
             .untilcxz
 
         .case KEY_UP
-
             .if ebx
-
                 .if ( edi & _O_LLIST )
-
                     xor eax,eax
                     mov rdx,tdllist
-
                     .if ( eax == [rdx].LOBJ.celoff )
-
                         .if ( eax != [rdx].LOBJ.index )
-
                             mov ecx,[rdx].LOBJ.dlgoff
                             .if [rsi].DOBJ.index == cl
-
                                 dec [rdx].LOBJ.index
                                 mov rax,rsi
                                 call [rdx].LOBJ.lproc
                                .return
                             .endif
-
                             mov [rdx].DOBJ.index,cl
                             inc eax
                         .endif
@@ -3343,12 +2865,10 @@ test_event proc private uses rsi rdi rbx cmd, extended
             .return
 
         .case KEY_RIGHT
-
             mov result,0
             .if ( edi & _O_LLIST )
                 .gotosw(KEY_PGDN)
             .endif
-
             mov eax,edi
             and eax,0x0F
 
@@ -3360,13 +2880,9 @@ test_event proc private uses rsi rdi rbx cmd, extended
             movzx  ecx,[rsi].DOBJ.index
             inc    ecx
             mov    eax,[rbx].TOBJ.rc
-
             .while ( cl < [rsi].DOBJ.count )
-
                 .if ( ah == [rdx].TOBJ.rc.y && al < [rdx].TOBJ.rc.x )
-
                     .if !( [rdx].TOBJ.flag & _O_DEACT )
-
                         mov [rsi].DOBJ.index,cl
                        .return
                     .endif
@@ -3376,52 +2892,38 @@ test_event proc private uses rsi rdi rbx cmd, extended
             .endw
 
         .case KEY_DOWN
-
             .if !( edi & _O_LLIST )
-
                 NextItem()
                .return
             .endif
-
             mov rdx,tdllist
             mov eax,[rdx].LOBJ.dcount
             mov ecx,[rdx].LOBJ.celoff
             dec eax
-
             .if ( eax != ecx )
-
                 mov eax,ecx
                 add eax,[rdx].LOBJ.index
                 inc eax
-
                 .if ( eax < [rdx].LOBJ.count )
-
                     NextItem()
                    .return
                 .endif
             .endif
-
             mov eax,[rdx].LOBJ.dlgoff
             add eax,ecx
             mov ah,[rsi].DOBJ.index
             mov [rsi].DOBJ.index,al
-
             .if ( al != ah )
-
                 mov result,_C_NORMAL
                .return
             .endif
-
             mov eax,[rdx].LOBJ.count
             sub eax,[rdx].LOBJ.index
             sub eax,[rdx].LOBJ.dcount
-
             .ifng
-
                 mov result,0
                .return
             .endif
-
             inc [rdx].LOBJ.index
             mov rax,rsi
             call [rdx].LOBJ.lproc
@@ -3429,19 +2931,14 @@ test_event proc private uses rsi rdi rbx cmd, extended
            .return
 
         .case KEY_HOME
-
             mov result,_C_NORMAL
             xor eax,eax
-
             .if !( edi & _O_LLIST )
-
                 mov ecx,edi
                 and ecx,0x0F
                .return .if ( cl != _O_MENUS )
             .endif
-
             .ifnz
-
                 mov  rdx,tdllist
                 mov  [rdx].LOBJ.index,eax
                 mov  [rdx].LOBJ.celoff,eax
@@ -3456,15 +2953,11 @@ test_event proc private uses rsi rdi rbx cmd, extended
            .return
 
         .case KEY_END
-
             mov result,_C_NORMAL
             .if !( edi & _O_LLIST )
-
                 mov eax,edi
                 and eax,0x0F
-
                 .if ( al == _O_MENUS )
-
                     mov al,[rsi].DOBJ.count
                     dec al
                     mov [rsi].DOBJ.index,al
@@ -3473,12 +2966,9 @@ test_event proc private uses rsi rdi rbx cmd, extended
                 .endif
                 .return
             .endif
-
             mov rdx,tdllist
             mov eax,[rdx].LOBJ.count
-
             .if ( eax < [rdx].LOBJ.dcount )
-
                 mov eax,[rdx].LOBJ.numcel
                 dec eax
                 mov [rdx].LOBJ.celoff,eax
@@ -3486,18 +2976,14 @@ test_event proc private uses rsi rdi rbx cmd, extended
                 mov [rsi].DOBJ.index,al
                .return
             .endif
-
             mov result,0
             sub eax,[rdx].LOBJ.dcount
-
             .if ( eax != [rdx].LOBJ.index )
-
                 mov [rdx].LOBJ.index,eax
                 mov eax,[rdx].LOBJ.dcount
                 dec eax
                 mov [rdx].LOBJ.celoff,eax
                 add eax,[rdx].LOBJ.dlgoff
-
                 mov [rsi].DOBJ.index,al
                 mov rax,rsi
                 call [rdx].LOBJ.lproc
@@ -3506,9 +2992,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
             .return
 
         .case KEY_TAB
-
             .if ( edi & _O_LLIST )
-
                 mov rdx,tdllist
                 mov eax,[rdx].LOBJ.dlgoff
                 add eax,[rdx].LOBJ.dcount
@@ -3520,26 +3004,18 @@ test_event proc private uses rsi rdi rbx cmd, extended
            .return
 
         .case KEY_PGUP
-
             .if !( edi & _O_LLIST )
-
                 mov eax,edi
                 and eax,0x0F
-
                 .if ( al != _O_MENUS )
-
                     mov result,_C_NORMAL
                    .return
                 .endif
             .endif
-
             mov rdx,tdllist
             xor eax,eax
-
             .if ( eax == [rdx].LOBJ.celoff )
-
                 .if ( eax != [rdx].LOBJ.index )
-
                     mov eax,[rdx].LOBJ.dcount
                     .if ( eax > [rdx].LOBJ.index )
                         .gotosw(KEY_HOME)
@@ -3551,7 +3027,6 @@ test_event proc private uses rsi rdi rbx cmd, extended
                    .return
                 .endif
             .else
-
                 mov [rdx].LOBJ.celoff,eax
                 mov eax,[rdx].LOBJ.dlgoff
                 mov rdx,tdialog
@@ -3561,24 +3036,18 @@ test_event proc private uses rsi rdi rbx cmd, extended
            .return
 
         .case KEY_PGDN
-
             .if !( edi & _O_LLIST )
-
                 mov eax,edi
                 and eax,0x0F
                 .if ( al != _O_MENUS )
-
                     mov result,_C_NORMAL
                    .return
                 .endif
             .endif
-
             mov rdx,tdllist
             mov eax,[rdx].LOBJ.dcount
             dec eax
-
             .if ( eax != [rdx].LOBJ.celoff )
-
                 mov eax,[rdx].LOBJ.numcel
                 add eax,[rdx].LOBJ.dlgoff
                 dec eax
@@ -3586,15 +3055,12 @@ test_event proc private uses rsi rdi rbx cmd, extended
                 mov result,_C_NORMAL
                .return
             .endif
-
             add eax,[rdx].LOBJ.celoff
             add eax,[rdx].LOBJ.index
             inc eax
-
             .if ( eax >= [rdx].LOBJ.count )
                 .gotosw(KEY_END)
             .endif
-
             mov eax,[rdx].LOBJ.dcount
             add [rdx].LOBJ.index,eax
             mov rax,rsi
@@ -3613,23 +3079,17 @@ test_event proc private uses rsi rdi rbx cmd, extended
         mov     rdx,[rdx].DOBJ.object
 
         .if ( eax == KEY_F1 )
-
             xor eax,eax
             mov rdx,tdialog
-
             .if ( [rdx].DOBJ.flag & _D_DHELP )
-
                 .if ( thelp )
-
                     call thelp
                     mov eax,_C_NORMAL
                 .endif
             .endif
             .break
         .endif
-
         .if ( ecx == 0 )
-
             xor eax,eax
            .break
         .endif
@@ -3638,25 +3098,17 @@ test_event proc private uses rsi rdi rbx cmd, extended
         xor esi,esi
 
         .repeat
-
             .if ( [rdx].TOBJ.flag & _O_GLCMD )
-
                 mov rbx,[rdx].TOBJ.data
             .endif
-
             push rax
-
             .if ( [rdx].TOBJ.flag & _O_DEACT || [rdx].TOBJ.ascii == 0 )
-
                 xor eax,eax
             .else
-
                 and al,0xDF
                 .if ( [rdx].TOBJ.ascii == al )
-
                     or al,1
                 .else
-
                     mov     al,[rdx].TOBJ.ascii
                     and     al,0xDF
                     sub     al,'A'
@@ -3688,16 +3140,11 @@ test_event proc private uses rsi rdi rbx cmd, extended
 
             add rdx,TOBJ
             inc esi
-
         .untilcxz
-
         .if rbx
-
             mov rdx,rbx
             .while ( [rdx].GLCMD.key )
-
                 .if ( [rdx].GLCMD.key == eax )
-
                     [rdx].GLCMD.cmd()
                    .break( 1 )
                 .endif
@@ -3708,8 +3155,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
     .until 1
     mov result,eax
     ret
-
-test_event endp
+    endp
 
 dlpbuttevent proc private uses rsi rdi rbx
 
@@ -3752,8 +3198,7 @@ dlpbuttevent proc private uses rsi rdi rbx
     _setcursor(&cursor)
     mov eax,esi
     ret
-
-dlpbuttevent endp
+    endp
 
 dlradioevent proc private uses rsi rdi
 
@@ -3777,11 +3222,8 @@ dlradioevent proc private uses rsi rdi
 
     _gotoxy(x, eax)
     .repeat
-
         .repeat
-
             .ifd tgetevent() == MOUSECMD
-
                 .ifd mousey() != y
                     mov eax,MOUSECMD
                     .break(1)
@@ -3799,17 +3241,14 @@ dlradioevent proc private uses rsi rdi
                     .break(1)
                 .endif
             .elseif eax != KEY_SPACE
-
                 .break(1)
             .endif
-
             mov ax,[rdi].TOBJ.flag
             and eax,_O_RADIO
             .repeat
                 .ifz
                     movzx ecx,[rsi].DOBJ.count
                     .break .if !ecx
-
                     mov rdx,[rsi].DOBJ.object
                     .repeat
                         .break .if [rdx].TOBJ.flag & _O_RADIO
@@ -3834,8 +3273,7 @@ dlradioevent proc private uses rsi rdi
     _setcursor(&cursor)
     mov eax,esi
     ret
-
-dlradioevent endp
+    endp
 
 dlcheckevent proc uses rsi rdi
 
@@ -3862,7 +3300,6 @@ dlcheckevent proc uses rsi rdi
         .repeat
             mov esi,tgetevent()
             .if esi == MOUSECMD
-
                 mousey()
                 .break(1) .if eax != y
                 mousex()
@@ -3871,12 +3308,9 @@ dlcheckevent proc uses rsi rdi
                 .break(1) .if eax < edx
                 add edx,2
                 .break(1) .if eax > edx
-
             .elseif esi != KEY_SPACE
-
                 .break(1)
             .endif
-
             xor [rdi].TOBJ.flag,_O_FLAGB
             mov eax,' '
             .if [rdi].TOBJ.flag & _O_FLAGB
@@ -3890,8 +3324,7 @@ dlcheckevent proc uses rsi rdi
     _setcursor(&cursor)
     mov eax,esi
     ret
-
-dlcheckevent endp
+    endp
 
 dlxcellevent proc uses rsi rdi rbx
 
@@ -3903,15 +3336,11 @@ dlxcellevent proc uses rsi rdi rbx
     add   rdi,[rsi].DOBJ.object
 
     .if [rsi].DOBJ.count
-
         _cursoroff()
     .endif
-
     .if [rdi].TOBJ.flag & _O_LLIST
-
         movzx eax,[rsi].DOBJ.index
         mov rdx,tdllist
-
         .if eax >= [rdx].LOBJ.dlgoff
             sub eax,[rdx].LOBJ.dlgoff
             .if eax < [rdx].LOBJ.numcel
@@ -3929,52 +3358,42 @@ dlxcellevent proc uses rsi rdi rbx
     rcxchg(ebx, &xlbuf)
 
     .repeat
-
         tgetevent()
         .switch eax
-
-          .case KEY_MOUSEUP
+        .case KEY_MOUSEUP
             mov eax,KEY_UP
             .if [rdi].TOBJ.flag & _O_LLIST
-
                 PushEvent(eax)
                 PushEvent(eax)
             .endif
             .endc
 
-          .case KEY_MOUSEDN
+        .case KEY_MOUSEDN
             mov eax,KEY_DOWN
             .if [rdi].TOBJ.flag & _O_LLIST
-
                 PushEvent(eax)
                 PushEvent(eax)
             .endif
             .endc
 
-          .case MOUSECMD
-
+         .case MOUSECMD
             mov edx,mousey()
             .ifd rcxyrow(ebx, mousex(), edx)
-
                 mov al,[rdi].TOBJ.rc.col
                 mov cl,bh
                 mousewait(ebx, ecx, eax)
-
                 movzx eax,[rdi].TOBJ.flag
                 and eax,0x0F
                 cmp eax,_O_XHTML
                 mov eax,KEY_ENTER
                 .ifnz
-
                     mov esi,10
                     .repeat
                         Sleep(16)
                         .break .ifd mousep()
                         dec esi
                     .untilz
-
                     .ifd mousep()
-
                         mov edx,mousey()
                         .continue(0) .ifd !rcxyrow(ebx, mousex(), edx)
                         mov eax,KEY_ENTER
@@ -3983,8 +3402,7 @@ dlxcellevent proc uses rsi rdi rbx
             .else
                 mov eax,MOUSECMD
             .endif
-
-          .default
+        .default
             .continue(0) .if !eax
             .endc
         .endsw
@@ -3993,11 +3411,9 @@ dlxcellevent proc uses rsi rdi rbx
     rcwrite(ebx, &xlbuf)
     mov eax,esi
     ret
-
-dlxcellevent endp
+    endp
 
 dlteditevent proc private uses rsi rbx
-
     mov   rdx,tdialog
     mov   si,[rdx+4]
     movzx eax,[rdx].DOBJ.index
@@ -4010,8 +3426,7 @@ dlteditevent proc private uses rsi rbx
     shl   edx,4
     dledit([rcx].TOBJ.data, eax, edx, ebx)
     ret
-
-dlteditevent endp
+    endp
 
 dlmenusevent proc private uses rsi rdi rbx
 
@@ -4025,9 +3440,7 @@ dlmenusevent proc private uses rsi rdi rbx
     movzx eax,[rsi].DOBJ.index
     imul  edi,eax,TOBJ
     add   rdi,[rsi].DOBJ.object
-
     .if [rdi].TOBJ.data
-
         mov al,at_background[B_Menus]
         or  al,at_foreground[F_KeyBar]
         shl eax,16
@@ -4036,7 +3449,6 @@ dlmenusevent proc private uses rsi rdi rbx
         scputw(20, ebx, 60, eax)
         scputs(20, ebx, 0, 60, [rdi].TOBJ.data)
     .endif
-
     mov ebx,[rdi].TOBJ.rc
     add bx,word ptr [rsi].DOBJ.rc
     rcread(ebx, &xlbuf)
@@ -4044,7 +3456,6 @@ dlmenusevent proc private uses rsi rdi rbx
     movzx ecx,[rdi].TOBJ.rc.col
     wcputbg(&xlbuf, ecx, eax)
     rcxchg(ebx, &xlbuf)
-
     .ifd tgetevent() == KEY_MOUSEUP
         mov eax,KEY_UP
     .elseif eax == KEY_MOUSEDN
@@ -4055,8 +3466,7 @@ dlmenusevent proc private uses rsi rdi rbx
     _setcursor(&cursor)
     mov eax,esi
     ret
-
-dlmenusevent endp
+    endp
 
 dlevent proc uses rsi rdi rbx dialog:PDOBJ
 
@@ -4064,36 +3474,26 @@ dlevent proc uses rsi rdi rbx dialog:PDOBJ
     local cursor:CURSOR     ; init cursor
     local event, dlexit
 
-
     mov prevdlg,tdialog
     mov tdialog,dialog
     mov rbx,tdialog
     movzx esi,[rbx].DOBJ.flag
-
     .repeat
-
         .if !( esi & _D_ONSCR )
-
             .break .ifd !dlshow(dialog)
         .endif
-
         _getcursor(&cursor)
         _cursoroff()
-
         movzx eax,[rbx].DOBJ.count
         .if eax
-
             mov  al,[rbx].DOBJ.index
             imul eax,eax,TOBJ
             add  rax,[rbx].DOBJ.object
-
             .if [rax].TOBJ.flag & _O_DEACT
-
                 NextItem()
             .endif
             mov eax,1
         .endif
-
         .if !eax
             .while 1
                 tgetevent()
@@ -4103,20 +3503,15 @@ dlevent proc uses rsi rdi rbx dialog:PDOBJ
                 .break .if eax == _C_RETURN
             .endw
         .else
-
             msloop()
             xor edi,edi
-
             .repeat
                 xor eax,eax
                 mov result,eax
-
                 mov al,[rbx].DOBJ.index
                 imul eax,eax,TOBJ
                 add rax,[rbx].DOBJ.object
-
                 .if [rax].TOBJ.flag & _O_EVENT
-
                     call [rax].TOBJ.tproc
                 .else
                     mov al,[rax]
@@ -4135,7 +3530,6 @@ dlevent proc uses rsi rdi rbx dialog:PDOBJ
                         .endc
                     .endsw
                 .endif
-
                 mov dlexit,eax
                 mov event,eax
                 mov ecx,test_event(eax, 1)
@@ -4145,13 +3539,10 @@ dlevent proc uses rsi rdi rbx dialog:PDOBJ
                     .break
                 .elseif eax == _C_RETURN
                     xor eax,eax
-
                     mov al,[rbx].DOBJ.index
                     imul eax,eax,TOBJ
                     add rax,[rbx].DOBJ.object
-
                     .if [rax].TOBJ.flag & _O_DEXIT
-
                         mov event,0
                     .else
                         mov rdx,tdialog
@@ -4165,60 +3556,47 @@ dlevent proc uses rsi rdi rbx dialog:PDOBJ
                 .endif
             .until edi
         .endif
-
         _setcursor(&cursor)
         mov eax,event
     .until 1
-
     mov edx,eax
     mov tdialog,prevdlg
     mov eax,edx
     mov ecx,dlexit
     ret
-
-dlevent endp
+    endp
 
 dllevent proc uses rbx ldlg:PDOBJ, listp:PLOBJ
-
     mov rbx,tdllist
     mov tdllist,listp
     dlevent(ldlg)
     mov tdllist,rbx
     ret
-
-dllevent endp
+    endp
 
 dlmodal proc uses rbx dobj:PDOBJ
-
     mov ebx,dlevent(dobj)
     dlclose(dobj)
     mov eax,ebx
     ret
-
-dlmodal endp
+    endp
 
 dlmove proc uses rbx dobj:PDOBJ
-
     ldr rbx,dobj
     mov cx,[rbx].DOBJ.flag
     and ecx,_D_DMOVE or _D_DOPEN or _D_ONSCR
     xor eax,eax
-
     .if ( ecx == _D_DMOVE or _D_DOPEN or _D_ONSCR )
-
         .ifd mousep()
-
             movzx ecx,[rbx].DOBJ.flag
             rcmsmove(&[rbx].DOBJ.rc, [rbx].DOBJ.wp, ecx)
             mov eax,1
         .endif
     .endif
     ret
-
-dlmove endp
+    endp
 
 dlscreen proc dobj:PDOBJ, attrib
-
     mov rdx,dobj
     xor eax,eax
     mov [rdx],eax
@@ -4227,36 +3605,29 @@ dlscreen proc dobj:PDOBJ, attrib
     inc ah
     shl eax,16
     mov [rdx].DOBJ.rc,eax
-
     .if rcopen(eax, _D_CLEAR or _D_BACKG, attrib, 0, 0)
-
         mov rdx,dobj
         mov [rdx].DOBJ.wp,rax
         mov [rdx].DOBJ.flag,_D_DOPEN
         mov rax,rdx
     .endif
     ret
-
-dlscreen endp
+    endp
 
 scroll_delay proc
-
     tupdate()
     Sleep(2)
     ret
-
-scroll_delay endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     assume rdx:PTEDIT
 
 tidecx proc uses rcx ti:PTEDIT
-
     mov rdx,ti
     mov eax,[rdx].boffs
     add eax,[rdx].xoffs
-
     .ifnz
         mov ecx,[rdx].boffs
         mov eax,[rdx].xoffs
@@ -4270,11 +3641,9 @@ tidecx proc uses rcx ti:PTEDIT
         mov eax,1
     .endif
     ret
-
-tidecx endp
+    endp
 
 tiincx proc uses rbx ti:PTEDIT
-
     mov rdx,ti
     mov eax,[rdx].boffs
     add eax,[rdx].xoffs
@@ -4295,20 +3664,16 @@ tiincx proc uses rbx ti:PTEDIT
         mov eax,1
     .endif
     ret
-
-tiincx endp
+    endp
 
 tinocando proc private
-
     .if console & CON_UBEEP
-
         ;Beep(9, 1)
         MessageBeep(MB_ICONHAND)
     .endif
     mov eax,_TE_CMFAILED ; operation fail (end of line/buffer)
     ret
-
-tinocando endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -4331,7 +3696,6 @@ rsopen proc uses rsi rdi rbx idd:PIDD
     mov edi,eax
 
     .if ( [rbx].RIDD.flag & _D_SHADE )
-
         movzx eax,[rbx].RIDD.rc.col
         movzx edx,[rbx].RIDD.rc.row
         lea eax,[rax+rdx*2-2]
@@ -4347,7 +3711,6 @@ rsopen proc uses rsi rdi rbx idd:PIDD
     mov     dsize,eax
 
     .for ( ecx = 0, eax = 0, rsi = &[rbx+RIDD] : ecx < count : ecx++, rsi+=ROBJ )
-
         movzx edx,[rsi].ROBJ.count
         add eax,edx
     .endf
@@ -4357,7 +3720,6 @@ rsopen proc uses rsi rdi rbx idd:PIDD
     mov size,eax
 
     .if ( malloc(eax) == NULL )
-
         .return
     .endif
 
@@ -4384,18 +3746,14 @@ rsopen proc uses rsi rdi rbx idd:PIDD
     add rdi,DOBJ
 
     .if ( count )
-
         mov [rdi-DOBJ].DOBJ.object,rdi
-
         .for ( ecx = 0 : ecx < count : ecx++, rbx+=ROBJ, rdi+=TOBJ )
-
             mov [rdi],size_t ptr [rbx]
 ifndef _WIN64
             mov [rdi].TOBJ.rc,[rbx].ROBJ.rc
 endif
             movzx eax,[rdi].TOBJ.count
             .if ( eax )
-
                 mov [rdi].TOBJ.data,rdx
                 shl eax,4
                 add rdx,rax
@@ -4404,31 +3762,24 @@ endif
     .endif
     rcunzip(rc, rdi, rbx)
     .if ( flags & _D_RESAT )
-
         rcunzipat(rc, rdi)
     .endif
     mov rax,dlg
     ret
-
-rsopen endp
+    endp
 
 rsevent proc uses rbx robj:PIDD, dobj:PDOBJ
-
     ldr rbx,dobj
-
     dlevent(rbx)
     mov edx,[rbx].DOBJ.rc
     mov rcx,robj
     mov [rcx].RIDD.rc,edx
     ret
-
-rsevent endp
+    endp
 
 rsmodal proc uses rbx robj:PIDD
-
     ldr rbx,robj
     .if rsopen(rbx)
-
         xchg rbx,rax
         rsevent(rax, rbx)
         xchg rbx,rax
@@ -4436,25 +3787,20 @@ rsmodal proc uses rbx robj:PIDD
         mov eax,ebx
     .endif
     ret
-
-rsmodal endp
+    endp
 
 rsreload proc uses rsi rdi rbx robj:PIDD, dobj:PDOBJ
-
     ldr rbx,dobj
     mov eax,[rbx]
     and eax,_D_DOPEN
     .ifnz
-
         mov     esi,dlhide(rbx)
         movzx   edi,[rbx].DOBJ.count
         inc     edi
         lea     edi,[rdi*8]
         add     rdi,robj
-
         rcunzip([rbx].DOBJ.rc, [rbx].DOBJ.wp, rdi)
         .if ( [rbx].DOBJ.flag & _D_RESAT )
-
             rcunzipat([rbx].DOBJ.rc, [rbx].DOBJ.wp)
         .endif
         dlinit(rbx)
@@ -4463,30 +3809,24 @@ rsreload proc uses rsi rdi rbx robj:PIDD, dobj:PDOBJ
         .endif
     .endif
     ret
-
-rsreload endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 PushEvent proc Event:dword
-
     mov eax,Event
     mov ecx,keybcount
     .if ecx < MAXKEYSTACK-1
-
         inc keybcount
         lea rdx,keybstack
         mov [rdx+rcx*4],eax
     .endif
     ret
-
-PushEvent endp
+    endp
 
 PopEvent proc private
-
     xor eax,eax
     .if eax != keybcount
-
         dec keybcount
         mov eax,keybcount
         lea rdx,keybstack
@@ -4494,8 +3834,7 @@ PopEvent proc private
     .endif
     mov edx,_shift
     ret
-
-PopEvent endp
+    endp
 
     assume rbx:ptr INPUT_RECORD
 
@@ -4623,16 +3962,13 @@ UpdateKeyEvent proc private uses rsi rbx pInput:ptr INPUT_RECORD
             and eax,not SHIFT_INSERTKEY
         .endsw
     .endif
-
     mov _shift,eax
     mov eax,esi
     ret
-
-UpdateKeyEvent endp
+    endp
 
 UpdateMouseEvent proc private uses rbx pInput:ptr INPUT_RECORD
-
-    mov rbx,pInput
+    ldr rbx,pInput
     movzx eax,[rbx].Event.MouseEvent.dwMousePosition.X
     mov keybmouse_x,eax
     mov ax,[rbx].Event.MouseEvent.dwMousePosition.Y
@@ -4655,19 +3991,14 @@ UpdateMouseEvent proc private uses rbx pInput:ptr INPUT_RECORD
     .endif
     mov _shift,ebx
     ret
-
-UpdateMouseEvent endp
+    endp
 
 parseshift proc private uses rsi
-
     lea rsi,scancode
     .while 1
-
         lodsb
         .break .if !al
-
         .if ah == al
-
             lea rax,scancode
             sub rsi,rax
             movzx eax,byte ptr [rsi+rdx-1]
@@ -4676,8 +4007,7 @@ parseshift proc private uses rsi
         .endif
     .endw
     ret
-
-parseshift endp
+    endp
 
 ReadEvent proc private uses rbx rdi rsi rcx
 
@@ -4688,13 +4018,10 @@ ReadEvent proc private uses rbx rdi rsi rcx
     lea rbx,Input
 
     .ifd GetNumberOfConsoleInputEvents(_coninpfh, &Count)
-
         mov esi,Count
         .while esi
-
             ReadConsoleInput(_coninpfh, rbx, 1, &Count)
             .break .if !Count
-
             movzx eax,[rbx].EventType
             .switch eax
             .case KEY_EVENT
@@ -4731,7 +4058,6 @@ ReadEvent proc private uses rbx rdi rsi rcx
     .if edx & SHIFT_ALTLEFT
         mov al,0
     .endif
-
     .if ah && !al
         .if edx & SHIFT_RIGHT or SHIFT_LEFT
             lea rdx,scanshift
@@ -4752,23 +4078,18 @@ ReadEvent proc private uses rbx rdi rsi rcx
         PushEvent(eax)
     .endif
     ret
-
-ReadEvent endp
+    endp
 
     assume rbx:nothing
 
 getkey proc
-
     ReadEvent()
     PopEvent()
     ret
-
-getkey endp
+    endp
 
 getevent proc private
-
     .while !getkey()
-
         .break .ifd tdidle()
         .if _shift & SHIFT_MOUSEFLAGS
             .ifd mousep()
@@ -4778,33 +4099,26 @@ getevent proc private
         .endif
     .endw
     ret
-
-getevent endp
+    endp
 
 
 mousex proc
-
     mov eax,keybmouse_x
     ret
-
-mousex endp
+    endp
 
 mousey proc
-
     mov eax,keybmouse_y
     ret
-
-mousey endp
+    endp
 
 mousep proc uses rcx rdx
-
     ReadEvent()
     mov eax,_shift
     shr eax,16
     and eax,3
     ret
-
-mousep endp
+    endp
 
 mousewait proc x, y, l
     mov edx,x
@@ -4815,15 +4129,13 @@ mousewait proc x, y, l
         .break .if eax > edx
     .endw
     ret
-mousewait endp
+    endp
 
 msloop proc
-
     .repeat
     .until !mousep()
     ret
-
-msloop endp
+    endp
 
 SetKeyState proc uses rsi rdi rax
 
@@ -4849,8 +4161,7 @@ SetKeyState proc uses rsi rdi rax
     .endif
     mov [rdi],esi
     ret
-
-SetKeyState endp
+    endp
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4882,8 +4193,7 @@ ConsolePush proc uses rbx
         mov [rbx].DOBJ.rc.col,al
     .endif
     ret
-
-ConsolePush endp
+    endp
 
 conssetl proc line:COORD ; min or max
 
@@ -4894,10 +4204,8 @@ conssetl proc line:COORD ; min or max
   local y:dword
 
     .ifd !GetConsoleScreenBufferInfo(_confh, &ci)
-
         .return( 0 )
     .endif
-
     mov rc.Top,0
     mov rc.Left,0
     mov ax,line.X
@@ -4908,7 +4216,6 @@ conssetl proc line:COORD ; min or max
     dec dx
     mov rc.Right,ax
     mov rc.Bottom,dx
-
     mov dx,ci.srWindow.Bottom
     sub dx,ci.srWindow.Top
     mov ax,ci.srWindow.Right
@@ -4916,7 +4223,6 @@ conssetl proc line:COORD ; min or max
     .if ( ax == rc.Right && dx == rc.Bottom )
         .return( 0 )
     .endif
-
     mov x,0
     mov y,0
     mov ax,line.X
@@ -4925,7 +4231,6 @@ conssetl proc line:COORD ; min or max
         mov y,_scrrc.top
     .endif
     SetWindowPos(GetConsoleWindow(),0,x,y,0,0,SWP_NOSIZE or SWP_NOACTIVATE or SWP_NOZORDER)
-
     _wherex()
     .if ( dx >= bz.Y )
         SetConsoleCursorPosition(_confh, 0)
@@ -4934,9 +4239,7 @@ conssetl proc line:COORD ; min or max
     SetConsoleWindowInfo(_confh, 1, &rc)
     SetConsoleScreenBufferSize(_confh, bz)
     SetConsoleWindowInfo(_confh, 1, &rc)
-
     .ifd GetConsoleScreenBufferInfo(_confh, &ci)
-
         movzx   eax,ci.srWindow.Right
         sub     ax,ci.srWindow.Left
         inc     eax
@@ -4946,8 +4249,7 @@ conssetl proc line:COORD ; min or max
         mov     _scrrow,eax
     .endif
     ret
-
-conssetl endp
+    endp
 
 consuser proc
 
@@ -4957,28 +4259,22 @@ consuser proc
     _setcursor(&console_cu)
     dlshow(&console_dl)
     .while !getkey()
+        Sleep(CON_SLEEP_TIME)
     .endw
     dlhide(&console_dl)
     _setcursor(&cursor)
     xor eax,eax
     ret
-
-consuser endp
+    endp
 
 ConsoleIdle proc
-
     .if console & CON_SLEEP
-
         Sleep(CON_SLEEP_TIME)
-
 ifndef DEBUGX
         .if ( _focus == 0 )
-
             mov rax,keyshift
             and dword ptr [rax],not 0x00FF030F
-
             .while ( _focus == 0 )
-
                 ReadEvent()
                 Sleep(CON_SLEEP_TIME * 10)
                .break .ifd tupdate()
@@ -4986,11 +4282,9 @@ ifndef DEBUGX
         .endif
 endif
     .endif
-
     tupdate()
     ret
-
-ConsoleIdle endp
+    endp
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5002,16 +4296,13 @@ tupdtime proc uses rsi rdi rbx
 
     mov ebx,console
     xor eax,eax
-
     .if ebx & CON_UTIME or CON_UDATE
-
         mov buf,al
         mov ecx,sizeof(SYSTEMTIME)/4
         lea rdi,ts
         rep stosd
         mov edi,ebx
         GetLocalTime(&ts)
-
         mov eax,edi
         and eax,CON_UTIME or CON_LTIME
         cmp eax,CON_UTIME or CON_LTIME
@@ -5019,15 +4310,11 @@ tupdtime proc uses rsi rdi rbx
         .ifnz
             movzx eax,ts.wMinute
         .endif
-
         .if eax != time_id
-
             mov time_id,eax
             mov ebx,_scrcol
             inc ebx
-
             .if edi & CON_UTIME
-
                 SystemTimeToStringA(&buf, &ts)
                 .if !( edi & CON_LTIME )
                     mov buf[5],0
@@ -5037,9 +4324,7 @@ tupdtime proc uses rsi rdi rbx
                 .endif
                 scputs(ebx, 0, 0, 0, &buf)
             .endif
-
             .if edi & CON_UDATE
-
                 SystemDateToStringA(&buf, &ts)
                 .if !( edi & CON_LDATE )
                     lea rsi,buf
@@ -5060,15 +4345,13 @@ tupdtime proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-tupdtime endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 define MAXLINES 17
 
 center_text proc private
-
     .if byte ptr [rdi]
         mul ecx
         lea eax,[rax*4+4*4]
@@ -5077,8 +4360,7 @@ center_text proc private
         wcenter(rbx, ecx, rdi)
     .endif
     ret
-
-center_text endp
+    endp
 
 msgbox proc private uses rsi rdi rbx dname:LPSTR, flag, string:LPSTR
 
@@ -5213,11 +4495,9 @@ msgbox proc private uses rsi rdi rbx dname:LPSTR, flag, string:LPSTR
         dlmodal(&dobj)
     .endif
     ret
-
-msgbox endp
+    endp
 
 ermsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
-
     vsprintf( &_bufin, format, &argptr )
     mov rax,wtitle
     .if !rax
@@ -5226,8 +4506,7 @@ ermsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
     msgbox(rax, _D_STDERR, &_bufin)
     xor eax,eax
     ret
-
-ermsg endp
+    endp
 
 syserr proc __Cdecl hr:UINT, title:LPSTR, format:LPSTR, argptr:VARARG
 
@@ -5254,66 +4533,49 @@ syserr proc __Cdecl hr:UINT, title:LPSTR, format:LPSTR, argptr:VARARG
     msgbox(rax, _D_STDERR, &_bufin)
     xor eax,eax
     ret
-
-syserr endp
+    endp
 
 stdmsg proc __Cdecl wtitle:LPSTR, format:LPSTR, argptr:VARARG
-
     vsprintf( &_bufin, format, &argptr )
     msgbox(wtitle, _D_STDDLG, &_bufin)
     xor eax,eax
     ret
-
-stdmsg endp
+    endp
 
 enomem proc
-
     syserr(E_OUTOFMEMORY, 0, 0)
     ret
-
-enomem endp
+    endp
 
 notsup proc
-
     syserr(E_NOTIMPL, 0, 0)
     ret
-
-notsup endp
+    endp
 
 eropen proc file:LPSTR
-
     syserr(_get_doserrno(0), "Error open file", "Can't open the file:\n%s", file)
     ret
-
-eropen endp
+    endp
 
 erdelete proc file:LPSTR
-
     syserr(_get_doserrno(0), "Error delete", "Can't delete the file:\n%s", file)
     ret
-
-erdelete endp
+    endp
 
 ermkdir proc directory:LPSTR
-
     syserr(_get_doserrno(0), "Make directory", "Can't create the directory:\n%s", directory)
     ret
-
-ermkdir endp
+    endp
 
 notfoundmsg proc uses rbx
-
     lea rbx,@CStr("Search string not found: '%s'")
     mov byte ptr [rbx+24],' '
-
     .ifd ( strlen(&searchstring) > 28 )
-
         mov byte ptr [rbx+24],10
     .endif
     stdmsg("Search", rbx, &searchstring)
     ret
-
-notfoundmsg endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -5351,33 +4613,24 @@ tgetline proc uses rsi rdi dlgtitle:LPSTR, buffer:LPSTR, line_size, buffer_size
         xor eax,eax
         xor esi,esi
         xor edi,edi
-
         .while esi != KEY_ESC
 
             mov eax,rc
             add ax,word ptr dobj.rc
             mov ecx,buffer_size
             xor edx,edx
-
             .if ch & 80h
                 mov edx,_O_DTEXT
                 and ecx,7FFFh
             .endif
-
             mov esi,dledit(buffer, eax, ecx, edx)
-
             .if eax == KEY_ENTER || eax == KEY_KPENTER
-
                 inc edi
                 .break
             .endif
-
             .if eax == MOUSECMD
-
                 .break .ifd !rcxyrow(dobj.rc, keybmouse_x, keybmouse_y)
-
                 .if eax == 1
-
                     dlmove(&dobj)
                 .endif
             .endif
@@ -5386,8 +4639,7 @@ tgetline proc uses rsi rdi dlgtitle:LPSTR, buffer:LPSTR, line_size, buffer_size
     .endif
     mov eax,edi
     ret
-
-tgetline endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -5464,15 +4716,12 @@ __initcon proc private
         SetConsoleWindowInfo(_confh, 1, &ci.srWindow)
     .endif
     ret
-
-__initcon endp
+    endp
 
 __exitcon proc private
-
     SetConsoleMode(_coninpfh, OldConsoleMode)
     ret
-
-__exitcon endp
+    endp
 
 .pragma init(__initcon, 22)
 .pragma exit(__exitcon, 9)

@@ -591,8 +591,8 @@ CFRead proc file:LPSTR
 CFReadFileName proc uses rsi rdi rbx ini:LPINI, p:PCFBLK, file_flag:UINT
   local buffer[1024]:sbyte
     ldr rbx,ini
-    ldr rdi,p
-    .while INIGetNextEntry(rbx)
+     .while INIGetNextEntry(rbx)
+        mov rdi,p
         mov rbx,rax
         mov rsi,[rax].S_INI.value
         .while strchr(rsi, ',')
@@ -605,8 +605,7 @@ CFReadFileName proc uses rsi rdi rbx ini:LPINI, p:PCFBLK, file_flag:UINT
         lea rsi,buffer
         mov eax,'\\'
         .if ( ax == [rsi] && !( console & CON_NETCFG ) )
-            mov rdi,p
-            .continue
+           .continue
         .endif
         .ifd filexist(rsi) == file_flag
             mov [rdi],_strdup(rsi)

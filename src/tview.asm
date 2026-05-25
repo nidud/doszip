@@ -110,8 +110,7 @@ HexOutput proc uses rsi rdi rbx off:UINT, len:UINT
                 strcpy(rdi, "| ")
                 add rdi,2
             .endif
-            .if ogetc() == -1
-
+            .ifd ogetc() == -1
                 .break( 1 )
             .endif
             mov c,eax
@@ -146,16 +145,13 @@ HexOutput proc uses rsi rdi rbx off:UINT, len:UINT
     sub rdx,result
     mov rax,result
     ret
-
-HexOutput endp
+    endp
 
 CopySection proc uses rsi rdi rbx loffs:size_t, curcol:UINT
 
     .if !rsopen(IDD_TVCopy)
-
         .return
     .endif
-
     mov rbx,rax
     .if UseClipboard
         or [rbx].TOBJ.flag[ID_CLIPBOARD],_O_FLAGB
@@ -233,8 +229,7 @@ CopySection proc uses rsi rdi rbx loffs:size_t, curcol:UINT
     dlclose(rbx)
     mov eax,curcol
     ret
-
-CopySection endp
+    endp
 
 cmmcopy proc uses rsi rdi rbx
 
@@ -246,11 +241,8 @@ cmmcopy proc uses rsi rdi rbx
     mov [rdx].RIDD.rc.x,al
     mov ebx,keybmouse_y
     mov [rdx].RIDD.rc.y,bl
-
-    .if rsmodal(rdx)
-
+    .ifd rsmodal(rdx)
         .if eax != 1
-
             lea rcx,QuickMenuKeys
             PushEvent([rcx+rax*4-8])
         .else
@@ -264,7 +256,6 @@ cmmcopy proc uses rsi rdi rbx
             stosb
             lea rdi,lb
             .if strtrim(rdi)
-
                 ClipboardCopy(rdi, eax)
                 ClipboardFree()
                 stdmsg("Copy", "%s\n\nis copied to clipboard", rdi)
@@ -272,11 +263,9 @@ cmmcopy proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmmcopy endp
+    endp
 
 update_dialog proc
-
     .if ( tvflag & _TV_USESLINE )
         lea rax,@CStr("Hex  ")
         .if ( tvflag & _TV_HEXVIEW )
@@ -295,36 +284,29 @@ update_dialog proc
         scputs(54, _scrrow, 0, 3, rax)
     .endif
     ret
-
-update_dialog endp
+    endp
 
 mouse_scroll proc
 
    .new n:UINT
-
     xor ecx,ecx
     .repeat
-
         .break .if edx < 8
-
         .if edx > edi
             inc ecx
             .break
         .endif
-
         mov ebx,esi
         sub ebx,9
         .if eax < ebx
             add ecx,2
             .break
         .endif
-
         add ebx,9+10
         .if eax > ebx
             add ecx,3
             .break
         .endif
-
         .if edx == 12
             add ecx,2
             .if eax > esi
@@ -332,23 +314,19 @@ mouse_scroll proc
             .endif
             .break
         .endif
-
         .if edx >= 11 && edx <= 13
-
             mov ebx,esi
             sub ebx,4
             .if eax < ebx
                 add ecx,2
                 .break
             .endif
-
             add ebx,4+5
             .if eax > 45
                 add ecx,3
                 .break
             .endif
         .endif
-
         .break .if edx < 12
         .ifnz
             inc ecx
@@ -356,12 +334,10 @@ mouse_scroll proc
         .endif
         ret
     .until 1
-
     inc ecx
     mov n,ecx
     mov ebx,esi
     sub ebx,3
-
     .if eax >= ebx
         add ebx,3+3
         .if eax >= ebx
@@ -373,7 +349,6 @@ mouse_scroll proc
             xor eax,eax
         .endif
     .endif
-
     shl eax,2
     .if edx > 12
         mov ecx,_scrrow
@@ -384,15 +359,12 @@ mouse_scroll proc
             xor edx,edx
         .endif
     .endif
-
     shl edx,2
     mov ecx,n
     ret
-
-mouse_scroll endp
+    endp
 
 mouse_scroll_proc proc uses rsi rdi rbx
-
     mov esi,_scrcol
     mov edi,_scrrow
     inc edi
@@ -403,13 +375,12 @@ mouse_scroll_proc proc uses rsi rdi rbx
     mov edx,ebx
     mouse_scroll()
     ret
-
-mouse_scroll_proc endp
+    endp
 
 tview_update proc
     xor eax,eax
     ret
-tview_update endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -417,19 +388,14 @@ parse_line proc uses rsi rbx offs:ptr, curcol:UINT
 
    .new screen:LPSTR = rdi
 
-    xor  esi,esi
-    ldr  rax,offs
-    mov  rbx,[rax]
-
+    xor esi,esi
+    ldr rax,offs
+    mov rbx,[rax]
     .while 1
-
         .break .ifd ogetc() == -1
-
         inc rbx
         .if al == 10 || al == 13
-
             .break .ifd ogetc() == -1
-
             inc rbx
             .if al != 10 && al != 13
                 dec rbx
@@ -438,9 +404,7 @@ parse_line proc uses rsi rbx offs:ptr, curcol:UINT
             xor eax,eax
            .break
         .endif
-
         .if al == 9
-
             mov eax,esi
             add eax,curcol
             add eax,8
@@ -457,16 +421,11 @@ parse_line proc uses rsi rbx offs:ptr, curcol:UINT
             inc rdi
             inc esi
         .endif
-
         .if esi == _scrcol
-
             .break .ifd ogetc() == -1
-
             inc rbx
             .if ( al == 10 || al == 13 )
-
                 .break .ifd ogetc() == -1
-
                 inc rbx
                 .if ( al != 10 && al != 13 )
                     dec rbx
@@ -483,19 +442,15 @@ parse_line proc uses rsi rbx offs:ptr, curcol:UINT
            .break .ifnb
         .endif
     .endw
-
     mov rdi,screen
     mov rdx,offs
     mov [rdx],rbx
-
     .if eax == 0
-
         mov ebx,_scrcol
         add rdi,rbx
     .endif
     ret
-
-parse_line endp
+    endp
 
 seek proto watcall offs:size_t {
       ifdef _WIN64
@@ -513,22 +468,16 @@ previous_line proc uses rsi rdi rbx offs:ptr, loffs:ptr, sttable:ptr, stcount:UI
 
     ldr rsi,offs
     ldr rdi,loffs
-
     mov rax,[rdi]
     mov [rsi],rax
-
     .if ( rax == 0 )
-
         .return
     .endif
-
     .if ( rax > FSIZE )
-
         mov rax,FSIZE
         mov [rdi],rax
        .return
     .endif
-
     mov edx,16
     .if ( tvflag & _TV_HEXVIEW )
         .if rax <= rdx
@@ -538,104 +487,73 @@ previous_line proc uses rsi rdi rbx offs:ptr, loffs:ptr, sttable:ptr, stcount:UI
         .endif
         .return
     .endif
-
     mov eax,stcount
     mov rbx,sttable
     mov rax,[rbx+rax*size_t]
-
     .if ( rax < [rsi] )
-
         mov rax,[rsi]
         .if ( seek(rax) == -1 )
-
            .return( 0 )
         .endif
-
         .if ( oungetc() == -1 )
-
            .return( 0 )
         .endif
-
         dec size_t ptr [rsi]
         mov ebx,0x8000
-
         .if ( al == 13 || al == 10 )
-
             .if ( oungetc() == -1 )
-
                .return( 0 )
             .endif
             dec size_t ptr [rsi]
         .endif
-
         .while 1
-
             .if ( oungetc() == -1 )
-
                .break
             .endif
             dec size_t ptr [rsi]
             dec rbx
-
             .break .ifz
             .break .if al == 13
             .break .if al == 10
         .endw
-
         mov rax,[rsi]
         inc rax
        .return
     .endif
-
     mov rax,[rsi]
     mov ecx,stcount
     mov rbx,sttable
     dec rcx
-
     .while 1
-
         lea rdx,[rbx+rcx*size_t]
         .break .if rax > [rdx]
-
         .if !rcx
-
             .return( rcx )
         .endif
         dec rcx
     .endw
-
     mov rax,[rdx]
     .if !( tvflag & _TV_WRAPLINES )
-
         .return
     .endif
-
     mov rdx,[rsi]
     .if rax > rdx
-
         .return( 0 )
     .endif
-
     sub rdx,rax
     .if rdx >= 0x8000
-
         add rax,rdx
         mov ecx,_scrcol
         sub rax,rcx
     .endif
-
     mov [rsi],rax
     mov rbx,rax
     .if ( seek(rax) == -1 )
-
         .return( rbx )
     .endif
-
     .while 1
-
         mov rdi,screen
         .break .if parse_line(rsi, curcol)
-
         mov rax,[rsi]
         mov rcx,loffs
         .break .if rax >= [rcx]
@@ -643,8 +561,7 @@ previous_line proc uses rsi rdi rbx offs:ptr, loffs:ptr, sttable:ptr, stcount:UI
     .endw
     mov rax,rbx
     ret
-
-previous_line endp
+    endp
 
     option proc:public
 
@@ -661,13 +578,9 @@ putscreenb proc uses rsi rdi rbx y:int_t, row:int_t, lp:ptr
     mov rect.Left,0
     dec eax
     mov rect.Right,ax
-
     .repeat
-
         .for ( rdi = &ci, ebx = 0 : ebx < _scrcol : ebx++, rsi++, rdi+=4 )
-
             .ifd !MultiByteToWideChar(_consolecp, 0, rsi, 1, rdi, 1)
-
                 mov al,[rsi]
                 mov [rdi],ax
             .endif
@@ -684,8 +597,7 @@ putscreenb proc uses rsi rdi rbx y:int_t, row:int_t, lp:ptr
         dec rows
     .untilz
     ret
-
-putscreenb endp
+    endp
 
 continuesearch proc uses rsi lpOffset:ptr
 
@@ -707,9 +619,7 @@ else
         ioseek(&STDI, edx::eax, SEEK_SET)
 endif
         .if eax
-
             .if osearch()
-
                 mov rcx,lpOffset
                 mov [rcx],eax
 ifdef _WIN64
@@ -730,8 +640,7 @@ endif
         mov eax,esi
     .endif
     ret
-
-continuesearch endp
+    endp
 
 
 tview proc uses rsi rdi rbx filename:LPSTR, offs:size_t
@@ -800,18 +709,14 @@ ifndef _WIN64
         mov STDI.fsize_l,eax
     .endif
 endif
-
     .if !( STDI.flag & IO_MEMBUF )
-
         mov STDI.cnt,0x8000
         mov STDI.size,0x8000
     .endif
 
-
     mov al,at_background[B_TextView]
     or  al,at_foreground[F_TextView]
     .if ( dlscreen(&dlgobj, eax) == NULL )
-
         free(screen)
         ioclose(&STDI)
        .return( 1 )
@@ -833,7 +738,6 @@ endif
     .if ( tvflag & _TV_USESLINE )
         dlshow(rbx)
     .endif
-
     scpath(1, 0, 41, filename)
     mov ecx,_scrcol
     sub ecx,38
@@ -845,16 +749,12 @@ endif
     scputs(ecx, 0, 0, 0, "100%")
     sub x,14
     scputs(x, 0, 0, 0, "col")
-
     .if !( tvflag & _TV_USEMLINE )
-
         dlhide(menusline)
     .endif
-
     _getcursor(&cursor)
     _gotoxy(0, 1)
     _cursoroff()
-
     mov savedupdate,tupdate
     mov tupdate,&tview_update
     update_dialog()
@@ -873,11 +773,8 @@ endif
     mov stcount,1
 
     .ifd ( seek(rax) != -1 )
-
         .repeat
-
             .if ( ogetc() == -1 )
-
                 mov rax,offs
                 mov [rdi],rax
                 mov [rdi+size_t],rax
@@ -902,40 +799,28 @@ endif
 
     mov state,1
     .while 1
-
         .if state == 2
-
             update_dialog()
         .endif
-
         .if state
-
             mov scount,0
-
             mov esi,1
             mov rax,loffs
             lea rdi,ltable
             mov [rdi],rax
             mov rbx,rax
             mov offs,rax
-
             .repeat
-
                 mov ecx,tvflag
                 .if ecx & _TV_HEXVIEW
-
                     .if seek(rax) == -1
-
                         inc eax
                        .break
                     .endif
-
                     xor ecx,ecx
                     .repeat
-
                         add rbx,16
                         .if rbx > FSIZE
-
                             mov rbx,FSIZE
                            .break
                         .endif
@@ -943,57 +828,42 @@ endif
                         inc esi
                         inc ecx
                     .until ecx >= rowcnt
-
                 .else
-
                     .if ecx & _TV_WRAPLINES
-
                         mov eax,esi
                        .break
                     .endif
-
                     lea rdx,stable
                     mov ecx,stcount
                     .repeat
                         .break .if rax == [rdx]
                         add rdx,size_t
                     .untilcxz
-
                     .if ecx
-
                         .repeat
-
                             add rdx,size_t
                             mov rbx,[rdx]
                             mov [rdi+rsi*size_t],rbx
                             inc esi
-
                             .if ( esi > rowcnt )
-
                                 dec rsi
                                 mov rax,rsi
                                .break( 1 )
                             .endif
                         .untilcxz
-
                         .if ( rbx == FSIZE )
-
                             dec rsi
                             mov rax,rsi
                            .break
                         .endif
                     .endif
                     .if ( seek(rbx) == -1 )
-
                         xor eax,eax
                        .break
                     .endif
-
                     mov x,0
                     .while 1
-
                         .if ( ogetc() == -1 )
-
                            .break
                         .endif
                         inc rbx
@@ -1002,12 +872,9 @@ endif
                             mov x,0
                             mov eax,10
                         .endif
-
                         .if ( eax == 10 )
-
                             mov [rdi+rsi*size_t],rbx
                             .if esi >= rowcnt
-
                                 mov eax,esi
                                .break( 1 )
                             .endif
@@ -1022,9 +889,7 @@ endif
 
             mov lcount,esi
             mov offs,rbx
-
             .if eax
-
                 mov eax,_scrcol
                 mul rowcnt
                 mov ecx,eax
@@ -1033,7 +898,6 @@ endif
                 rep stosb
                 mov offs,loffs
                 .if ( seek(rax) == -1 )
-
                     xor eax,eax
                 .endif
             .endif
@@ -1043,12 +907,9 @@ endif
             .endif
 
             .if tvflag & _TV_HEXVIEW
-
                 .repeat
-
                     .break .if !eax
                     .break .if ogetc() == -1
-
                     dec STDI.index
                     mov cnt,STDI.cnt
                     mov eax,rowcnt
@@ -1061,7 +922,6 @@ endif
                     mov rsi,screen
 
                     .repeat
-
                         mov x,ecx
                         lea rbx,ltable
                         mov rbx,[rbx+rcx*size_t]
@@ -1070,7 +930,6 @@ endif
                             lea rdx,@CStr("%010X  ")
                         .endif
                         sprintf(rsi, rdx, rbx)
-
                         lea rdi,[rsi+12]
                         mov edx,STDI.cnt
                         mov eax,16
@@ -1078,11 +937,9 @@ endif
                             mov edx,eax
                         .endif
                         .break .if !edx
-
                         sub STDI.cnt,edx
                         mov rbx,rdi
                         add rbx,51
-
                         mov ecx,edx
                         xor edx,edx
                         .repeat
@@ -1132,21 +989,16 @@ endif
                     mov rdi,screen
                     mov bsize,eax
                     mov lcount,eax
-
                     .repeat
-
                         mov eax,bsize
                         inc bsize
                         .break .if eax >= rowcnt
-
-
                         mov eax,lcount
                         inc lcount
                         lea rdx,ltable
                         lea rdx,[rdx+rax*size_t]
                         mov rax,offs
                         mov [rdx],rax
-
                     .until parse_line(&offs, curcol)
 
                     mov rax,offs
@@ -1158,15 +1010,11 @@ endif
             .else
 
                 .repeat
-
                     .break .if !rax
-
                     mov edx,maxcol
                     mov eax,lcount
                     lea rdi,ltable
-
                     .while eax
-
                         mov rcx,[rdi+rax*size_t]
                         dec eax
                         sub rcx,[rdi+rax*size_t]
@@ -1174,25 +1022,19 @@ endif
                             mov rdx,rcx
                         .endif
                     .endw
-
                     mov maxcol,edx
                     mov rdi,screen
                     mov bsize,0
-
                     .while 1
-
                         mov eax,bsize
                         inc bsize
                         .break .if eax >= lcount
-
                         lea rdx,ltable
                         lea rdx,[rdx+rax*size_t]
                         mov rax,[rdx+size_t]
                         sub rax,[rdx]
                         add scount,eax
-
                         .if eax <= curcol
-
                             mov eax,_scrcol
                             add rdi,rax
                         .else
@@ -1207,9 +1049,7 @@ endif
             .endif
 
             .if eax
-
                 .if tvflag & _TV_USEMLINE
-
                     mov eax,scount
                     add rax,loffs
                     .ifz
@@ -1243,7 +1083,7 @@ endif
             mov state,0
         .endif
 
-         tgetevent()
+        tgetevent()
         .switch eax
         .case MOUSECMD
             .if mousep() == 2
@@ -1518,9 +1358,7 @@ endif
             add rax,loffs
             inc rax
             .if rax < FSIZE
-
                 .if ( tvflag & _TV_HEXVIEW )
-
                     mov rbx,rax
                     mov eax,rowcnt
                     shl eax,4
@@ -1682,7 +1520,6 @@ endif
     xor eax,eax
     mov STDI.flag,eax
     ret
-
-tview endp
+    endp
 
     end
