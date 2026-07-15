@@ -7,7 +7,7 @@ include io.inc
 include malloc.inc
 include stdlib.inc
 
-history_event_list      proto watcall :PDOBJ, :PLOBJ
+history_event_list      proto :PDOBJ, :PLOBJ
 DirectoryToCurrentPanel proto :PDIRECTORY
 
     .data

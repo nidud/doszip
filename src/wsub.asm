@@ -1931,10 +1931,10 @@ wzipfindentry proc uses rsi rdi fblk:PFBLK, ziph:SINT
 wzipfindentry endp
 
 
-zip_unzip proc watcall private uses rsi zip_handle:int_t, out_handle:int_t
+zip_unzip proc private uses rsi zip_handle:int_t, out_handle:int_t
 
-    mov STDI.file,zip_handle
-    mov STDO.file,out_handle
+    mov STDI.file,ldr(zip_handle)
+    mov STDO.file,ldr(out_handle)
     mov esi,ER_MEM
 
     .repeat
@@ -2320,10 +2320,10 @@ zip_copycentral proc uses rsi rdi rbx loffset:uint_t, lsize:uint_t, exact_match:
 zip_copycentral endp
 
 
-zip_copyendcentral proc watcall uses rsi rdi srcfile:LPSTR, outfile:LPSTR
+zip_copyendcentral proc uses rsi rdi srcfile:LPSTR, outfile:LPSTR
 
-    mov rsi,srcfile
-    mov rdi,outfile
+    ldr rsi,srcfile
+    ldr rdi,outfile
     mov eax,STDO.total_l
     add eax,STDO.index
     sub eax,zip_endcent.off_cent
@@ -2462,14 +2462,13 @@ zip_clearentry proc private
 zip_clearentry endp
 
 
-zip_setprogress proc watcall size:UINT, name:LPSTR
+zip_setprogress proc size:UINT, name:LPSTR
 
     or  STDO.flag,IO_USEUPD or IO_UPDTOTAL
 ifdef _WIN64
-    progress_set(__outfile, rdx, rax)
+    progress_set(__outfile, rdx, rcx)
 else
-    xor ecx,ecx
-    progress_set(__outfile, rdx, ecx::eax)
+    progress_set(__outfile, name, size)
 endif
     ret
 
@@ -2496,9 +2495,9 @@ zip_displayerror proc uses rsi rdi rbx
 zip_displayerror endp
 
 
-zip_mkarchivetmp proc watcall buffer:LPSTR
+zip_mkarchivetmp proc buffer:LPSTR
 
-    strfxcat(strcpy(rax, __outfile), &cp_ziptemp)
+    strfxcat(strcpy(ldr(buffer), __outfile), &cp_ziptemp)
     ret
 
 zip_mkarchivetmp endp

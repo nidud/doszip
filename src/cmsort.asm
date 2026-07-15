@@ -6,12 +6,13 @@ include string.inc
 
     .code
 
-cmsort proc watcall private uses rsi rdi rbx panel:PPANEL, flags:uint_t
+cmsort proc private uses rsi rdi rbx panel:PPANEL, flags:uint_t
 
   local path[_MAX_PATH]:byte
 
-    mov esi,edx
-    .if panel_state(rax)
+    ldr esi,flags
+
+    .ifd panel_state(ldr(panel))
 
 	mov ecx,esi
 	mov rdi,rax
@@ -43,9 +44,9 @@ cmsort proc watcall private uses rsi rdi rbx panel:PPANEL, flags:uint_t
 
 cmsort endp
 
-cmnosort proc watcall private uses rbx panel:PPANEL
+cmnosort proc private uses rbx panel:PPANEL
 
-    .if panel_state(rax)
+    .if panel_state(ldr(panel))
 
 	mov rbx,rax
 	mov rdx,[rax].PANEL.wsub

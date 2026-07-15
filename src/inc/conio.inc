@@ -141,7 +141,7 @@ define TIMAXFILE	0x200000; max file size
 define TIMAXFILES	300	; max open files
 define TITABCHAR	0x0B	; expand tabs with this char (Vertical Tab)
 define TIMAXTABSIZE	16	; max Tab size
-define STYLESIZE	0x4000
+define STYLESIZE	0x8000
 
 define _T_PANELB	0x0001
 define _T_MALLOC	0x0002

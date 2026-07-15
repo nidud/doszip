@@ -1275,8 +1275,9 @@ cmdoskeydown proc
     endp
 
 
-history_event_list proc watcall uses rsi rbx dlg:PDOBJ, lst:PLOBJ
-    mov rbx,dlg
+history_event_list proc uses rsi rbx dlg:PDOBJ, lst:PLOBJ
+    ldr rbx,dlg
+    ldr rdx,lst
     mov rax,[rbx].DOBJ.object
     mov rsi,rax
     mov ecx,[rdx].LOBJ.dcount

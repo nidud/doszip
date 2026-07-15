@@ -1396,8 +1396,9 @@ ct_tally proc uses rsi rdi dist:int_t, lc:int_t
 ct_tally endp
 
 
-update_hash proc watcall id:int_t
+update_hash proc id:int_t
 
+    ldr     eax,id
     mov     rcx,window
     movzx   ecx,BYTE PTR [rcx+rax]
     mov     eax,[rbx].ins_h

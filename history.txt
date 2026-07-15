@@ -3,6 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.98 - 15 Jul 2026
+- potential crash for API calls made on misaligned stack (zip/IO) for 64-bit
+
 Changes in 3.97 - 25 May 2026
 - potential crash if [.openfiles] include a non-existing file
 

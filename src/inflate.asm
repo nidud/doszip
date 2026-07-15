@@ -174,8 +174,8 @@ fill_inbuf proc uses rcx
 fill_inbuf endp
 
 
-needbits proc watcall count:int_t
-
+needbits proc fastcall count:int_t
+    mov     eax,ecx
 .0:
     cmp     eax,bk
     ja      .2
@@ -190,7 +190,7 @@ endif
     ret
 .2:
     mov     ecx,eax
-    call    fill_inbuf
+    fill_inbuf()
     test    eax,eax
     jz      .1
     mov     eax,ecx
@@ -198,9 +198,9 @@ endif
 
 needbits endp
 
-getbits proc watcall count:int_t
+getbits proc fastcall count:int_t
 
-    mov     ecx,eax
+    mov     eax,ecx
 .0:
     cmp     eax,bk
     ja      .2
@@ -230,9 +230,9 @@ getbits endp
 ; each table.
 ;
 
-huft_free proc watcall uses rbx huft:PHUFT
+huft_free proc fastcall uses rbx huft:PHUFT
 
-    .for ( rbx = huft : rbx : )
+    .for ( rbx = rcx : rbx : )
 
         lea rcx,[rbx-HUFT]
         mov rbx,[rcx].HUFT.t
@@ -977,9 +977,9 @@ inflate_dynamic endp
 inflate_stored proc uses rsi
 
 
-    mov eax,bk          ; go to byte boundary
-    and eax,7
-    getbits(eax)
+    mov ecx,bk          ; go to byte boundary
+    and ecx,7
+    getbits(ecx)
 
     mov esi,getbits(16) ; number of bytes in block
     getbits(16)

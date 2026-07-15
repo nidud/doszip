@@ -8,16 +8,20 @@ include time.inc
 
     .code
 
-binary proc watcall private date:uint_t, attrib:uint_t, size:size_t
+binary proc private date:uint_t, attrib:uint_t, size:size_t
 
-    .if ( date < [rsi].FILTER.min_date ||
-          ( [rsi].FILTER.max_date && date > [rsi].FILTER.max_date ) )
+    ldr ecx,date
+    ldr edx,attrib
+
+    .if ( ecx < [rsi].FILTER.min_date ||
+          ( [rsi].FILTER.max_date && ecx > [rsi].FILTER.max_date ) )
         .return( 0 )
     .endif
-    mov eax,attrib
+    ldr rcx,size
+    mov eax,edx
     and ax,[rsi]
-    .if ( eax != attrib || size < [rsi].FILTER.min_size ||
-         ( [rsi].FILTER.max_size && size > [rsi].FILTER.max_size ) )
+    .if ( eax != edx || rcx < [rsi].FILTER.min_size ||
+         ( [rsi].FILTER.max_size && rcx > [rsi].FILTER.max_size ) )
         .return( 0 )
     .endif
     .return( 1 )

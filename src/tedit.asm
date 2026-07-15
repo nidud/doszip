@@ -3672,7 +3672,10 @@ msvalidate endp
 
     assume rbx:ptr sbyte
 
-handle_event proc watcall private uses rsi rbx key:UINT, ti:PTINFO
+handle_event proc private uses rsi rbx key:UINT, ti:PTINFO
+
+    ldr eax,key
+    ldr rdx,ti
 
     .switch eax
 
