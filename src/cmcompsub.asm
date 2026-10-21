@@ -550,7 +550,7 @@ event_mklist proc uses rsi rdi rbx
     endp
 
 
-event_list proc uses rsi rdi rbx
+event_list proc uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
     dlinit(DLG_FindFile)
     mov rax,DLG_FindFile
     mov ebx,[rax].DOBJ.rc

@@ -9,13 +9,13 @@ cmahidden proc
     xor config.c_apath.flag,_W_HIDDEN
     panel_update(panela)
     ret
-cmahidden endp
+    endp
 
 cmbhidden proc
     xor config.c_bpath.flag,_W_HIDDEN
     panel_update(panelb)
     ret
-cmbhidden endp
+    endp
 
 cmchidden proc
     .if ( cpanel == panela )
@@ -24,6 +24,6 @@ cmchidden proc
         cmbhidden()
     .endif
     ret
-cmchidden endp
+    endp
 
     END

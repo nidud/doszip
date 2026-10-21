@@ -4,13 +4,13 @@
 include doszip.inc
 include conio.inc
 
-    .code
+.code
 
 cmquit proc
     mov mainswitch,0
     mov dzexitcode,1
     ret
-cmquit endp
+    endp
 
 cmexit proc
     .if config.c_cflag & _C_CONFEXIT
@@ -20,6 +20,6 @@ cmexit proc
     .endif
     cmquit()
     ret
-cmexit endp
+    endp
 
     END

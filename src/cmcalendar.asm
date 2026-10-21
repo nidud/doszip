@@ -28,13 +28,10 @@ define USE_MDALTKEYS
     .code
 
 cupdate proc private
-
    .new ts:SYSTEMTIME = {0}
    .new buf[64]:byte = 0
-
     GetLocalTime(&ts)
     SystemTimeToStringA(&buf, &ts)
-
     mov rax,_dlg
     movzx ecx,[rax].DOBJ.rc.x
     movzx edx,[rax].DOBJ.rc.y
@@ -43,8 +40,7 @@ cupdate proc private
     scputs(ecx, edx, 0, 0, &buf)
     xor eax,eax
     ret
-
-cupdate endp
+    endp
 
 cmcalendar proc uses rsi rdi rbx
 
@@ -155,7 +151,6 @@ cmcalendar proc uses rsi rdi rbx
                 .while ( esi < days_in_month && edi < 10 )
 
                     xor ecx,ecx
-
                     .while ( ecx < 7 )
 
                         mov eax,3   ; first line
@@ -168,7 +163,6 @@ cmcalendar proc uses rsi rdi rbx
                             mov x,ecx
                             mov y,edi
                             mov ebx,ecx
-
                             mov ecx,0x06
                             .if esi != day
                                 mov ecx,0x07
@@ -182,7 +176,6 @@ cmcalendar proc uses rsi rdi rbx
                             add eax,xpos
                             mov edi,eax
                             scputf(edi, ebx, ecx, 2, "%2d", esi)
-
                             .if curday == esi
                                 mov eax,curmonth
                                 .if eax == month
@@ -199,9 +192,7 @@ cmcalendar proc uses rsi rdi rbx
                     .endw
                     add edi,1
                 .endw
-
                 .if mouseloop
-
                     msloop()
                     mov mouseloop,0
                 .endif
@@ -211,13 +202,11 @@ cmcalendar proc uses rsi rdi rbx
 
             tgetevent()
             .switch eax
-
             .case KEY_F1
                 mov tupdate,update
                 rsmodal(IDD_CalHelp)
                 mov tupdate,&cupdate
                .endc
-
             .case MOUSECMD
                 mousex()
                 mov edx,eax
@@ -233,7 +222,6 @@ cmcalendar proc uses rsi rdi rbx
                 mov al,[rbx+5]
                 mov ypos,eax
                .endc
-
             .case KEY_ENTER
                 mov eax,1
                 mov result,eax
@@ -241,7 +229,6 @@ cmcalendar proc uses rsi rdi rbx
             .case KEY_F10
             .case KEY_ESC
                 .break
-
             .case KEY_HOME
                 GetWeekDay(curyear, curmonth, 0)
                 mov week_day,eax
@@ -255,7 +242,6 @@ cmcalendar proc uses rsi rdi rbx
                 mov year,ecx
                 inc edi
                 .endc
-
             .case KEY_RIGHT
                 mov edx,day
                 inc edx
@@ -265,7 +251,6 @@ cmcalendar proc uses rsi rdi rbx
                 mov day,edx
                 inc edi
                 .endc
-
             .case KEY_LEFT
                 mov edx,day
                 .if edx != 1
@@ -297,7 +282,6 @@ cmcalendar proc uses rsi rdi rbx
                     inc edi
                 .endif
                 .endc
-
             .case KEY_UP
                 mov eax,7
                 .if day <= eax
@@ -306,7 +290,6 @@ cmcalendar proc uses rsi rdi rbx
                 sub day,eax
                 inc edi
                .endc
-
             .case KEY_DOWN
                 mov eax,day
                 add eax,7
@@ -316,7 +299,6 @@ cmcalendar proc uses rsi rdi rbx
                 mov day,eax
                 inc edi
                .endc
-
             .case KEY_PGUP
                 mov edx,1
                 mov ebx,month
@@ -334,11 +316,9 @@ cmcalendar proc uses rsi rdi rbx
                 .endif
                 inc esi
                .endc
-
             .case KEY_PGDN
                 mov ebx,month
                 .if ebx == 12
-
                     .gotosw(KEY_CTRLPGDN)
                 .endif
                 mov edx,1
@@ -346,7 +326,6 @@ cmcalendar proc uses rsi rdi rbx
                 inc ebx
                 inc esi
                .endc
-
             .case KEY_CTRLPGUP
                 mov edx,1
                 mov ebx,edx
@@ -358,7 +337,6 @@ cmcalendar proc uses rsi rdi rbx
                 .endif
                 inc esi
                .endc
-
             .case KEY_CTRLPGDN
                 mov edx,1
                 mov ebx,edx
@@ -372,7 +350,6 @@ cmcalendar proc uses rsi rdi rbx
                .endc
             .endsw
         .endw
-
         mov tupdate,update
         dlclose(dialog)
         mov edx,day
@@ -384,7 +361,6 @@ cmcalendar proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmcalendar endp
+    endp
 
     END

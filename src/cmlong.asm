@@ -3,25 +3,23 @@
 
 include doszip.inc
 
-    .code
+.code
 
 cmlong proc fastcall private panel:PPANEL
     mov rdx,[rcx].PANEL.wsub
     xor [rdx].WSUB.flag,_W_LONGNAME
     panel_update(rcx)
     ret
-cmlong endp
+    endp
 
 cmalong proc
     .return cmlong(panela)
-cmalong endp
-
+    endp
 cmblong proc
     .return cmlong(panelb)
-cmblong endp
-
+    endp
 cmclong proc
     .return cmlong(cpanel)
-cmclong endp
+    endp
 
     END

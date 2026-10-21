@@ -8,16 +8,16 @@ include doszip.inc
 cmaupdate proc
     panel_reread(panela)
     ret
-cmaupdate endp
+    endp
 
 cmbupdate proc
     panel_reread(panelb)
     ret
-cmbupdate endp
+    endp
 
 cmcupdate proc
     panel_reread(cpanel)
     ret
-cmcupdate endp
+    endp
 
     END

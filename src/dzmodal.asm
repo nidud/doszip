@@ -26,15 +26,11 @@ MOBJ_Statusline MSOBJ \
     .code
 
 comaddstring proc private string:LPSTR
-
     xor eax,eax
     mov rdx,DLG_Commandline
-
     .if ( [rdx].DOBJ.flag & _D_ONSCR )
-
         mov rax,com_info.base
         .if byte ptr [rax]
-
             strtrim(com_info.base)
             strcat(com_info.base, " ")
         .endif
@@ -42,48 +38,38 @@ comaddstring proc private string:LPSTR
         comevent(KEY_END)
     .endif
     ret
-
-comaddstring endp
+    endp
 
 
 cmcfblktocmd proc private
-
     .if panel_curobj(cpanel)
-
         comaddstring(rax)
     .endif
     ret
-
-cmcfblktocmd endp
+    endp
 
 
 cmpathatocmd proc private
-
     mov rax,panela
     mov rax,[rax].PANEL.wsub
     comaddstring([rax].WSUB.path)
     ret
-
-cmpathatocmd endp
+    endp
 
 
 cmpathbtocmd proc private
-
     mov rax,panelb ; @v3.35 - Ctrl-9
     mov rax,[rax].PANEL.wsub
     comaddstring([rax].WSUB.path)
     ret
-
-cmpathbtocmd endp
+    endp
 
 
 statusline_xy proc uses rsi rdi rbx x:SINT, y:SINT, q:SINT, o:PMSOBJ
-
-    mov edi,q
-    mov ebx,y
+    ldr edi,q
+    ldr ebx,y
     mov eax,cflag
     and eax,_C_STATUSLINE
-
     .ifnz
         xor eax,eax
         .if ebx == _scrrow
@@ -101,8 +87,7 @@ statusline_xy proc uses rsi rdi rbx x:SINT, y:SINT, q:SINT, o:PMSOBJ
         .endif
     .endif
     ret
-
-statusline_xy endp
+    endp
 
 
 GetPathFromHistory proc uses rsi rdi rbx panel:PPANEL
@@ -188,52 +173,39 @@ GetPathFromHistory proc uses rsi rdi rbx panel:PPANEL
     mov [rbx].RIDD.rc.x,cl
     mov [rbx].RIDD.rc.y,ch
     ret
-
-GetPathFromHistory endp
+    endp
 
 
 SetPathFromHistory proc private uses rbx panel:PPANEL
-
     .if GetPathFromHistory(panel)
-
         mov rbx,rax
         panel_setactive(panel)
         DirectoryToCurrentPanel(rbx)
     .endif
     ret
-
-SetPathFromHistory endp
+    endp
 
 
 cmahistory proc
-
     SetPathFromHistory(panela)
     ret
-
-cmahistory endp
+    endp
 
 
 cmbhistory proc
-
     SetPathFromHistory(panelb)
     ret
-
-cmbhistory endp
+    endp
 
 
 panel_scrolldn proc private panel:PPANEL
-
     mov rax,panel
     .if rax == cpanel
-
         .repeat
-
             mov rcx,panel
             mov eax,[rcx].PANEL.cel_count
             dec eax
-
             .ifs ( eax > [rcx].PANEL.cel_index )
-
                 mov [rcx].PANEL.cel_index,eax
                 pcell_update(rcx)
                 scroll_delay()
@@ -249,22 +221,16 @@ panel_scrolldn proc private panel:PPANEL
         xor eax,eax
     .endif
     ret
-
-panel_scrolldn endp
+    endp
 
 
 panel_scrollup proc private panel:PPANEL
-
     mov rax,panel
     .if rax == cpanel
-
         .repeat
-
             mov rcx,cpanel
             xor eax,eax
-
             .if [rcx].PANEL.cel_index != eax
-
                 mov [rcx].PANEL.cel_index,eax
                 pcell_update(rcx)
                 scroll_delay()
@@ -275,66 +241,48 @@ panel_scrollup proc private panel:PPANEL
             mousep()
         .until eax != 1
         mov eax,1
-
     .else
-
         panel_setactive(rax)
         xor eax,eax
     .endif
     ret
-
-panel_scrollup endp
+    endp
 
 
 mouseevent proc private uses rsi rdi rbx
-
     .while mousep()
-
         mov edi,keybmouse_x
         mov esi,keybmouse_y
-
         .if ( cflag & _C_MENUSLINE && !esi )
-
             mov eax,_scrcol
             sub eax,5
-
             .if ( edi >= eax )
-
                 cmscreen()
                .break
             .endif
             sub eax,13
-
             .if ( edi > eax )
-
                 cmcalendar()
             .endif
             .break
         .endif
-
         .if ( !( cflag & _C_MENUSLINE ) && !esi && edi <= 56 )
-
             cmxormenubar()
             menus_getevent()
             cmxormenubar()
            .break
         .endif
-
         .if statusline_xy(edi, esi, 9, &MOBJ_Statusline)
-
             mov rbx,rax
             msloop()
             [rbx].MSOBJ.cmd()
            .break
         .endif
-
         mov rbx,panela
         .ifd !panel_xycmd(rbx, edi, esi)
-
             mov rbx,panelb
             panel_xycmd(rbx, edi, esi)
         .endif
-
         .switch eax
         .case 1
         .case 2
@@ -368,8 +316,7 @@ mouseevent proc private uses rsi rdi rbx
        .break
     .endw
     ret
-
-mouseevent endp
+    endp
 
 
 doszip_modal proc uses rsi
@@ -424,29 +371,20 @@ doszip_modal proc uses rsi
             reread_panels()
         .endif
 
-
         mov esi,menus_getevent()
         .if ( ( eax == KEY_ENTER || eax == KEY_KPENTER) && com_base && cflag & _C_COMMANDLINE )
-
             .ifd doskeysave()
-
                 .continue .ifd command(&com_base)
             .endif
-
             comevent(KEY_END)
            .continue
         .endif
-
         .if com_base && cflag & _C_COMMANDLINE
-
             .continue .ifd comevent(esi)
         .endif
-
         .ifd cpanel_state()
-
             .continue .ifd panel_event(cpanel, esi)
         .endif
-
         .break .if !mainswitch
 
         mov eax,esi
@@ -566,7 +504,6 @@ doszip_modal proc uses rsi
         msloop()
     .endw
     ret
-
-doszip_modal endp
+    endp
 
     end

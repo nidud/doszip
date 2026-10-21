@@ -6,7 +6,7 @@ include wsub.inc
 include config.inc
 include progress.inc
 
-    .data
+.data
 
 progress_size   dq 0
 progress_name   LPSTR 0
@@ -16,10 +16,9 @@ progress_args   db '%s',10,'  to',0
 progress_dobj   DOBJ <_D_STDDLG,0,0,<4,9,72,6>,0,0>
 old_console     dd 0
 
-    .code
+.code
 
 test_userabort proc
-
     mov ecx,getkey()
     xor eax,eax
     .if ecx == KEY_ESC
@@ -28,12 +27,9 @@ test_userabort proc
         .endif
     .endif
     ret
-
-test_userabort endp
-
+    endp
 
 progress_open proc ttl:LPSTR, function:LPSTR
-
     mov old_console,console
     and console,not CON_SLEEP
     mov progress_name,ttl
@@ -45,13 +41,11 @@ else
     mov dword ptr progress_size[4],eax
 endif
     mov progress_xpos,4
-
     .if word ptr function
         mov progress_xpos,9
     .endif
     mov dl,at_background[B_Dialog]
     or  dl,at_foreground[F_Dialog]
-
     .if dlopen(&progress_dobj, edx, ttl)
         dlshow(&progress_dobj)
         .if word ptr function
@@ -62,29 +56,21 @@ endif
         scputc(8, 13, 64, U_LIGHT_SHADE)
     .endif
     ret
-
-progress_open endp
-
+    endp
 
 progress_set proc uses rbx s1:LPSTR, s2:LPSTR, len:qword
-
    .new maxl:int_t
-
     xor eax,eax
     .if progress_dobj.flag & _D_ONSCR
-
         mov progress_loop,eax
         mov ebx,progress_xpos
         mov ecx,68
         sub ecx,ebx
         mov maxl,ecx
         add ebx,4
-
         .if s1 != rax
-
             mov progress_name,strfn(s1)
             mov progress_size,len
-
             scpathl(ebx, 11, maxl, s1)
             .if s2
                 scpathl(ebx, 12, maxl, s2)
@@ -99,14 +85,10 @@ progress_set proc uses rbx s1:LPSTR, s2:LPSTR, len:qword
         test_userabort()
     .endif
     ret
-
-progress_set endp
-
+    endp
 
 progress_close proc
-
     .ifd dlclose(&progress_dobj)
-
         mov eax,old_console
         and eax,CON_SLEEP
         or  console,eax
@@ -114,12 +96,9 @@ progress_close proc
         mov old_console,eax
     .endif
     ret
-
-progress_close endp
-
+    endp
 
 progress_update proc offs:qword
-
     movzx eax,progress_dobj.flag
     and eax,_D_ONSCR
     .if eax
@@ -137,7 +116,6 @@ ifdef _WIN64
         mov ecx,r8d
 else
        .new progress:Q64
-
         push    ebx
         push    edi
         mov     edx,dword ptr progress_size[4]
@@ -172,7 +150,6 @@ endif
         test_userabort()
     .endif
     ret
-
-progress_update endp
+    endp
 
     END

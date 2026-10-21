@@ -4,119 +4,94 @@
 include doszip.inc
 include string.inc
 
-    .code
+.code
 
 cmsort proc private uses rsi rdi rbx panel:PPANEL, flags:uint_t
-
   local path[_MAX_PATH]:byte
-
     ldr esi,flags
-
     .ifd panel_state(ldr(panel))
-
-	mov ecx,esi
-	mov rdi,rax
-	mov rsi,[rax].PANEL.wsub
-	mov eax,[rsi].WSUB.flag
-	and eax,not (_W_SORTSIZE or _W_NOSORT)
-	or  eax,ecx
-	mov [rsi].WSUB.flag,eax
-
-	.if panel_curobj(rdi)
-
-	    lea rcx,path
-	    strcpy(rcx, rax)
-	    wssort(rsi)
-	    .ifd wsearch(rsi, &path) != -1
-
-		mov ebx,eax
-		dlclose([rdi].PANEL.xl)
-		panel_setid(rdi, ebx)
-		.if rdi == cpanel
-		    pcell_show(rdi)
-		.endif
-	    .endif
-	.endif
-	panel_putitem(rdi, 0)
-	mov eax,1
+        mov ecx,esi
+        mov rdi,rax
+        mov rsi,[rax].PANEL.wsub
+        mov eax,[rsi].WSUB.flag
+        and eax,not (_W_SORTSIZE or _W_NOSORT)
+        or  eax,ecx
+        mov [rsi].WSUB.flag,eax
+        .if panel_curobj(rdi)
+            lea rcx,path
+            strcpy(rcx, rax)
+            wssort(rsi)
+            .ifd wsearch(rsi, &path) != -1
+                mov ebx,eax
+                dlclose([rdi].PANEL.xl)
+                panel_setid(rdi, ebx)
+                .if rdi == cpanel
+                    pcell_show(rdi)
+                .endif
+            .endif
+        .endif
+        panel_putitem(rdi, 0)
+        mov eax,1
     .endif
     ret
-
-cmsort endp
+    endp
 
 cmnosort proc private uses rbx panel:PPANEL
-
     .if panel_state(ldr(panel))
-
-	mov rbx,rax
-	mov rdx,[rax].PANEL.wsub
-	or [rdx].WSUB.flag,_W_NOSORT
-	panel_read(rax)
-	panel_putitem(rbx, 0)
-	mov eax,1
+        mov rbx,rax
+        mov rdx,[rax].PANEL.wsub
+        or [rdx].WSUB.flag,_W_NOSORT
+        panel_read(rax)
+        panel_putitem(rbx, 0)
+        mov eax,1
     .endif
     ret
-
-cmnosort endp
+    endp
 
 cmanosort proc
     .return cmnosort(panela)
-cmanosort endp
-
+    endp
 cmbnosort proc
     .return cmnosort(panelb)
-cmbnosort endp
-
+    endp
 cmcnosort proc
     .return cmnosort(cpanel)
-cmcnosort endp
-
+    endp
 cmadate proc
     .return cmsort(panela, _W_SORTDATE)
-cmadate endp
-
+    endp
 cmbdate proc
     .return cmsort(panelb, _W_SORTDATE)
-cmbdate endp
-
+    endp
 cmcdate proc
     .return cmsort(cpanel, _W_SORTDATE)
-cmcdate endp
-
+    endp
 cmatype proc
     .return cmsort(panela, _W_SORTTYPE)
-cmatype endp
-
+    endp
 cmbtype proc
     .return cmsort(panelb, _W_SORTTYPE)
-cmbtype endp
-
+    endp
 cmctype proc
     .return cmsort(cpanel, _W_SORTTYPE)
-cmctype endp
-
+    endp
 cmasize proc
     .return cmsort(panela, _W_SORTSIZE)
-cmasize endp
-
+    endp
 cmbsize proc
     .return cmsort(panelb, _W_SORTSIZE)
-cmbsize endp
-
+    endp
 cmcsize proc
     .return cmsort(cpanel, _W_SORTSIZE)
-cmcsize endp
-
+    endp
 cmaname proc
     .return cmsort(panela, _W_SORTNAME)
-cmaname endp
-
+    endp
 cmbname proc
     .return cmsort(panelb, _W_SORTNAME)
-cmbname endp
-
+    endp
 cmcname proc
     .return cmsort(cpanel, _W_SORTNAME)
-cmcname endp
+    endp
 
     END

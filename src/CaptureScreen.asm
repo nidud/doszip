@@ -24,30 +24,23 @@ define POPUPKEY (SHIFT_CTRLLEFT or SHIFT_LEFT)
     option proc:private
 
 bmp_event proc uses rsi rdi rbx
-
-   .new x:int_t
-   .new y:int_t
-
+    .new x:int_t
+    .new y:int_t
     .ifd ( oldevent() == MOUSECMD )
-
         mov edi,mousex()
         mov esi,mousey()
         mov rbx,tdialog
-
         movzx ecx,[rbx].DOBJ.rc.x
         movzx edx,[rbx].DOBJ.rc.y
         add ecx,21
         add edx,4
-
         mov x,ecx
         mov y,edx
         scputf(ecx, edx, 0, 0, "%d\n%d", edi, esi)
-
         sub x,21
         sub y,4
         mov edx,x
         mov ecx,y
-
         mov eax,MOUSECMD
         .if edi < edx || esi < ecx
             xor eax,eax
@@ -61,34 +54,25 @@ bmp_event proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-bmp_event endp
+    endp
 
 read_screen proc uses rsi rdi rbx
-
    .new retval:int_t = 0
-
     .if rsopen(IDD_SaveScreen)
-
         mov rbx,rax
         mov rdi,[rbx].DOBJ.object
         mov [rdi].TOBJ.data,&file
-
         strcpy( [rdi+TOBJ*1].TOBJ.data, "0")
         strcpy( [rdi+TOBJ*2].TOBJ.data, "0")
         sprintf([rdi+TOBJ*3].TOBJ.data, "%d", _scrcol)
-
         mov eax,_scrrow
         inc eax
         sprintf([rdi+TOBJ*4].TOBJ.data, "%d", eax)
         dlinit(rbx)
-
         mov rsi,tgetevent
         mov tgetevent,&bmp_event
         mov oldevent,rsi
-
         .if rsevent(IDD_SaveScreen, rbx)
-
             atol([rdi+TOBJ*1].TOBJ.data)
             mov cscr.rc.x,al
             atol([rdi+TOBJ*2].TOBJ.data)
@@ -102,34 +86,24 @@ read_screen proc uses rsi rdi rbx
         mov tgetevent,oldevent
         dlclose(rbx)
     .endif
-
     .if retval
-
         .if rcalloc(cscr.rc, 0)
-
             mov winp,rax
             rcread(cscr.rc, rax)
             mov eax,1
         .endif
     .endif
     .return(retval)
-
-read_screen endp
+    endp
 
 cmsavebmp proc
-
    .new p:PCHAR_INFO
-
     .ifs ( ioopen(&STDO, &file, M_WRONLY, 0x10000) > 0 )
-
         mov cscr.flag,0x8000
         mov cscr.count,0
         mov cscr.index,0
-
         .if iowrite(&STDO, &cscr, sizeof(cscr))
-
             .if rcalloc(cscr.rc, 0)
-
                 mov p,rax
                 rczip(cscr.rc, p, winp)
                 iowrite(&STDO, p, eax)
@@ -142,27 +116,20 @@ cmsavebmp proc
         eropen(&file)
     .endif
     ret
-
-cmsavebmp endp
+    endp
 
 
 TempIdle proc
-
     xor eax,eax
     ret
-
-TempIdle endp
+    endp
 
 
 MakeBMP proc uses rbx
-
     mov rbx,tdidle
     mov tdidle,&TempIdle
-
     .if read_screen()
-
         .if file
-
             cmsavebmp()
             stdmsg("Screen Saved", "Screen saved to:\n%s", &file)
         .endif
@@ -170,19 +137,14 @@ MakeBMP proc uses rbx
     .endif
     mov tdidle,rbx
     ret
-
-MakeBMP endp
+    endp
 
 CSIdle proc
-
     mov rax,keyshift
     mov eax,[rax]
     and eax,POPUPKEY
-
     .if ( eax == POPUPKEY )
-
         .if ( active == 0 )
-
             mov active,1
             MakeBMP()
         .endif
@@ -192,16 +154,13 @@ CSIdle proc
         idleh()
     .endif
     ret
-
-CSIdle endp
+    endp
 
 CaptureScreen proc public
-
     mov idleh,tdidle
     mov tdidle,&CSIdle
     ret
-
-CaptureScreen endp
+    endp
 
 endif
     END

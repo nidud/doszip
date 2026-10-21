@@ -1933,6 +1933,7 @@ tistyle proc private uses rsi rdi rbx ti:PTINFO, line_id:dword, line_ptr:LPSTR,
                             .continue .if al == 'l' ; ..UL[L]
                             inc rsi
                             .break .if al == 'h'    ; ..H
+                            .break .if al == 'r'    ; ..r
                             dec rsi
                             mov al,[rsi-1]
                             .break .if !( byte ptr [rbx+rax] & _UPPER or _LOWER )
@@ -4635,13 +4636,13 @@ ID_CLOSE        equ 19
 
     .code
 
-event_list proc private uses rsi rdi rbx
+event_list proc private uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
 
    .new x:int_t
    .new y:int_t
 
-    mov rsi,rax
-    mov rdi,rdx
+    ldr rsi,dlg
+    ldr rdi,lst
     dlinit(rsi)
 
     lea rax,[rsi+TOBJ]
@@ -4673,7 +4674,6 @@ event_list proc private uses rsi rdi rbx
             mov rdx,[rdi]
         .endif
         scpath(x, y, MAXOBJECTLEN, [rdx].TINFO.file)
-
         add rdi,size_t
         add rsi,TOBJ
         and [rsi].TOBJ.flag,not _O_STATE
@@ -4681,8 +4681,7 @@ event_list proc private uses rsi rdi rbx
         dec ebx
     .endw
     .return( 1 )
-
-event_list endp
+    endp
 
 tdlgopen proc uses rsi rdi rbx
 
@@ -4759,8 +4758,7 @@ tdlgopen proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-tdlgopen endp
+    endp
 
 twindows proc private
     .switch tdlgopen()
@@ -4775,7 +4773,7 @@ twindows proc private
         mov tinfo,titogglefile(tinfo, rax)
     .endsw
     ret
-twindows endp
+    endp
 
     assume rsi:PTINFO
 
@@ -4813,8 +4811,7 @@ twindowsize proc private uses rsi rdi rbx
         .endif
     .endif
     ret
-
-twindowsize endp
+    endp
 
     assume rbx:PTINFO
 
@@ -4858,31 +4855,23 @@ tiseto proc private uses rsi rdi rbx ti:PTINFO
     .endif
     mov rdx,rbx
     ret
-
-tiseto endp
+    endp
 
 tireload proc private uses rbx ti:PTINFO
-
     ldr rbx,ti
-
     .if [rbx].flags & _T_MODIFIED
-
         .if !rsmodal(IDD_TEReload2)
-
             .return
         .endif
     .endif
-
     timemzero(rbx)
     .if tiread(rbx)
-
         tiseto(rbx)
         tiputs(rbx)
         mov eax,1
     .endif
     ret
-
-tireload endp
+    endp
 
     assume rbx:nothing
 
@@ -4939,8 +4928,7 @@ toption proc uses rbx
         mov eax,ebx
     .endif
     ret
-
-toption endp
+    endp
 
     assume rdx:PTINFO
 
@@ -4949,10 +4937,8 @@ tioption proc private uses rsi rdi ti:PTINFO
     ldr rdx,ti
     mov esi,titabsize
     mov edi,tiflags
-
     mov eax,[rdx].flags
     mov tiflags,eax
-
     mov eax,[rdx].tabsize
     mov titabsize,eax
 
@@ -4994,28 +4980,22 @@ tioption proc private uses rsi rdi ti:PTINFO
         .endif
     .until 1
     ret
-
-tioption endp
+    endp
 
     assume rdx:nothing
 
 tisaveas proc private uses rsi ti:PTINFO
-
     ldr rsi,ti
-
     .if tigetfilename(rsi)
-
         tiflush(rsi)
-
         xor [rsi].TINFO.flags,_T_USEMENUS
         titogglemenus(rsi)
     .endif
     xor eax,eax
     ret
-tisaveas endp
+    endp
 
 tisearchsetoff proc private ti:PTINFO
-
     .if sflag & IO_SEARCHSET
         xor eax,eax
         mov tisearch_off,eax
@@ -5030,26 +5010,19 @@ tisearchsetoff proc private ti:PTINFO
         mov tisearch_line,eax
     .endif
     ret
-
-tisearchsetoff endp
+    endp
 
 tisearchcontinue proc private uses rsi rdi rbx clear_selection:UINT, ti:PTINFO
-
     local offs:UINT
-
     .if !strlen(&searchstring)
-
         dec eax
     .else
-
         mov rdx,ti
         mov esi,eax
-
         tisearchsetoff(rdx)
         and sflag,not IO_SEARCHSET
         mov eax,tisearch_line
         mov ebx,eax
-
         .if !tigetline(ti, eax)
             dec rax
         .else
@@ -5110,23 +5083,18 @@ tisearchcontinue proc private uses rsi rdi rbx clear_selection:UINT, ti:PTINFO
         .endif
     .endif
     ret
-
-tisearchcontinue endp
+    endp
 
 ticontsearch proc private uses rbx ti:PTINFO
-
     mov ebx,fsflag
     tisearchcontinue(1, ti)
     mov fsflag,ebx
     xor eax,eax
     ret
-
-ticontsearch endp
+    endp
 
 tisearch proc private ti:PTINFO
-
     .if cmsearchidd(fsflag)
-
         mov eax,fsflag
         and eax,not IO_SEARCHMASK
         and edx,IO_SEARCHMASK
@@ -5136,20 +5104,16 @@ tisearch proc private ti:PTINFO
         ticontsearch(ti)
     .endif
     ret
-
-tisearch endp
+    endp
 
 tisearchxy proc private ti:PTINFO
-
   local linebuf[256]:byte
-
     .if scgetword(&linebuf)
-
         strcpy(&searchstring, rax)
         tisearch(ti)
     .endif
     ret
-tisearchxy endp
+    endp
 
 ;-----------------------------------------------------------------------------
 ; Replace
@@ -5160,27 +5124,21 @@ ID_ALL  equ 2
 ID_NO   equ 3
 
 iddreplaceprompt proc private uses rbx ti:PTINFO
-
     mov eax,1
     ldr rbx,ti
-
     .if [rbx].TINFO.flags & _T_PROMPTONREP
-
         .if rsmodal(IDD_ReplacePrompt)
-
             lea edx,[rax-1]
             mov rbx,IDD_ReplacePrompt
             mov [rbx].RIDD.index,dl
             mov rbx,ti
-
             .if eax == ID_ALL
                 xor [rbx].TINFO.flags,_T_PROMPTONREP
             .endif
         .endif
     .endif
     ret
-
-iddreplaceprompt endp
+    endp
 
 ID_OLDSTRING    equ 1*TOBJ
 ID_NEWSTRING    equ 2*TOBJ
@@ -5247,8 +5205,7 @@ iddreplace proc private uses rsi rbx
         mov edx,ebx
     .endif
     ret
-
-iddreplace endp
+    endp
 
 tireplace proc private uses rsi rdi rbx ti:PTINFO
 
@@ -5282,7 +5239,7 @@ tireplace proc private uses rsi rdi rbx ti:PTINFO
     ticlipset(rsi)
     xor eax,eax
     ret
-tireplace endp
+    endp
 
 tihandler proc private uses rsi
 
@@ -5363,44 +5320,31 @@ toggle:
 return:
     mov eax,_TI_RETEVENT
     jmp toend
-
-tihandler endp
+    endp
 
 tevent proc private uses rsi rdi
-
     mov rsi,tinfo
-
     .while 1
-
         tiseto(rsi)
         tiputs(rsi)
-
         .while 1
-
             .if tiftime(rsi)
-
                 .if ( eax != [rsi].time )
-
                     .if rsmodal(IDD_TEReload)
-
                         timemzero(rsi)
                         tiread(rsi)
-
                         mov edi,KEY_ESC
                         .break( 1 ) .if !eax
-
                         tiseto(rsi)
                         tiputs(rsi)
                     .endif
                 .endif
             .endif
-
             timenus(rsi)
             tgetevent()
             mov edi,eax
             tihandler()
             mov rsi,tinfo
-
             .break .if eax == _TI_NOTEVENT
             .break(1) .if eax == _TI_RETEVENT
         .endw
@@ -5409,8 +5353,7 @@ tevent proc private uses rsi rdi
     mov rdx,rsi
     mov eax,edi
     ret
-
-tevent endp
+    endp
 
 tmodal proc uses rsi rdi rbx
 
@@ -5446,18 +5389,14 @@ tmodal proc uses rsi rdi rbx
         mov eax,edi     ; returned key value
     .endif
     ret
-
-tmodal endp
+    endp
 
 tedit proc fname:LPSTR, line:UINT
-
     .if topen(fname, 0)
-
         tialigny(tinfo, line)
         tmodal()
     .endif
     ret
-
-tedit endp
+    endp
 
     end

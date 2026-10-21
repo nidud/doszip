@@ -26,19 +26,16 @@ include time.inc
     ID_CANCEL
     }
 
-    .data
-
-filter_keys GLCMD \
+.data
+ filter_keys GLCMD \
         { KEY_F3, cmfilter_load },
         { KEY_F4, cmfilter_date },
         { 0, NULL }
 
-    .code
+.code
 
 cmfilter_load proc uses rsi rdi rbx
-
   local filt[FILT_MAXSTRING]:byte
-
     mov rbx,tdialog
     mov rax,IDD_DZFindFile
     mov dl,[rax].RIDD.count
@@ -50,11 +47,8 @@ cmfilter_load proc uses rsi rdi rbx
         .endif
     .endif
     mov esi,tools_idd(128, &filt, "Filter")
-
     msloop()
-
     .if ( esi && esi != MOUSECMD )
-
         mov eax,edi
         .if [rbx].DOBJ.index != al
             mov [rbx].DOBJ.index,ah
@@ -66,51 +60,39 @@ cmfilter_load proc uses rsi rdi rbx
         dlinit(rbx)
     .endif
     .return(_C_NORMAL)
-
-cmfilter_load endp
+    endp
 
 
 cmfilter_date proc private uses rdi rbx
-
     mov rdi,tdialog
     mov al,[rdi].DOBJ.index
     .if al != 2 && al != 3
         mov [rdi].DOBJ.index,2
     .endif
-
     .ifd cmcalendar()
-
         mov   ebx,eax
         movzx eax,[rdi].DOBJ.index
         inc   eax
         imul  eax,eax,TOBJ
         add   rax,rdi
-
         sprintf([rax].TOBJ.data, "%02u.%02u.%02u", edx, ebx, ecx)
         dlinit(rdi)
     .endif
     .return(_C_NORMAL)
-
-cmfilter_date endp
+    endp
 
 
 TDateToString proc private string:ptr sbyte, tptr:time_t
-
   local SystemTime:SYSTEMTIME
-
     TimeToSystemTime(tptr, &SystemTime)
     SystemDateToStringA(string, &SystemTime)
     ret
-
-TDateToString endp
+    endp
 
 
 atodate proc private string:ptr sbyte
-
   local SystemTime:SYSTEMTIME
-
     StringToSystemDateA(string, &SystemTime)
-
     movzx eax,SystemTime.wYear
     movzx edx,SystemTime.wMonth
     movzx ecx,SystemTime.wDay
@@ -129,12 +111,10 @@ atodate proc private string:ptr sbyte
         shl eax,16          ; <date>:<time>
     .endif
     ret
-
-atodate endp
+    endp
 
 
 event_clear proc private uses rsi
-
     mov rsi,tdialog
     xor eax,eax
     mov rdx,[rsi].TOBJ.data[ID_MIN_DATE]
@@ -154,16 +134,13 @@ event_clear proc private uses rsi
     tosetbitflag(rax, 6, _O_FLAGB, 0xFFFFFFFF)
     mov eax,_C_REOPEN
     ret
-
-event_clear endp
+    endp
 
 
 event_help proc private
-
     view_readme(HELPID_12)
     ret
-
-event_help endp
+    endp
 
 
 filter_edit proc private uses rsi rdi rbx filt:PFILTER, glcmd:ptr GLCMD
@@ -207,7 +184,6 @@ filter_edit proc private uses rsi rdi rbx filt:PFILTER, glcmd:ptr GLCMD
         dlinit(rdi)
         mov ebx,rsevent(IDD_OperationFilters, rdi)
         dlclose(rdi)
-
         mov thelp,ohelp
         .if ebx
             togetbitflag(&[rdi][ID_RDONLY], 6, _O_FLAGB)
@@ -227,15 +203,11 @@ filter_edit proc private uses rsi rdi rbx filt:PFILTER, glcmd:ptr GLCMD
         mov filter,rax
     .endif
     ret
-
-filter_edit endp
-
+    endp
 
 cmfilter proc
-
     filter_edit(&opfilter, &filter_keys)
     ret
-
-cmfilter endp
+    endp
 
     END

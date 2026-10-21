@@ -3,11 +3,11 @@
 
 include doszip.inc
 
-    .code
+.code
 
 cmuserscreen proc
     consuser()
     ret
-cmuserscreen endp
+    endp
 
     END

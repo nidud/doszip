@@ -3,10 +3,9 @@
 
 include doszip.inc
 
-    .code
+.code
 
 cmwideview proc fastcall private panel:PPANEL
-
     mov rdx,[rcx].PANEL.wsub
     mov eax,[rdx].WSUB.flag
     and eax,not _W_DETAIL
@@ -14,19 +13,18 @@ cmwideview proc fastcall private panel:PPANEL
     mov [rdx].WSUB.flag,eax
     panel_redraw(rcx)
     ret
-
-cmwideview endp
+    endp
 
 cmawideview proc
     .return cmwideview(panela)
-cmawideview endp
+    endp
 
 cmbwideview proc
     .return cmwideview(panelb)
-cmbwideview endp
+    endp
 
 cmcwideview proc
     .return cmwideview(cpanel)
-cmcwideview endp
+    endp
 
     END

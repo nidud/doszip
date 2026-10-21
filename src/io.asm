@@ -111,10 +111,8 @@ endif
     assume rbx:PIOST
 
 ioinit proc uses rsi rdi rbx io:PIOST, bsize:DWORD
-
     ldr rbx,io
     ldr esi,bsize
-
     mov edx,[rbx].file
     mov rdi,rbx
     mov ecx,IOST
@@ -122,32 +120,21 @@ ioinit proc uses rsi rdi rbx io:PIOST, bsize:DWORD
     rep stosb
     mov [rbx].file,edx
     dec [rbx].crc       ; CRC to FFFFFFFFh
-
     .if ( esi == OO_MEM64K )
-
         mov [rbx].size,esi
-
         _aligned_malloc(_SEGSIZE_, _SEGSIZE_)
-
     .else
-
         mov ecx,esi
         .if ( ecx == 0 )
-
             mov ecx,OO_MEM64K
         .endif
         mov [rbx].size,ecx
-
         .if malloc(ecx) && !esi
-
             mov [rbx].base,rax
             ioread(rbx)
-
             _filelength([rbx].file)
-
             stq [rbx].fsize
             .if ( dword ptr [rbx].fsize[4] == 0 && eax <= [rbx].cnt )
-
                 or [rbx].flag,IO_MEMBUF
             .endif
             mov rax,[rbx].base
@@ -155,11 +142,9 @@ ioinit proc uses rsi rdi rbx io:PIOST, bsize:DWORD
     .endif
     mov [rbx].base,rax
     ret
-
-ioinit endp
+    endp
 
 ioopen proc uses rbx io:PIOST, file:LPSTR, mode:DWORD, bsize:DWORD
-
     ldr rbx,io
     .if ( mode == M_RDONLY )
         openfile(file, mode, A_OPEN)
@@ -167,10 +152,8 @@ ioopen proc uses rbx io:PIOST, file:LPSTR, mode:DWORD, bsize:DWORD
         ogetouth(file, mode)
     .endif
     .ifs ( eax > 0 ) ; -1, 0 (error, cancel), or handle
-
         mov [rbx].IOST.file,eax
         .ifd !ioinit(rbx, bsize)
-
             _close([rbx].file)
             enomem()
             xor eax,eax
@@ -179,22 +162,18 @@ ioopen proc uses rbx io:PIOST, file:LPSTR, mode:DWORD, bsize:DWORD
         .endif
     .endif
     ret
-
-ioopen endp
+    endp
 
     assume rcx:PIOST
 
 iofree proc fastcall io:PIOST
-
     mov rax,[rcx].base
     mov [rcx].base,0
     free(rax)
     ret
-
-iofree endp
+    endp
 
 ioclose proc uses rbx io:PIOST
-
     ldr rbx,io
     mov ecx,[rbx].file
     .if ecx != -1
@@ -202,11 +181,9 @@ ioclose proc uses rbx io:PIOST
     .endif
     iofree(rbx)
     ret
-
-ioclose endp
+    endp
 
 iotell proc fastcall io:PIOST
-
     ldq [rcx].total
     mov ecx,[rcx].index
     add rax,rcx
@@ -214,60 +191,41 @@ ifndef _WIN64
     adc edx,0
 endif
     ret
-
-iotell endp
+    endp
 
 ioseek proc uses rbx io:PIOST, offs:qword, from:DWORD
-
     ldr rbx,io
     ldq offs
-
     .if ( from == SEEK_CUR )
-
         mov ecx,[rbx].cnt
         sub ecx,[rbx].index
-
         .if ( rcx >= rax )
-
             add [rbx].index,eax
            .return
         .endif
-
     .elseif ( [rbx].flag & IO_MEMBUF )
-
         .if ( eax > [rbx].cnt )
-
             .return( -1 )
         .endif
-
         mov [rbx].index,eax
         stq [rbx].offs
        .return
     .endif
-
     .if ( _lseeki64( [rbx].file, _ARGQ, from ) != -1 )
-
         stq [rbx].offs
         mov [rbx].index,0
         mov [rbx].cnt,0
     .endif
     ret
-
-ioseek endp
+    endp
 
 iogetc proc private uses rbx io:PIOST
-
     ldr rbx,io
     mov eax,[rbx].index
-
     .if ( eax == [rbx].cnt )
-
         .while 1
-
             .if !( [rbx].flag & IO_MEMBUF )
-
                 .ifd ioread(rbx)
-
                     mov eax,[rbx].index
                    .break
                 .endif
@@ -279,31 +237,24 @@ iogetc proc private uses rbx io:PIOST
     add rax,[rbx].base
     movzx eax,byte ptr [rax]
     ret
-
-iogetc endp
+    endp
 
 ioputc proc private uses rbx io:PIOST, c:int_t
-
     ldr rbx,io
     mov ecx,[rbx].index
-
     .if ( ecx == [rbx].size )
-
         .ifd ( ioflush(rbx) == 0 )
-
             .return 0
         .endif
         mov ecx,[rbx].index
     .endif
-
     mov eax,c
     add rcx,[rbx].base
     inc [rbx].index
     mov [rcx],al
     mov eax,1
     ret
-
-ioputc endp
+    endp
 
     assume rsi:PIOST
     assume rdi:PIOST
@@ -330,7 +281,6 @@ endif
     sub eax,[rsi].index
     .ifz
         .ifd ( iogetc(rsi) == -1 )
-
             .return( 0 )
         .endif
         dec [rsi].index
@@ -363,41 +313,30 @@ endif
     add  [rdi].index,eax
     add  [rsi].index,eax
     mov  edx,dword ptr len[4]
-
     sub ebx,eax
     sbb edx,0
     .if ( edx == 0 && ebx == 0 )
-
         .return( 1 )
     .endif
-
     mov eax,[rsi].cnt
     .if eax
-
         sub eax,[rsi].index ; flush inbuf
         .ifnz
-
             .repeat
-
                 mov   eax,[rsi].index
                 inc   [rsi].index
                 add   rax,[rsi].base
                 movzx eax,byte ptr [rax]
                 mov   szh,edx
-
                 .ifd ( ioputc(rdi, eax) == 0 )
-
                     .return
                 .endif
-
                 mov edx,szh
                 sub ebx,eax
                 sbb edx,0
                 .if ( edx == 0 && ebx == 0 ) ; success if zero (inbuf > len)
-
                     .return( 1 )
                 .endif
-
                 mov eax,[rsi].index
                 ;
                 ; do byte copy from STDI to STDO
@@ -405,74 +344,58 @@ endif
             .until ( eax == [rsi].cnt )
         .endif
     .endif
-
     mov szh,edx
     .ifd ( ioflush(rdi) == 0 ) ; flush STDO
-
         .return( 0 )
     .endif
-
     ;
     ; do block copy of bytes left
     ;
-
     mov base,[rdi].base
     mov size,[rdi].size
     mov [rdi].base,[rsi].base
     mov [rdi].size,[rsi].size
-
     .repeat
-
         .ifd ( ioread(rsi) == 0 )
-
             .break .if szh
             .break .if ebx
             inc eax
            .break
         .endif
-
         mov eax,[rsi].cnt
         .if ( szh == 0 && eax >= ebx )
-
             mov [rsi].index,ebx
             mov [rdi].index,ebx
             ioflush(rdi)
            .break
         .endif
-
         sub ebx,eax
         sbb szh,0
         mov [rdi].index,eax     ; fill STDO
         mov [rsi].index,eax     ; flush STDI
         ioflush(rdi)            ; flush STDO
     .until eax == 0             ; copy next block
-
     mov rcx,base
     mov [rdi].base,rcx
     mov ecx,size
     mov [rdi].size,ecx
     ret
-
-iocopy endp
+    endp
 
     assume rsi:nothing
     assume rdi:nothing
 
 ioread proc uses rsi rdi rbx io:PIOST
-
     ldr rbx,io
     mov esi,[rbx].flag
     xor eax,eax
     .if ( esi & IO_MEMBUF )
-
         .return
     .endif
-
     mov edi,[rbx].cnt
     sub edi,[rbx].index
     .ifnz
         .if ( edi == [rbx].cnt )
-
             .return
         .endif
         mov eax,[rbx].index
@@ -488,11 +411,9 @@ ioread proc uses rsi rdi rbx io:PIOST
     mov eax,edi
     add rax,[rbx].base
     osread([rbx].file, rax, ecx)
-
     add [rbx].cnt,eax
     add eax,edi
     .return .ifz
-
     and esi,IO_UPDTOTAL or IO_USECRC or IO_USEUPD
     .ifz
         .return .if eax
@@ -506,17 +427,12 @@ else
         adc dword ptr [rbx].total[4],0
 endif
     .endif
-
     .if ( esi & IO_USECRC )
-
         push rax
         push rsi
-
         lea rsi,crctab
         add rdi,[rbx].base
-
         .for ( ecx = [rbx].crc, edx = 0 : eax : eax-- )
-
             mov dl,cl
             xor dl,[rdi]
             shr ecx,8
@@ -527,12 +443,9 @@ endif
         pop rsi
         pop rax
     .endif
-
     .if ( esi & IO_USEUPD )
-
         mov edi,eax
         .ifd ( oupdate(rbx) == 0 )
-
             _dosmaperr( GetLastError() )
             or [rbx].flag,IO_ERROR
             xor edi,edi
@@ -540,32 +453,24 @@ endif
         mov eax,edi
     .endif
     ret
-
-ioread endp
+    endp
 
 iowrite proc uses rsi rdi rbx io:PIOST, buf:ptr, len:size_t
-
    .new count:DWORD = 0
-
     ldr rsi,buf
     ldr rbx,io
-
     .repeat
-
         mov rcx,len
         mov edi,[rbx].index
         mov eax,[rbx].size
         sub eax,edi
         add rdi,[rbx].base
-
         .if ( eax < ecx )
-
             add [rbx].index,eax
             sub len,rax
             mov rcx,rax
             add count,eax
             rep movsb
-
            .return .ifd !ioflush(rbx)
            .continue( 0 )
         .endif
@@ -575,24 +480,18 @@ iowrite proc uses rsi rdi rbx io:PIOST, buf:ptr, len:size_t
     .until 1
     mov eax,count
     ret
-
-iowrite endp
+    endp
 
 ioflush proc uses rsi rdi rbx io:PIOST
-
     ldr rbx,io
     mov eax,1
     mov ecx,[rbx].index
     .if ecx
-
         .if ( [rbx].flag & IO_USECRC )
-
             mov rdi,[rbx].base
             lea rsi,crctab
             mov eax,ecx
-
             .for ( ecx = [rbx].crc, edx = 0 : eax : eax-- )
-
                 mov dl,cl
                 xor dl,[rdi]
                 shr ecx,8
@@ -601,7 +500,6 @@ ioflush proc uses rsi rdi rbx io:PIOST
             .endf
             mov [rbx].crc,ecx
         .endif
-
         .ifd ( oswrite([rbx].file, [rbx].base, [rbx].index) == [rbx].index )
 ifdef _WIN64
             add [rbx].total,rax
@@ -613,7 +511,6 @@ endif
             mov [rbx].index,0
             mov eax,1
             .if ( [rbx].flag & IO_USEUPD )
-
                 oupdate(rbx)
             .endif
         .else
@@ -621,33 +518,24 @@ endif
         .endif
     .endif
     ret
-
-ioflush endp
-
+    endp
 
 ogetc proc
-
     .return iogetc(&STDI)
-
-ogetc endp
+    endp
 
 oseek proc uses rsi rdi offs:size_t, from:DWORD
-
     ldr rax,offs
 ifdef _WIN64
     .if ( ioseek(&STDI, rax, from) != -1 )
-
         .if !( STDI.flag & IO_MEMBUF )
-
             mov rsi,rax
             ioread(&STDI)
             mov rax,rsi
 else
     xor edx,edx
     .if ( ioseek(&STDI, edx::eax, from) != -1 )
-
         .if !( STDI.flag & IO_MEMBUF )
-
             mov esi,eax
             mov edi,edx
             ioread(&STDI)
@@ -657,18 +545,14 @@ endif
         .endif
     .endif
     ret
-
-oseek endp
+    endp
 
 
 oread proc size:DWORD
-
     mov ecx,STDI.cnt
     sub ecx,STDI.index
     .if ( ecx < size )
-
         .ifd !ioread( &STDI )
-
             .return
         .endif
         mov ecx,STDI.cnt
@@ -680,25 +564,18 @@ oread proc size:DWORD
     mov eax,STDI.index
     add rax,STDI.base
     ret
-
-oread endp
+    endp
 
 
 oreadb proc uses rsi rdi rbx b:LPSTR, size:DWORD
-
     ldr rdi,b
     ldr ebx,size
-
     .ifd oread(ebx)
-
         memcpy(rdi, rax, ebx)
         mov eax,ebx
-
     .else
-
         xor esi,esi
         .while ( esi < ebx )
-
             .break .ifd ( ogetc() == -1 )
             stosb
             inc esi
@@ -706,55 +583,41 @@ oreadb proc uses rsi rdi rbx b:LPSTR, size:DWORD
         mov eax,esi
     .endif
     ret
-
-oreadb endp
+    endp
 
 
 oputc proc uses rbx c:SINT
-
     mov ebx,STDO.index
     .if ebx == STDO.size
-
         .ifd !ioflush(&STDO)
-
             .return
         .endif
         mov ebx,STDO.index
     .endif
-
     mov eax,c
     add rbx,STDO.base
     inc STDO.index
     mov [rbx],al
     mov eax,1
     ret
-
-oputc endp
+    endp
 
 
 oungetc proc uses rbx
-
     .while 1
-
         mov eax,STDI.index
         .if eax
-
             dec STDI.index
             add rax,STDI.base
             movzx eax,byte ptr [rax-1]
            .return
         .endif
-
         .if STDI.flag & IO_MEMBUF
-
             .return -1
         .endif
-
         .if _lseeki64(STDI.file, 0, SEEK_CUR) == -1
-
             .return .if edx == -1
         .endif
-
         mov ebx,STDI.cnt  ; last read size to CX
         .if ebx > eax
             ;
@@ -764,69 +627,51 @@ oungetc proc uses rbx
            .return -1
         .endif
         .return -1 .ifz ; EOF == top of file
-
         .if eax == STDI.size && dword ptr STDI.offs == 0
-
             .return -1
         .endif
-
         sub eax,ebx ; adjust offset to start
         mov ebx,STDI.size
         .if ebx >= eax
-
             mov ebx,eax
             xor eax,eax
         .else
             sub eax,ebx
         .endif
-
         .if oseek(eax, SEEK_SET) == -1
-
             .return
         .endif
-
         mov eax,ebx
         .if eax > STDI.cnt
-
             or STDI.flag,IO_ERROR
            .return -1
         .endif
-
         mov STDI.cnt,eax
         mov STDI.index,eax
     .endw
     ret
-
-oungetc endp
+    endp
 
 
 openfile proc fname:LPSTR, mode:uint_t, action:uint_t
-
     .ifd osopen(fname, _FA_NORMAL, mode, action) == -1
-
         eropen(fname)
     .endif
     ret
-
-openfile endp
+    endp
 
 
 ogetouth proc filename:LPSTR, mode:uint_t
-
     .ifd osopen(filename, _FA_NORMAL, mode, A_CREATE) != -1
-
         .return
     .endif
     .if ( _get_errno(NULL) != EEXIST )
         .return eropen(filename)
     .endif
-
     mov eax,CONFIRM_DELETE
     .if confirmflag & CFDELETEALL
-
         confirm_delete(filename, 0)
     .endif
-
     .switch eax
     .case CONFIRM_JUMP
         .return 0
@@ -837,20 +682,15 @@ ogetouth proc filename:LPSTR, mode:uint_t
         .return openfile(filename, mode, A_TRUNC)
     .endsw
     .return( -1 )
-
-ogetouth endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 readword proc file:LPSTR
-
    .new result:int_t, h:int_t, len:int_t
-
     .ifd ( osopen(file, 0, M_RDONLY, A_OPEN) == -1 )
-
         .return( 0 )
     .endif
-
     mov h,eax
     mov len,osread(h, &result, 4)
     _close(h)
@@ -859,20 +699,15 @@ readword proc file:LPSTR
         mov eax,result
     .endif
     ret
-
-readword endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ogetl proc filename:LPSTR, buffer:LPSTR, bsize
-
     memset(&STDI, 0, sizeof(IOST))
-
     .ifd osopen(filename, _FA_NORMAL, M_RDONLY, A_OPEN) != -1
-
         mov STDI.file,eax
         .if malloc(OO_MEM64K)
-
             mov STDI.base,rax
             mov STDI.size,OO_MEM64K
             mov STDI.line,bsize
@@ -885,22 +720,16 @@ ogetl proc filename:LPSTR, buffer:LPSTR, bsize
         xor eax,eax
     .endif
     ret
-ogetl endp
+    endp
 
 ogets proc uses rdi
-
     mov rdi,STDI.sptr
     mov ecx,STDI.line
-
     .repeat
-
         sub ecx,2
-
         .break .ifd ogetc() == -1
         .repeat
-
             .if al == 0x0D
-
                 ogetc()
                .break(1)
             .endif
@@ -914,7 +743,6 @@ ogets proc uses rdi
         .until eax == -1
         inc al
     .until 1
-
     mov eax,0
     mov [rdi],al
     .ifnz
@@ -924,8 +752,7 @@ ogets proc uses rdi
         mov eax,1
     .endif
     ret
-
-ogets endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1090,8 +917,7 @@ endif
        .break
     .endw
     ret
-
-SearchText endp
+    endp
 
 SearchHex proc private uses rsi rdi rbx pos:qword
 
@@ -1238,21 +1064,18 @@ endif
         sub STDI.index,eax
     .endw
     ret
-
-SearchHex endp
+    endp
 
 osearch proc
 ifdef _WIN64
     mov rax,STDI.offs
     mov ecx,STDI.flag
     and STDI.flag,not (IO_SEARCHSET or IO_SEARCHCUR)
-
     .if ecx & IO_SEARCHSET
         xor eax,eax
     .elseif !(ecx & IO_SEARCHCUR)
         add rax,1 ; offset++ (continue)
     .endif
-
     ioseek(&STDI, rax, SEEK_SET)
     .if eax != -1
         .if STDI.flag & IO_SEARCHHEX
@@ -1261,13 +1084,11 @@ ifdef _WIN64
             SearchText(rax)
         .endif
     .endif
-
 else
     mov eax,STDI.offs_l
     mov edx,STDI.offs_h
     mov ecx,STDI.flag
     and STDI.flag,not (IO_SEARCHSET or IO_SEARCHCUR)
-
     .if ecx & IO_SEARCHSET
         xor eax,eax
         xor edx,edx
@@ -1275,7 +1096,6 @@ else
         add eax,1       ; offset++ (continue)
         adc edx,0
     .endif
-
     ioseek(&STDI, edx::eax, SEEK_SET)
     .if eax != -1
         .if STDI.flag & IO_SEARCHHEX
@@ -1286,7 +1106,6 @@ else
     .endif
 endif
     ret
-
-osearch endp
+    endp
 
     end

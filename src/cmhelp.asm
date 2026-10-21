@@ -8,11 +8,9 @@ include stdlib.inc
 
 %define BUILD_DATE <"&@Date">
 
-    .data
-
-DZ_TXTFILE char_t DOSZIP_TXTFILE,0
-
-Offset_README uint_t \
+.data
+ DZ_TXTFILE char_t DOSZIP_TXTFILE,0
+ Offset_README uint_t \
     0,          ; DZ_TXTFILE
     HELPID_02,  ; Compress
     HELPID_03,  ; View
@@ -25,28 +23,21 @@ Offset_README uint_t \
     HELPID_12,  ; Filter
     HELPID_13   ; Shortkey
 
-    .code
+.code
 
 view_doszip proc private file:LPSTR, offs:uint_t
-
   local path[_MAX_PATH]:byte
-
     tview(strfcat(&path, _pgmpath, file), offs)
     ret
-
-view_doszip endp
-
+    endp
 
 view_readme proc offs:uint_t
-
     and tvflag,not _TV_HEXVIEW
     view_doszip(&DZ_TXTFILE, offs)
     ret
-
-view_readme endp
+    endp
 
 cmabout proc
-
     stdmsg(
         "About",
         " The Doszip Commander Version %d.%02d" DOSZIP_VSTRPRE "\n"
@@ -57,21 +48,15 @@ cmabout proc
         "\n"
         " Build Date: " BUILD_DATE, VERSION / 100, VERSION mod 100 )
     ret
-
-cmabout endp
-
+    endp
 
 cmhelp proc uses rsi rdi
-
     .if rsopen(IDD_DZHelp)
-
         mov rdi,rax
         mov [rdi].TOBJ.tproc[13*TOBJ],&cmabout
         mov rsi,thelp
         mov thelp,&cmabout
-
         .while rsevent(IDD_DZHelp, rdi)
-
             dec eax
             lea rcx,Offset_README
             mov eax,[rcx+rax*4]
@@ -82,7 +67,6 @@ cmhelp proc uses rsi rdi
         mov eax,1
     .endif
     ret
-
-cmhelp endp
+    endp
 
     end

@@ -308,6 +308,8 @@ object		PTOBJ ?
 DOBJ		ends
 PDOBJ		typedef ptr DOBJ
 
+CALLBACKC(LPROC, :PTR, :PTR)
+
 LOBJ		struct
 dlgoff		UINT ?	; start index in dialog
 dcount		UINT ?	; number of cells (max)
@@ -316,7 +318,7 @@ numcel		UINT ?	; number of visible cells
 count		UINT ?	; total number of items in list
 index		UINT ?	; index in list buffer
 list		PVOID ? ; pointer to list buffer
-lproc		DPROC ?
+lproc		LPROC ?
 LOBJ		ends
 PLOBJ		typedef ptr LOBJ
 

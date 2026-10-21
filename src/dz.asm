@@ -33,9 +33,7 @@ doszip_close    proto
 define DZ_CLOSE_EVENT 7
 
 CtrlHandler proc private EventCode:UINT
-
     ldr ecx,EventCode
-
     .switch ecx
     .case CTRL_C_EVENT
     .case CTRL_BREAK_EVENT
@@ -57,8 +55,7 @@ ifdef _WIN64
 endif
     xor eax,eax
     ret
-
-CtrlHandler endp
+    endp
 
 
 if defined(_WIN64) and not defined(__DEBUG__)
@@ -184,8 +181,7 @@ _exception_handler proc \
 
     osread( 0, &string, 1 )
     exit( 1 )
-
-_exception_handler endp
+    endp
 
 main proc frame:_exception_handler argc:int_t, argv:array_t
 
@@ -289,8 +285,7 @@ endif
         CtrlHandler(DZ_CLOSE_EVENT)
     .endif
     ret
-
-main endp
+    endp
 
 include oldapi.inc
 

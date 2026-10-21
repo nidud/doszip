@@ -6,13 +6,11 @@ include doszip.inc
     .code
 
 cmclrcmdl proc
-
     .if cflag & _C_ESCUSERSCR
-	cmtoggleon()
+        cmtoggleon()
     .endif
     clrcmdl()
     ret
-
-cmclrcmdl endp
+    endp
 
     END

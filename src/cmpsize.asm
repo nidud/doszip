@@ -6,7 +6,6 @@ include doszip.inc
     .code
 
 cmpsizeup proc
-
     mov rdx,panela
     mov rdx,[rdx].PANEL.dialog
     mov al,9
@@ -19,19 +18,15 @@ cmpsizeup proc
         redraw_panels()
     .endif
     ret
-
-cmpsizeup endp
+    endp
 
 cmpsizedn proc
-
     xor eax,eax
     .if eax != config.c_panelsize
-
         dec config.c_panelsize
         redraw_panels()
     .endif
     ret
-
-cmpsizedn endp
+    endp
 
     END

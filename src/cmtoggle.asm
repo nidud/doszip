@@ -8,15 +8,14 @@ include doszip.inc
 cmatoggle proc
     panel_toggle(panela)
     ret
-cmatoggle endp
+    endp
 
 cmbtoggle proc
     panel_toggle(panelb)
     ret
-cmbtoggle endp
+    endp
 
 cmtoggleon proc uses rsi rdi
-
     mov esi,panel_state(panela)
     mov edi,panel_state(panelb)
     .if !edi && esi
@@ -44,7 +43,7 @@ cmtoggleon proc uses rsi rdi
     .endif
     xor eax,eax
     ret
-cmtoggleon endp
+    endp
 
 cmtogglehz proc
     mov eax,config.c_panelsize
@@ -62,7 +61,7 @@ cmtogglehz proc
     mov config.c_panelsize,eax
     redraw_panels()
     ret
-cmtogglehz endp
+    endp
 
 cmtogglesz proc
     xor eax,eax
@@ -74,24 +73,24 @@ cmtogglesz proc
     mov config.c_panelsize,eax
     redraw_panels()
     ret
-cmtogglesz endp
+    endp
 
 cmxorcmdline proc
     xor cflag,_C_COMMANDLINE
     apiupdate()
     ret
-cmxorcmdline endp
+    endp
 
 cmxorkeybar proc
     xor cflag,_C_STATUSLINE
     apiupdate()
     ret
-cmxorkeybar endp
+    endp
 
 cmxormenubar proc
     xor cflag,_C_MENUSLINE
     apiupdate()
     ret
-cmxormenubar endp
+    endp
 
     END

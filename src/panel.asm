@@ -2396,10 +2396,8 @@ S_PEVENT    ENDS
     assume  rdi:ptr WSUB
 
 add_to_path proc private path:LPSTR, name:LPSTR
-
     ldr rcx,path
     ldr rdx,name
-
     xor eax,eax
     .if [rcx] == al
         strcpy(rcx, rdx)
@@ -2407,46 +2405,34 @@ add_to_path proc private path:LPSTR, name:LPSTR
         strfcat(rcx, rax, rdx)
     .endif
     ret
-
-add_to_path endp
+    endp
 
 reduce_path proc private uses rdi path:LPSTR
-
     ldr rdi,path
     .if strrchr(rdi, '\')
-
         mov rdi,rax
         xor eax,eax
     .endif
     mov [rdi],al
     ret
-
-reduce_path endp
+    endp
 
 error_directory proc private directory:LPSTR
-
     syserr(_get_doserrno(0), "Error open directory", "Can't open the directory:\n%s", directory)
     xor eax,eax
     ret
-
-error_directory endp
+    endp
 
 panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
-
   local pe:S_PEVENT
-
     mov rsi,panel_state(panel)
     mov eax,event
-
     .switch eax
-
-      .case KEY_LEFT
-
+    .case KEY_LEFT
         mov rcx,[rsi].xl
         xor edx,edx
         movzx eax,[rcx].XCEL.rows ; number of lines in panel
         mov ecx,[rsi].cel_index
-
         .switch
           .case eax <= ecx
             sub ecx,eax
@@ -2465,9 +2451,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             panel_putitemax(0)
         .endsw
         .endc
-
-      .case KEY_RIGHT
-
+    .case KEY_RIGHT
         mov rax,[rsi].xl
         movzx ecx,[rax].XCEL.rows
         mov eax,[rsi].cel_index
@@ -2475,7 +2459,6 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
         mov edx,[rsi].cel_count
         dec edx
         .if eax <= edx
-
             add [rsi].cel_index,ecx
             pcell_update(rsi)
         .else
@@ -2483,11 +2466,9 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             add eax,[rsi].fcb_index
             add eax,ecx
             .if eax < [rsi].fcb_count
-
                 add [rsi].fcb_index,ecx
                 panel_putitemax(0)
             .elseif [rsi].cel_index < edx
-
                 mov [rsi].cel_index,edx
                 pcell_update(rsi)
             .else
@@ -2495,21 +2476,17 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             .endif
         .endif
         .endc
-
-      .case KEY_UP
+    .case KEY_UP
         xor eax,eax
         .if [rsi].cel_index != eax
-
             dec [rsi].cel_index
             pcell_update(rsi)
         .elseif [rsi].fcb_index != eax
-
             dec [rsi].fcb_index
             panel_putitemax(2)
         .endif
         .endc
-
-      .case KEY_INS
+    .case KEY_INS
         mov rax,keyshift
         .if byte ptr [rax] & 3
             xor eax,eax
@@ -2517,8 +2494,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
         .endif
         .endc .ifd !pcell_select(rsi)
         .endc .if !(cflag & _C_INSMOVDN)
-
-      .case KEY_DOWN
+    .case KEY_DOWN
         mov ecx,[rsi].cel_count
         dec ecx
         xor eax,eax
@@ -2527,23 +2503,19 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             inc [rsi].cel_index
             pcell_update(rsi)
         .elseif ZERO?
-
             mov ecx,[rsi].fcb_count
             sub ecx,[rsi].fcb_index
             sub ecx,[rsi].cel_index
             .ifs ecx > 1
-
                 inc [rsi].fcb_index
                 panel_putitemax(1)
             .endif
         .endif
         .endc
-
-      .case KEY_END
+    .case KEY_END
         mov edx,[rsi].cel_count
         mov eax,[rsi].fcb_count
         .if edx < eax
-
             sub eax,edx
             mov [rsi].fcb_index,eax
             dec edx
@@ -2553,15 +2525,13 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             xor eax,eax
             dec edx
             .if edx > [rsi].cel_index
-
                 mov [rsi].cel_index,edx
                 mov [rsi].fcb_index,eax
                 panel_putitemax(eax)
             .endif
         .endif
         .endc
-
-      .case KEY_HOME
+    .case KEY_HOME
         xor eax,eax
         mov edx,[rsi].cel_index
         or  edx,[rsi].fcb_index
@@ -2571,14 +2541,12 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             panel_putitemax(eax)
         .endif
         .endc
-
-      .case KEY_PGUP
+    .case KEY_PGUP
         xor eax,eax
         mov edx,[rsi].cel_index
         or  edx,[rsi].fcb_index
         .ifnz
             .if [rsi].cel_index != eax
-
                 mov [rsi].cel_index,eax
                 pcell_update(rsi)
             .else
@@ -2587,9 +2555,7 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 mov al,[rdx+2]
                 mov cl,[rdx+3]
                 imul ecx
-
                 .if eax <= [rsi].fcb_index
-
                     sub [rsi].fcb_index,eax
                 .else
                     mov [rsi].fcb_index,0
@@ -2598,25 +2564,20 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             .endif
         .endif
         .endc
-
-      .case KEY_PGDN
+    .case KEY_PGDN
         mov eax,[rsi].cel_count
         dec eax
         .if eax != [rsi].cel_index
-
             mov [rsi].cel_index,eax
             pcell_update(rsi)
         .else
-
             xor ecx,ecx
             add eax,[rsi].fcb_index
             inc eax
             .if eax != [rsi].fcb_count
-
                 mov eax,[rsi].fcb_index
                 add eax,[rsi].cel_count
                 .if eax < [rsi].fcb_count
-
                     mov eax,[rsi].cel_count
                     dec eax
                     add [rsi].fcb_index,eax
@@ -2629,64 +2590,49 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             mov eax,ecx
         .endif
         .endc
-
-      .case KEY_MOUSEDN
+    .case KEY_MOUSEDN
         mov rax,[rsi].xl
         movzx ecx,byte ptr [rax+3]
         mov eax,[rsi].cel_index
         add eax,[rsi].fcb_index
         add eax,ecx
         .if eax >= [rsi].fcb_count
-
             .gotosw(KEY_DOWN)
         .endif
         add [rsi].fcb_index,ecx
         panel_putitemax(0)
-        .endc
-
-      .case KEY_MOUSEUP
+       .endc
+    .case KEY_MOUSEUP
         mov rax,[rsi].xl
         movzx eax,byte ptr [rax+3]
         .if eax > [rsi].fcb_index
-
             .gotosw(KEY_UP)
         .endif
         sub [rsi].fcb_index,eax
         panel_putitemax(0)
-        .endc
-
-      .case KEY_ENTER
-      .case KEY_KPENTER
-
+       .endc
+    .case KEY_ENTER
+    .case KEY_KPENTER
         mov rdi,[rsi].wsub
         .endc .ifd !panel_curobj(rsi)
-
         mov pe.pe_name,rax
         mov pe.pe_fblk,rdx
         mov pe.pe_flag,ecx
-
         .switch
         .case ecx & _A_SUBDIR
-
             mov rax,[rdi].path
             mov al,[rax+1]
             .if !( al == ':' || al == '\' )
-
                 error_directory([rdi].path)
                .endc
             .endif
-
             .if !( ecx & _FB_ARCHIVE )
-
                 historysave()
             .endif
             mov pe.pe_file,0
-
             .if pe.pe_flag & _FB_UPDIR
-
                 mov rax,[rdi].path
                 .if [rdi].flag & _W_ARCHIVE or _W_ROOTDIR
-
                     mov rax,[rdi].arch
                     .if byte ptr [rax] == 0
                         mov rax,[rdi].file
@@ -2696,45 +2642,33 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 lea rcx,pe.pe_file
                 strcpy(rcx, rax)
             .endif
-
             .if pe.pe_flag & _FB_ARCHIVE
-
                 mov rcx,[rdi].arch
                 .if pe.pe_flag & _FB_UPDIR
-
                     .if byte ptr [rcx] == 0
-
                         and [rdi].flag,not (_W_ARCHIVE or _W_ROOTDIR)
                     .else
                         reduce_path(rcx)
                     .endif
                 .else
-
                     mov rdx,pe.pe_fblk
                     add_to_path(rcx, [rdx].FBLK.name)
                 .endif
-
             .else
-
                 mov rax,[rdi].path
                 .if byte ptr [rax+1] == ':'
-
                     .if !( pe.pe_flag & _FB_ROOTDIR )
-
                         _utftows(strfcat(&pe.pe_path, [rdi].path, pe.pe_name))
                         .ifd SetCurrentDirectoryW(rax)
-
                             strnzcpy([rdi].path, &pe.pe_path, WMAXPATH)
                             ;GetCurrentDirectory(WMAXPATH, [rdi].path)
                         .endif
                         .if !eax
-
                             _dosmaperr( GetLastError() )
                             error_directory(&pe.pe_path)
                            .endc
                         .endif
                     .else
-
                         mov rax,[rdi].arch
                         mov byte ptr [rax],0
                         .if !( pe.pe_flag & _FB_UPDIR )
@@ -2743,17 +2677,12 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                         .endif
                         or [rdi].flag,_W_ROOTDIR
                     .endif
-
                 .else
-
                     mov rdi,rax
                     .if pe.pe_flag & _FB_UPDIR
-
                         .if strrchr(addr [rdi+2], '\')
-
                             reduce_path(rdi)
                         .else
-
                             mov rdi,[rsi].wsub
                             .if ( [rdi].flag & _W_NETWORK )
                                 or [rdi].flag,_W_ROOTDIR
@@ -2765,20 +2694,14 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                     .endif
                 .endif
             .endif
-
             cominit([rsi].wsub)
             panel_read(rsi)
-
             .if !( pe.pe_flag & _FB_ROOTDIR )
-
                 xor eax,eax
                 mov [rsi].cel_index,eax
                 mov [rsi].fcb_index,eax
-
                 .if pe.pe_file != al
-
                     .ifd wsearch([rsi].wsub, addr pe.pe_file) != -1
-
                         panel_setid(rsi, eax)
                     .endif
                 .endif
@@ -2786,7 +2709,6 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             panel_putinfoax(0)
             mov eax,1
            .endc
-
         .case ecx & _FB_ROOTDIR && ecx & _A_VOLID
             ;
             ; Root directory - change disk
@@ -2800,14 +2722,12 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             panel_sethdd(cpanel, eax)
             mov eax,1
             .endc
-
             .case ecx & _FB_ARCHIVE
             ;
             ; File inside archive
             ;
             xor eax,eax
-            .endc
-
+           .endc
         .default
             ;
             ; case file
@@ -2818,7 +2738,6 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 ; case .EXE, .COM, .BAT, .CMD
                 ;
                 .if strchr(rbx, ' ')
-
                     strcpy(&pe.pe_path, "\"")
                     strcat(strcat(rax, rbx), "\"")
                     mov rbx,rax
@@ -2827,7 +2746,6 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 mov eax,1
                 .endc
             .endif
-
             .if CFExpandCmd(rbx, pe.pe_name, "Filetype")
                 ;
                 ; case DZ.INI type
@@ -2836,24 +2754,20 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 mov eax,1
                .endc
             .endif
-
             .if strext(rbx)
                 ;
                 ; case EDit Info file (.EDI) ?
                 ;
                 .ifd !_stricmp(rax, ".edi")
-
                     topenedi(rbx)
                     mov eax,1
                    .endc
                 .endif
             .endif
-
             ;
             ; Read 4 byte from file
             ;
             .ifd readword(rbx)
-
                 .if ax == 4B50h ; 'PK'
                     ;
                     ; case .ZIP file
@@ -2868,7 +2782,6 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                     xor eax,eax
                 .endif
             .endif
-
             .if !eax
                 ;
                 ; case System OS type
@@ -2879,7 +2792,6 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                     mov eax,1
                 .endif
             .else
-
                 mov ecx,path_a.flag
                 or  ecx,path_b.flag
                 and ecx,_W_ARCHIVE
@@ -2903,36 +2815,29 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
         xor eax,eax
     .endsw
     ret
-
-panel_event endp
+    endp
 
     assume  rsi:nothing
     assume  rdi:nothing
 
 getmouse proc private
-
     mousep()
     mov esi,keybmouse_y
     mov edi,keybmouse_x
     test eax,eax
     ret
-
-getmouse endp
+    endp
 
 
 pcell_move proc private uses rsi rdi rbx panel:PPANEL
-
   local fblk:PFBLK, rect:TRECT, dialog:PDOBJ, mouse, dlflag, selected
-
     ldr rbx,panel
     .if cpanel_findfirst()
-
         mov fblk,rdx
         mov rdi,[rbx].PANEL.xl
         mov eax,[rdi].XCEL.rc
         mov rect,eax
         mov selected,panel_selected(rbx)
-
         .ifd mousep() == 1
             ;
             ; Create a movable object
@@ -2945,7 +2850,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
             .if selected
                 mov rect.col,15
             .else
-
                 mov rax,[rbx].PANEL.wsub
                 mov eax,[rax].WSUB.flag
                 .if eax & _W_DETAIL
@@ -2961,7 +2865,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 .untilz
                 inc rect.col
             .endif
-
             inc rect.col
             dec rect.x
             movzx eax,at_background[B_Inverse]
@@ -2969,7 +2872,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
             mov dialog,rax
             lea rcx,[rax+4]
             mov edx,selected
-
             .if edx
                 wcputf(rcx, 0, "%d file(s) to", edx)
             .else
@@ -2978,7 +2880,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 mov rax,fblk
                 wcputs(rcx, edx, [rax].FBLK.name)
             .endif
-
             mov dlflag,_D_DMOVE or _D_CLEAR or _D_COLOR or _D_DOPEN
             rcshow(rect, dlflag, dialog)
             or  dlflag,_D_ONSCR
@@ -2998,7 +2899,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
             ; Move the object
             ;
             .while getmouse() == 1
-
                 movzx ecx,rect.x
                 .if ( ecx < edi )
                     mov rect,rcmove(rect, dialog, RC_MOVERIGHT)
@@ -3015,7 +2915,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 mov eax,[rax]
                 and eax,3
                 .if eax != mouse
-
                     mov mouse,eax
                     mov ecx,'+'
                     .if eax
@@ -3039,7 +2938,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 mov rcx,panelb
             .endif
             .ifd panel_xycmd(rcx, edi, esi)
-
                 .if mouse
                     cmmove()
                 .else
@@ -3048,7 +2946,6 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                 mov eax,1
             .else
                 .ifd statusline_xy(edi, esi, 9, &MOBJ_Statusline)
-
                     .switch ecx ;
                                 ; 9 cmhelp
                                 ; 8 cmrename
@@ -3065,14 +2962,10 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
                     .default
                         xor eax,eax
                     .endsw
-
                 .elseif cflag & _C_COMMANDLINE
-
                     mov rcx,DLG_Commandline
                     movzx ecx,[rcx].DOBJ.rc.y
-
                     .if ecx == esi
-
                         cmmklist()
                         mov eax,1
                     .endif
@@ -3083,78 +2976,55 @@ pcell_move proc private uses rsi rdi rbx panel:PPANEL
         .endif
     .endif
     ret
-
-pcell_move endp
+    endp
 
 
 pcell_setxy proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
-
   local rect:TRECT
-
     mov rbx,panel
     mov esi,ypos
     mov edi,xpos
-
     .if panel_state(rbx)
-
         .while  1
-
             mov xpos,edi
             mov ypos,esi
             .ifd panel_xycmd(rbx, edi, esi) != _XY_FILE
-
                 .continue .ifd getmouse() == 2
-
                 xor eax,eax
                .break
             .endif
-
             mov rect,edx
             .if ecx != [rbx].PANEL.cel_index
-
                 mov [rbx].PANEL.cel_index,ecx
                 pcell_update(rbx)
             .endif
-
             .ifd getmouse() != 2
-
                 mousewait(edi, esi, 1)
-
                 .ifd !pcell_move(rbx)
-
                     mov edi,10
                     .repeat
-
                         Sleep(16)
                         .break .ifd mousep()
-
                         dec edi
                     .untilz
-
                     .ifd getmouse()
-
                         .if edi == xpos && esi == ypos
-
                             panel_event(rbx, KEY_ENTER)
                         .endif
                     .endif
                 .endif
                 .break
             .endif
-
             pcell_select(rbx)
-
             movzx eax,rect.x
             movzx edx,rect.y
             movzx ecx,rect.col
             mousewait(eax, edx, ecx)
-
             mov esi,keybmouse_y
             mov edi,keybmouse_x
         .endw
     .endif
     ret
-
-pcell_setxy endp
+    endp
 
     END

@@ -3,6 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 3.99 - 21 Oct 2026
+- potential crash in list view with large count
+
 Changes in 3.98 - 15 Jul 2026
 - potential crash for API calls made on misaligned stack (zip/IO) for 64-bit
 

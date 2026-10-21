@@ -10,21 +10,14 @@ include dzstr.inc
     .code
 
 load_tedit proc uses rsi rbx file:LPSTR, etype:int_t
-
   local path[_MAX_PATH*2]:char_t
-
     lea rsi,path
     .if !strchr(strcpy(rsi, file), '.')
-
         strcat(rsi, ".")
     .endif
-
     .if !loadiniproc("Edit", rsi, etype)
-
         clrcmdl()
-
         .if panel_findnext(cpanel)
-
             mov rbx,cpanel
             mov rbx,[rbx].PANEL.wsub
             wedit([rbx].WSUB.fcb, [rbx].WSUB.count)
@@ -48,33 +41,25 @@ load_tedit proc uses rsi rbx file:LPSTR, etype:int_t
         xor eax,eax
     .endif
     ret
-
-load_tedit endp
+    endp
 
 
 zipadd proc private uses rsi rdi rbx archive:LPSTR, path:LPSTR, file:LPSTR
-
     ldr rsi,archive
     ldr rdi,path
     ldr rbx,file
-
     strpath(strcpy(__srcpath, strcpy(__srcfile, rbx)))
     strcpy(__outpath, rdi)
     strcpy(__outfile, rsi)
-
     .ifd ( osopen(rbx, _FA_NORMAL, M_RDONLY, A_OPEN) != -1 )
-
         mov esi,eax
         .ifd _filelength(eax)
-
             mov edi,eax
             _close(esi)
-
             clock()
             mov rcx,rbx
             mov ebx,eax
             getfattr(rcx)
-
 ifdef _WIN64
             wzipadd(rdi, ebx, eax)
 else
@@ -87,18 +72,14 @@ endif
         .endif
     .endif
     ret
-
-zipadd endp
+    endp
 
 
 editzip proc private uses rsi rdi rbx file:LPSTR
-
     ldr rbx,file
     mov edi,ecx
     mov rcx,rdx
-
     .ifd unzip_to_temp(rcx, rbx)
-
         mov esi,_diskflag
         _wsetfattr(_utftows(rax), 0)
         mov _diskflag,0
@@ -116,14 +97,11 @@ editzip proc private uses rsi rdi rbx file:LPSTR
         _wremove(_utftows(rbx))
     .endif
     ret
-
-editzip endp
+    endp
 
 
 cmedit proc
-
     .new fname[_MAX_PATH*2]:char_t
-
     .ifd ( TVGetCurrentFile(&fname) == 1 )
         .if ecx == eax
             mov ecx,4
@@ -133,23 +111,17 @@ cmedit proc
         editzip(&fname)
     .endif
     ret
-
-cmedit endp
+    endp
 
 cmhexedit proc
-
     mov rax,keyshift
     or  byte ptr [rax],KEY_CTRL
     cmedit()
     ret
-
-cmhexedit endp
-
+    endp
 
 cmwindowlist proc
-
     .if tdlgopen() > 2
-
         mov tinfo,rax
         cmtmodal()
     .elseif eax == 1
@@ -159,18 +131,15 @@ cmwindowlist proc
         tiflush(rdx)
     .endif
     ret
-
-cmwindowlist endp
+    endp
 
 cmtmodal proc
-
     .ifd tistate(tinfo)
         tmodal()
     .else
         topensession()
     .endif
     ret
-
-cmtmodal endp
+    endp
 
     END

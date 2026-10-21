@@ -301,7 +301,6 @@ mksublist proc private uses rsi rdi zip_list:SINT, path:LPSTR
     ret
     endp
 
-
 mkwslist proc private zip_list:SINT
     .ifd cpanel_findfirst()
         mov rax,cpanel
@@ -317,12 +316,10 @@ mkwslist proc private zip_list:SINT
     ret
     endp
 
-
 cmmklist proc
     mkwslist(0)
     ret
     endp
-
 
 mkziplst_open proc buffer:LPSTR
     mov mklist.handle,ogetouth(strfcat(buffer, envtemp, &cp_ziplst), M_WRONLY)
@@ -335,7 +332,6 @@ mkziplst_open proc buffer:LPSTR
     .endif
     ret
     endp
-
 
 mkziplst proc
     mov mklsubcnt,0

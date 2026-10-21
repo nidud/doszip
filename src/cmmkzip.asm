@@ -7,28 +7,22 @@ include string.inc
 include syserr.inc
 include wsub.inc
 
-    .data
-     default_zip char_t "default.zip", 128-11 dup(0)
+.data
+ default_zip char_t "default.zip", 128-11 dup(0)
 
-    .code
+.code
 
 cmmkzip proc uses rsi rdi rbx
-
   local path[_MAX_PATH]:byte
-
     mov eax,path_a.flag
     or  eax,path_b.flag
     .if ( eax & _W_ARCHIVE )
         .return( ermsg("Create archive", "Archive already open") )
     .endif
-
     lea rdi,path
     .if cpanel_state()
-
         .ifd tgetline("Create archive", strcpy(rdi, &default_zip), 40, 256 or 8000h)
-
             .if byte ptr [rdi]
-
                 xor ebx,ebx
                 .if strext(rdi)
                     mov eax,[rax]
@@ -45,12 +39,9 @@ cmmkzip proc uses rsi rdi rbx
                         mov ebx,2
                     .endif
                 .endif
-
                 .ifsd ogetouth(rdi, M_WRONLY) > 0
-
                     mov esi,eax
                     strcpy(&default_zip, rdi)
-
                     mov rax,cpanel
                     mov rdx,[rax].PANEL.wsub
                     mov rax,[rdx].WSUB.arch
@@ -65,7 +56,6 @@ cmmkzip proc uses rsi rdi rbx
                     mov [rdx].WSUB.flag,eax
                     mov rcx,[rdx].WSUB.file
                     strcpy(rcx, rdi)
-
                     mov rdx,rdi
                     mov eax,0x06054B50
                     mov ecx,5
@@ -94,7 +84,6 @@ cmmkzip proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmmkzip endp
+    endp
 
     END

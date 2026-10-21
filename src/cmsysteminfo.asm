@@ -7,35 +7,30 @@ include string.inc
 include stdlib.inc
 include sselevel.inc
 
-    .data
-     idleh DPROC 0
-     count dd 0
+.data
+ idleh DPROC 0
+ count dd 0
 
-    .code
+.code
 
 UpdateMemoryStatus proc private uses rsi rdi rbx dialog:PDOBJ
 ifdef _WIN95
   local M:MEMORYSTATUS
 endif
   local MS:MEMORYSTATUSEX, value[32]:byte
-
     lea rdi,MS
     mov ecx,MEMORYSTATUSEX
     xor eax,eax
     rep stosb
     mov MS.dwLength,MEMORYSTATUSEX
-
 ifdef _WIN95
     .if GetModuleHandle("kernel32.dll")
-
         .if GetProcAddress(eax, "GlobalMemoryStatusEx")
-
             lea  ecx,MS
             push ecx
             call eax
         .else
             GlobalMemoryStatus(addr M)
-
             mov MS.dwMemoryLoad,M.dwMemoryLoad
             mov dword ptr MS.ullTotalPhys,M.dwTotalPhys
             mov dword ptr MS.ullAvailPhys,M.dwAvailPhys
@@ -89,41 +84,32 @@ else
 endif
     scputf(ebx, edi, 0, 0, "%17s", &value)
     ret
-
-UpdateMemoryStatus endp
+    endp
 
 sysinfoidle proc private
-
     .if count == 156
-
         UpdateMemoryStatus(tdialog)
         mov count,0
     .endif
     inc count
     idleh()
     ret
-
-sysinfoidle endp
+    endp
 
 cmsysteminfo proc uses rsi rdi rbx
-
   local CPU[80]:byte, MinorVersion, MajorVersion
   local q:Q64
-
     mov edi,sselevel
     setsselevel()
     mov sselevel,edi
     mov ebx,eax
     xor edi,edi
     mov count,edi
-
     .if rsopen(IDD_DZSystemInfo)
-
         mov rsi,rax
         mov rdx,[rsi].DOBJ.wp
         mov ecx,'x'
         mov eax,ebx
-
         .if eax & SSE_AVXOS
             mov [rdx+516*4],cl
         .endif
@@ -154,11 +140,8 @@ cmsysteminfo proc uses rsi rdi rbx
         .if eax & SSE_SSE
             mov [rdx+417*4],cl
         .endif
-
         dlshow(rsi)
-
         .if GetModuleHandle("kernel32.dll")
-
             mov     ecx,[rax].IMAGE_DOS_HEADER.e_lfanew
             add     rax,rcx
             movzx   ecx,[rax].IMAGE_NT_HEADERS.OptionalHeader.MajorOperatingSystemVersion
@@ -166,7 +149,6 @@ cmsysteminfo proc uses rsi rdi rbx
             mov     MajorVersion,ecx
             mov     MinorVersion,edx
             mov     dh,cl
-
             .switch edx
             .case _WIN32_WINNT_NT4:     lea rax,@CStr("NT4"):   .endc
             .case _WIN32_WINNT_WIN2K:   lea rax,@CStr("2K"):    .endc
@@ -180,13 +162,11 @@ cmsysteminfo proc uses rsi rdi rbx
             .default
                 lea rax,@CStr("10+")
             .endsw
-
             movzx ecx,[rsi].DOBJ.rc.x
             movzx edx,[rsi].DOBJ.rc.y
             add   ecx,4
             add   edx,2
             mov   rdi,rax
-
             scputf(ecx, edx, 0, 0, "Windows %s Version %d.%d", rdi, MajorVersion, MinorVersion)
         .endif
 
@@ -226,11 +206,9 @@ endif
             add cl,4
             scputs(ebx, ecx, 0, 0, &CPU)
         .endif
-
         UpdateMemoryStatus(rsi)
         _coreleft()
         mov q.q_h,0
-
         mov edi,ecx
         sub ecx,eax
         mov ebx,ecx
@@ -241,7 +219,6 @@ endif
         add cl,39
         add dl,13
         scputf(ecx, edx, 0, 0, "%15s", &CPU)
-
         mov q.q_l,ebx
         mkbstring(addr CPU, q)
         mov ecx,[rsi].DOBJ.rc
@@ -249,14 +226,12 @@ endif
         add cl,39
         add dl,14
         scputf(ecx, edx, 0, 0, "%15s", &CPU)
-
         mov idleh,tdidle
         mov tdidle,&sysinfoidle
         dlmodal(rsi)
         mov tdidle,idleh
     .endif
     ret
-
-cmsysteminfo endp
+    endp
 
     END

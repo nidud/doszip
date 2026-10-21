@@ -9,27 +9,21 @@ include winnls.inc
     .code
 
 cmmkdir proc uses rsi rdi rbx
-
    .new path[1024]:char_t
    .new wbuf[512]:wchar_t
    .new size:int_t
-
     lea rbx,path
     mov rax,cpanel
     mov rsi,[rax].PANEL.wsub
     mov edi,[rsi].WSUB.flag
-
     .if !( edi & _W_ROOTDIR )
-
         .if panel_state(rax)
-
             .if ( edi & _W_NETWORK ) ; v3.95: network directory
                 lea rbx,[rbx+strlen(strcpy(rbx, [rsi].WSUB.path))+1]
                 mov byte ptr [rbx-1],'\'
             .endif
             mov byte ptr [rbx],0
             .ifd tgetline("Make directory", rbx, 40, _MAX_PATH)
-
                 .if ( byte ptr [rbx] )
                     .if ( edi & _W_NETWORK )
                         lea rbx,path
@@ -53,7 +47,6 @@ cmmkdir proc uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cmmkdir endp
+    endp
 
     end

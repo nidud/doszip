@@ -18,17 +18,15 @@ include wsub.inc
 
 public _diskflag
 
-    .data
-     _diskflag dd 0
-     drvinfo DISK MAXDRIVES dup(<?>)
-     push_button db "&A",0
+.data
+ _diskflag dd 0
+ drvinfo DISK MAXDRIVES dup(<?>)
+ push_button db "&A",0
 
-    .code
+.code
 
 GetVolumeID proc lpRootPathName:LPSTR, lpVolumeNameBuffer:LPSTR
-
   local MaximumComponentLength, FileSystemFlags
-
     GetVolumeInformation(
         lpRootPathName,
         lpVolumeNameBuffer,
@@ -39,13 +37,10 @@ GetVolumeID proc lpRootPathName:LPSTR, lpVolumeNameBuffer:LPSTR
         0,  ; address of name of file system
         0 ) ; length of lpFileSystemNameBuffer
     ret
-
-GetVolumeID endp
+    endp
 
 GetFileSystemName proc lpRootPathName:LPSTR, lpFileSystemNameBuffer:LPSTR
-
   local MaximumComponentLength, FileSystemFlags
-
     GetVolumeInformation(
         lpRootPathName,
         0,
@@ -56,11 +51,9 @@ GetFileSystemName proc lpRootPathName:LPSTR, lpFileSystemNameBuffer:LPSTR
         lpFileSystemNameBuffer,
         32)
     ret
-
-GetFileSystemName endp
+    endp
 
 _disk_valid proc private drive:SINT
-
     GetLogicalDrives()
     mov ecx,drive
     dec ecx
@@ -68,13 +61,10 @@ _disk_valid proc private drive:SINT
     sbb eax,eax
     and eax,1
     ret
-
-_disk_valid endp
+    endp
 
 _disk_type proc disk:UINT
-
   local path[2]:dword
-
     mov eax,'\: '
     mov al,byte ptr disk
     add al,'A'-1
@@ -83,11 +73,9 @@ _disk_type proc disk:UINT
     mov path[4],eax
     GetDriveType(&path)
     ret
-
-_disk_type endp
+    endp
 
 _disk_test proc private disk:UINT
-
     .ifd _disk_ready(disk)
         .ifd _disk_type(disk) < 2
             .repeat
@@ -100,11 +88,9 @@ _disk_test proc private disk:UINT
         .endif
     .endif
     ret
-
-_disk_test endp
+    endp
 
 _disk_init proc uses rdi disk:UINT
-
     mov edi,disk
     .ifd !_disk_test(edi)
         .ifd _disk_select("Select disk")
@@ -113,11 +99,9 @@ _disk_init proc uses rdi disk:UINT
     .endif
     mov eax,edi
     ret
-
-_disk_init endp
+    endp
 
 _disk_exist proc disk:UINT
-
     ldr eax,disk
     .if ( eax == 0 || eax > MAXDRIVES )
         .return( 0 )
@@ -131,16 +115,12 @@ _disk_exist proc disk:UINT
         mov rax,rdx
     .endif
     ret
-
-_disk_exist endp
+    endp
 
 _disk_retry proc private uses rsi rdi rbx disk:UINT
-
     .if rsopen(IDD_DriveNotReady)
-
         mov rdi,rax
         dlshow(rax)
-
         movzx ebx,[rdi].DOBJ.rc.x
         add   ebx,25
         movzx esi,[rdi].DOBJ.rc.y
@@ -148,10 +128,8 @@ _disk_retry proc private uses rsi rdi rbx disk:UINT
         mov   eax,disk
         add   al,'A' - 1
         scputc(ebx, edx, 1, eax)
-
         sub ebx,22
         add esi,2
-
         mov ecx,_get_doserrno(NULL)
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM or FORMAT_MESSAGE_IGNORE_INSERTS, NULL, ecx,
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &_bufin, 1024, NULL)
@@ -159,20 +137,16 @@ _disk_retry proc private uses rsi rdi rbx disk:UINT
         dlmodal(rdi)
     .endif
     ret
-
-_disk_retry endp
+    endp
 
 _disk_ready proc disk
-
   local MaximumComponentLength:dword,
         FileSystemFlags:dword,
         RootPathName[2]:dword,
         FileSystemNameBuffer[32]:word
-
     mov eax,disk
     inc eax
     .ifd _disk_valid(eax)
-
         mov eax,'\: '
         mov al,byte ptr disk
         add al,'A' - 1
@@ -181,8 +155,7 @@ _disk_ready proc disk
                 &FileSystemFlags, &FileSystemNameBuffer, 32)
     .endif
     ret
-
-_disk_ready endp
+    endp
 
 _disk_select proc uses rsi rdi rbx msg:LPSTR
 
@@ -196,22 +169,17 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
     lea rdi,tobj
     mov dobj.object,rdi
     mov esi,1
-
     .repeat
-
         .ifd _disk_exist(esi)
-
             movzx eax,dobj.count
             inc dobj.count
             mov [rdi].TOBJ.flag,_O_PBKEY
             mov ecx,eax
             .if esi == ebx
-
                 mov al,dobj.count
                 dec al
                 mov dobj.index,al
             .endif
-
             mov eax,esi
             add al,'@'
             mov [rdi].TOBJ.ascii,al
@@ -231,7 +199,6 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
         .endif
         inc esi
     .until esi > MAXDRIVES
-
     movzx eax,dobj.count
     dec eax
     mov ebx,eax
@@ -240,7 +207,6 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
     add al,5
     mov dobj.rc.row,al
     mov eax,ebx
-
     .if eax <= 7
         shl eax,3
         sub eax,ebx
@@ -251,18 +217,13 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
         shr cl,1
         mov dobj.rc.x,cl
     .endif
-
     xor edi,edi
     mov bl,at_foreground[F_Dialog]
     or  bl,at_background[B_Dialog]
-
     .if dlopen(&dobj, ebx, msg)
-
         lea rsi,tobj
         mov bl,[rsi].TOBJ.rc.col
-
         .while 1
-
             movzx eax,dobj.count
             .break .if edi >= eax
             mov al,[rsi].TOBJ.ascii
@@ -276,10 +237,8 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
         .endw
         mov edi,dlmodal(&dobj)
     .endif
-
     xor eax,eax
     .if edi
-
         or    al,dobj.index
         imul  eax,eax,TOBJ
         add   rax,dobj.object
@@ -287,18 +246,13 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
         sub   al,'@'
     .endif
     ret
-
-_disk_select endp
+    endp
 
 _disk_read proc uses rsi rdi rbx
-
    .new d:dword = clock()
-
     mov edi,GetLogicalDrives()
     lea rbx,drvinfo
-
     .for ( esi = 0 : esi < MAXDRIVES : esi++, rbx += DISK )
-
         mov [rbx].DISK.flag,0
         bt  edi,esi
         .ifc
@@ -315,11 +269,9 @@ _disk_read proc uses rsi rdi rbx
         .endif
     .endf
     ret
-
-_disk_read endp
+    endp
 
 InitDisk proc private
-
     lea rdx,drvinfo
     mov ecx,1
     mov eax,':A'
@@ -332,8 +284,7 @@ InitDisk proc private
     .until ecx == MAXDRIVES+1
     _disk_read()
     ret
-
-InitDisk endp
+    endp
 
 .pragma init(InitDisk, 70)
 

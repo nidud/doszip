@@ -2850,8 +2850,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                             mov ecx,[rdx].LOBJ.dlgoff
                             .if [rsi].DOBJ.index == cl
                                 dec [rdx].LOBJ.index
-                                mov rax,rsi
-                                call [rdx].LOBJ.lproc
+                                [rdx].LOBJ.lproc(rsi, rdx)
                                .return
                             .endif
                             mov [rdx].DOBJ.index,cl
@@ -2925,8 +2924,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                .return
             .endif
             inc [rdx].LOBJ.index
-            mov rax,rsi
-            call [rdx].LOBJ.lproc
+            [rdx].LOBJ.lproc(rsi, rdx)
             mov result,eax
            .return
 
@@ -2939,12 +2937,11 @@ test_event proc private uses rsi rdi rbx cmd, extended
                .return .if ( cl != _O_MENUS )
             .endif
             .ifnz
-                mov  rdx,tdllist
-                mov  [rdx].LOBJ.index,eax
-                mov  [rdx].LOBJ.celoff,eax
-                mov  ebx,[rdx].LOBJ.dlgoff
-                mov  rax,rsi
-                call [rdx].LOBJ.lproc
+                mov rdx,tdllist
+                mov [rdx].LOBJ.index,eax
+                mov [rdx].LOBJ.celoff,eax
+                mov ebx,[rdx].LOBJ.dlgoff
+                [rdx].LOBJ.lproc(rsi, rdx)
                 mov eax,ebx
             .endif
             mov [rsi].DOBJ.index,al
@@ -2985,8 +2982,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                 mov [rdx].LOBJ.celoff,eax
                 add eax,[rdx].LOBJ.dlgoff
                 mov [rsi].DOBJ.index,al
-                mov rax,rsi
-                call [rdx].LOBJ.lproc
+                [rdx].LOBJ.lproc(rsi, rdx)
                 mov result,eax
             .endif
             .return
@@ -3021,8 +3017,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
                         .gotosw(KEY_HOME)
                     .endif
                     sub [rdx].LOBJ.index,eax
-                    mov rax,rsi
-                    call [rdx].LOBJ.lproc
+                    [rdx].LOBJ.lproc(rsi, rdx)
                     mov result,eax
                    .return
                 .endif
@@ -3063,8 +3058,7 @@ test_event proc private uses rsi rdi rbx cmd, extended
             .endif
             mov eax,[rdx].LOBJ.dcount
             add [rdx].LOBJ.index,eax
-            mov rax,rsi
-            call [rdx].LOBJ.lproc
+            [rdx].LOBJ.lproc(rsi, rdx)
             mov result,eax
            .return
         .endsw
@@ -4094,8 +4088,11 @@ getevent proc private
         .if _shift & SHIFT_MOUSEFLAGS
             .ifd mousep()
                 mov eax,MOUSECMD
-                .break
+               .break
             .endif
+        .elseif ( _shift & SHIFT_ALT && _shift & SHIFT_CTRL )
+            mov eax,KEY_CTRLQ
+           .break
         .endif
     .endw
     ret

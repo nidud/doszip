@@ -1,23 +1,20 @@
 include conio.inc
 include string.inc
 
-    .data
-
+.data
 dialog      PDOBJ 0
-
 Background  db B_Title, B_Panel, B_Panel,B_Panel,B_Panel,B_Dialog,B_Dialog,B_Desktop
             db B_Dialog,B_Dialog,B_Panel,B_Panel,B_Menus,B_Title, B_Dialog,B_Menus
 Foreground  db F_Desktop,F_Panel,F_Dialog,F_Menus,F_Dialog,F_Title,F_Panel,F_Dialog
             db F_Title,F_Files,F_Dialog,F_Dialog,F_TextView,F_TextEdit,F_TextView,F_TextEdit
 
-    .code
+.code
 
 putinfo proc private uses rsi rdi rbx
 
    .new x:int_t
    .new y:int_t
    .new n:int_t
-
     lea     rsi,at_foreground
     mov     rbx,dialog
     mov     ax,[rbx+4+TOBJ]
@@ -27,26 +24,21 @@ putinfo proc private uses rsi rdi rbx
     movzx   eax,al
     mov     x,eax
     mov     y,ecx
-
     .for ( edi = 0 : edi < 16 : edi++, y++ )
-
         movzx eax,byte ptr [rsi+rdi]
         scputf(x, y, 0, 3, "%X", eax)
-
         add x,5
         lea rax,Background
         movzx eax,byte ptr [rax+rdi]
         mov   al,[rsi+rax+16]
         or    al,[rsi+rdi]
         scputa(x, y, 13, eax)
-
         add x,42
         mov al,[rsi+B_Dialog+16]
         or  eax,edi
         scputa(x, y, 1, eax)
         sub x,47
     .endf
-
     mov     eax,[rbx+4+TOBJ*17]
     add     eax,[rbx+4]
     movzx   ecx,ah
@@ -56,34 +48,27 @@ putinfo proc private uses rsi rdi rbx
     mov     y,ecx
     sub     eax,5
     mov     n,eax
-
     .for ( edi = 0 : edi < 14 : edi++, y++ )
-
         movzx eax,byte ptr [rsi+rdi+16]
         shr al,4
         scputf(n, y, 0, 3, "%X", eax)
-
         lea rax,Foreground
         movzx eax,byte ptr [rax+rdi]
         mov al,[rsi+rax]
         or  al,[rsi+rdi+16]
         scputa(x, y, 13, eax)
     .endf
-
     movzx eax,byte ptr [rsi+rdi+16]
     scputf(n, y, 0, 3, "%X", eax)
-
     lea rax,Foreground
     movzx eax,byte ptr [rax+rdi]
     mov al,[rsi+rax]
     or  al,[rsi+B_TextView+16]
     scputa(x, y, 13, eax)
-
     inc y
     inc edi
     movzx eax,byte ptr [rsi+rdi+16]
     scputf(n, y, 0, 3, "%X", eax)
-
     lea rax,Foreground
     movzx eax,byte ptr [rax+rdi]
     mov al,[rsi+rax]
@@ -91,21 +76,16 @@ putinfo proc private uses rsi rdi rbx
     scputa(x, y, 13, eax)
     xor eax,eax
     ret
-
-putinfo endp
+    endp
 
 editat proc private uses rsi rdi rbx
-
     lea rdi,at_foreground
     lea rsi,[rdi+16]
-
     putinfo()
     dlxcellevent()
-
     xor edx,edx
     mov rcx,tdialog
     movzx ecx,[rcx].DOBJ.index
-
     .if eax == KEY_MOUSEUP
         mov eax,KEY_UP
     .elseif eax == KEY_MOUSEDN
@@ -153,22 +133,16 @@ editat proc private uses rsi rdi rbx
         mov eax,ebx
     .endif
     ret
-
-editat endp
+    endp
 
 
 editattrib proc uses rbx
-
   local tmp:COLOR
-
     .if rsopen(IDD_EditColor)
-
         mov dialog,rax
         memcpy(&tmp, &at_foreground, COLOR)
-
         dlshow(dialog)
         putinfo()
-
         mov rdx,dialog
         movzx ecx,[rdx].DOBJ.count
         mov rdx,[rdx].DOBJ.object
@@ -188,7 +162,6 @@ editattrib proc uses rbx
         .endif
     .endif
     ret
-
-editattrib endp
+    endp
 
     END

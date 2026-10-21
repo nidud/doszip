@@ -3,12 +3,10 @@
 
 include doszip.inc
 
-    .code
+.code
 
 cmhomedir proc  ; Ctrl-Home
-
     .if panel_state(cpanel)
-
         mov rdx,[rax].PANEL.wsub
         mov eax,[rdx].WSUB.flag
         or  eax,_W_ROOTDIR
@@ -16,12 +14,10 @@ cmhomedir proc  ; Ctrl-Home
         mov [rdx].WSUB.flag,eax
         mov rax,[rdx].WSUB.arch
         mov byte ptr [rax],0
-
         panel_read(cpanel)
         panel_putitem(cpanel, 0)
     .endif
     ret
-
-cmhomedir endp
+    endp
 
     END

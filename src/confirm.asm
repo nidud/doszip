@@ -2,13 +2,12 @@ include io.inc
 include confirm.inc
 include conio.inc
 
-    .data
-     confirmflag uint_t -1
+.data
+ confirmflag uint_t -1
 
-    .code
+.code
 
 confirm_continue proc uses rbx msg:LPSTR
-
     .if rsopen(IDD_ConfirmContinue)
         mov rbx,rax
         dlshow(rax)
@@ -22,8 +21,7 @@ confirm_continue proc uses rbx msg:LPSTR
         dlmodal(rbx)
     .endif
     ret
-
-confirm_continue endp
+    endp
 
 ;
 ; ret:  0 Cancel
@@ -32,9 +30,7 @@ confirm_continue endp
 ;       3 Jump
 ;
 confirm_delete proc uses rbx info:LPSTR, selected:dword
-
     .if rsopen(IDD_ConfirmDelete)
-
         mov rbx,rax
         dlshow(rax)
         mov cl,[rbx].DOBJ.rc.x
@@ -42,9 +38,7 @@ confirm_delete proc uses rbx info:LPSTR, selected:dword
         add dl,2        ; y
         add cl,12       ; x
         mov eax,selected
-
         .if ( eax > 1 && eax < 0x8000 )
-
             scputf(ecx, edx, 0, 0,
                 "   You have selected %d file(s)\nDo you want to delete all the files", eax)
         .else
@@ -61,7 +55,6 @@ confirm_delete proc uses rbx info:LPSTR, selected:dword
                 add ecx,6
                 scputf(ecx, edx, 0, 0, "Do you wish to delete")
             .endif
-
             mov cl,[rbx].DOBJ.rc.x
             add cl,3
             mov dl,[rbx].DOBJ.rc.y
@@ -75,11 +68,9 @@ confirm_delete proc uses rbx info:LPSTR, selected:dword
         mov eax,ebx
     .endif
     ret
-
-confirm_delete endp
+    endp
 
 confirm_delete_file proc uses rsi fname:LPSTR, flag:dword
-
     mov eax,flag
     mov edx,confirmflag
     .switch
@@ -111,11 +102,9 @@ confirm_delete_file proc uses rsi fname:LPSTR, flag:dword
         mov eax,-1
     .endsw
     ret
-
-confirm_delete_file endp
+    endp
 
 confirm_delete_sub proc path:LPSTR
-
     mov eax,1
     .if confirmflag & CFDIRECTORY
         .if confirm_delete(path, 1) == CONFIRM_DELETEALL
@@ -128,7 +117,6 @@ confirm_delete_sub proc path:LPSTR
         .endif
     .endif
     ret
-
-confirm_delete_sub endp
+    endp
 
     END

@@ -56,7 +56,6 @@ cmsearchidd proc uses rsi rdi rbx sflag:uint_t
         mov edx,esi
     .endif
     ret
-
-cmsearchidd endp
+    endp
 
     END

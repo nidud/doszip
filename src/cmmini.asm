@@ -8,31 +8,26 @@ include doszip.inc
 cmamini proc
     panel_xormini(panela)
     ret
-cmamini endp
-
+    endp
 cmbmini proc
     panel_xormini(panelb)
     ret
-cmbmini endp
-
+    endp
 cmcmini proc
     panel_xormini(cpanel)
     ret
-cmcmini endp
-
+    endp
 cmvolinfo proc
     panel_xorinfo(cpanel)
     ret
-cmvolinfo endp
-
+    endp
 cmavolinfo proc
     panel_xorinfo(panela)
     ret
-cmavolinfo endp
-
+    endp
 cmbvolinfo proc
     panel_xorinfo(panelb)
     ret
-cmbvolinfo endp
+    endp
 
     END

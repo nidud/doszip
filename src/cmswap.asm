@@ -7,9 +7,7 @@ include string.inc
     .code
 
 cmswap proc uses rsi rdi
-
     .if panel_stateab()
-
 	mov esi,config.c_apath.flag
 	mov edi,config.c_bpath.flag
 	panel_hide(panela)
@@ -27,7 +25,6 @@ cmswap proc uses rsi rdi
 	mov eax,1
     .endif
     ret
-
-cmswap endp
+    endp
 
     END

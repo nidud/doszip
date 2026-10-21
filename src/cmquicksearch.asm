@@ -13,16 +13,13 @@ include string.inc
 
 ;SKIPSUBDIR = 1 ; Exclude directories in search
 
-    .data
+.data
+ cp_quicksearch db 'Quick Search:     ',0
 
-cp_quicksearch	db '&Quick Search: ',1Ah,'   ',0
-
-    .code
+.code
 
 psearch proc private uses rsi rdi rbx cname:string_t, l:int_t, direction:int_t
-
   local fcb:ptr, cindex:int_t, lindex:int_t
-
     ldr rbx,cpanel	; current index
     mov esi,[rbx].PANEL.fcb_index
     add esi,[rbx].PANEL.cel_index
@@ -31,33 +28,25 @@ psearch proc private uses rsi rdi rbx cname:string_t, l:int_t, direction:int_t
     mov edi,[rbx].PANEL.fcb_count
     mov rbx,[rbx].PANEL.wsub
     mov fcb,[rbx].WSUB.fcb
-
     .if !direction	; if (direction == 0) search from start
-
 	mov lindex,edi	; (case BKSP)
 	mov esi,edi
     .endif
-
     .while  1
-
 	.if ( esi >= edi )
-
 	    xor esi,esi
 	    mov edi,lindex
 	    mov lindex,esi
 	   .continue .if edi
-
 	    xor eax,eax
 	   .break
 	.endif
-
 	mov rbx,fcb
 	mov rbx,[rbx+rsi*size_t]
       ifdef SKIPSUBDIR
 	.if !( [rbx].FBLK.flag & _A_SUBDIR )
       endif
 	.ifd !_strnicmp(cname, [rbx].FBLK.name, l)
-
 	    mov rbx,cpanel
 	    dlclose([rbx].PANEL.xl)
 	    panel_setid(rbx, esi)
@@ -73,8 +62,7 @@ psearch proc private uses rsi rdi rbx cname:string_t, l:int_t, direction:int_t
     .endw
     mov edx,cindex
     ret
-
-psearch endp
+    endp
 
 cmquicksearch proc uses rsi rdi rbx
 
@@ -82,22 +70,20 @@ cmquicksearch proc uses rsi rdi rbx
    .new stline[256]:CHAR_INFO
    .new fname[256]:char_t
    .new key:int_t
-
     .ifd cpanel_state()
-
 	_getcursor(&cursor)
 	_cursoron()
 	wcpushst(&stline, &cp_quicksearch)
-
 	lea rbx,fname
 	mov esi,15		; SI = x
 	mov edi,_scrrow		; DI = y
 	_gotoxy(esi, edi)	; cursor to (x,y)
-
 	.repeat
 	    tupdate()
 	    .switch getkey()	; get key
 	    .case 0
+		Sleep(CON_SLEEP_TIME)
+		xor eax,eax
 	    .case KEY_ESC
 	    .case KEY_TAB
 	    .case KEY_ALTX
@@ -137,7 +123,6 @@ cmquicksearch proc uses rsi rdi rbx
 		; delete char and search from start
 		;
 		.ifs ( esi > 15 )
-
 		    dec esi
 		    mov edx,edi
 		    scputw(esi, edi, 2, ' ')
@@ -148,12 +133,10 @@ cmquicksearch proc uses rsi rdi rbx
 		.endif
 		xor eax,eax
 		.endc
-
 	    .default
 		movzx eax,al
 		mov [rbx+rsi-15],al
 		mov ecx,14
-
 	       event_back:
 		mov key,eax
 		mov edx,esi
@@ -174,7 +157,6 @@ cmquicksearch proc uses rsi rdi rbx
 	_setcursor(&cursor)
     .endif
     .return( 0 )
-
-cmquicksearch endp
+    endp
 
     END

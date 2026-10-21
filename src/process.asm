@@ -18,15 +18,13 @@ include winbase.inc
 externdef _diskflag:int_t
 externdef envtemp:string_t
 
-    .data
-     _errormode UINT 5
+.data
+ _errormode UINT 5
 
-    .code
+.code
 
 process proc private uses rsi rdi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlags:dword
-
   local PI:PROCESS_INFORMATION, SINFO:STARTUPINFO, ConsoleMode:dword
-
     xor eax,eax
     lea rdi,PI
     mov rsi,rdi
@@ -40,17 +38,14 @@ process proc private uses rsi rdi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlag
     _set_errno(eax)
     SetErrorMode(_errormode)
     GetConsoleMode(_coninpfh, &ConsoleMode)
-
     ; added v3.59 - Windows 10 console
     SetConsoleMode(_coninpfh, OldConsoleMode)
-
     mov edx,CreationFlags
     and edx,CREATE_NEW_CONSOLE or DETACHED_PROCESS
     xor eax,eax
     mov edi,CreateProcess(lpProgram, lpCommand, rax, rax, eax, edx, rax, rax, rdi, rsi)
     mov rsi,PI.hProcess
     _dosmaperr( GetLastError() )
-
     .if edi
         .if !( CreationFlags & _P_NOWAIT )
             WaitForSingleObject(rsi, INFINITE)
@@ -58,45 +53,34 @@ process proc private uses rsi rdi lpProgram:LPSTR, lpCommand:LPSTR, CreationFlag
         CloseHandle(rsi)
         CloseHandle(PI.hThread)
     .endif
-
     mov _confh, GetStdHandle(STD_OUTPUT_HANDLE)
     mov _coninpfh,GetStdHandle(STD_INPUT_HANDLE)
     SetConsoleMode(rax, ConsoleMode)
     SetErrorMode(SEM_FAILCRITICALERRORS)
     mov _diskflag,3
-
     mov eax,edi
     ret
-
-process endp
+    endp
 
 
 system proc uses rdi rsi rbx string:LPSTR
-
    .new arg0[_MAX_PATH]:char_t
    .new quote:int_t
-
     mov rbx,alloca(MAXCMDL)
     mov BYTE PTR [rbx],0
     mov rdi,string
-
     mov edx,' '
     .if ( byte ptr [rdi] == '"' )
-
         inc rdi
         mov edx,'"'
     .endif
     mov quote,edx
-
     xor esi,esi
     .if strchr(rdi, edx)
-
         mov byte ptr [rax],0
         mov rsi,rax
     .endif
-
     strncpy(&arg0, rdi, _MAX_PATH-1)
-
     .if rsi
         mov edx,quote
         mov [rsi],dl
@@ -107,16 +91,12 @@ system proc uses rdi rsi rbx string:LPSTR
         add strlen(string),string
         mov rsi,rax
     .endif
-
     mov rdi,rsi
     strcat(strcpy(rbx, __pCommandCom), " ")
-
     mov rcx,__pCommandArg
     .if byte ptr [rcx]
-
         strcat(strcat(rbx, rcx), " ")
     .endif
-
     lea rsi,arg0
     .if strchr(rsi, ' ')
         strcat(strcat(strcat(rbx, "\""), rsi), "\"")
@@ -125,16 +105,12 @@ system proc uses rdi rsi rbx string:LPSTR
     .endif
     process(0, strcat(rbx, rdi), 0)
     ret
-
-system endp
+    endp
 
 CreateBatch proc uses rbx cmd:string_t, CallBatch:int_t, UpdateEnviron:int_t
-
   local batch[_MAX_PATH]:char_t, argv0[_MAX_PATH]:char_t
-
     strfcat( &batch, envtemp, "dzcmd.bat" )
     .return .ifd ( osopen(rax, 0, M_WRONLY, A_CREATETRUNC) == -1 )
-
     mov ebx,eax
     mov _diskflag,1
     oswrite(ebx, "@echo off\r\n", 11)
@@ -143,47 +119,35 @@ CreateBatch proc uses rbx cmd:string_t, CallBatch:int_t, UpdateEnviron:int_t
     .endif
     oswrite(ebx, cmd, strlen(cmd))
     oswrite(ebx, "\r\n", 2)
-
     .if UpdateEnviron
-
         mov rcx,__argv
         strcpy(&argv0, [rcx])
         strcat(strcat(strcat(rax, " /E:" ), envtemp), "\\dzcmd.env")
-
         oswrite(ebx, &argv0, strlen(rax))
         oswrite(ebx, "\r\n", 2)
     .endif
     _close(ebx)
     strcpy(cmd, &batch)
     ret
-
-CreateBatch endp
+    endp
 
 CreateConsole proc uses rsi rdi rbx string:string_t, flag:uint_t
-
   local cmd[1024]:byte
-
     lea rdi,cmd
     mov esi,console
     and esi,CON_NTCMD
-
     strcat(strcpy(rdi, CFGetComspec(esi)), " ")
-
     .if __pCommandArg
-
         strcat(strcat(rdi, __pCommandArg), " ")
     .endif
     .if esi
-
         strcat(rdi, "\"")
     .endif
     lea rbx,[rdi+strlen(rdi)]
     .if strchr(strcat(rdi, string), 10)
-
         CreateBatch(rbx, 0, 0)
     .endif
     .if esi
-
         strcat(rdi, "\"")
     .endif
     mov eax,flag
@@ -193,7 +157,6 @@ CreateConsole proc uses rsi rdi rbx string:string_t, flag:uint_t
     process(0, rdi, eax)
     SetKeyState()
     ret
-
-CreateConsole endp
+    endp
 
     END

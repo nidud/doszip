@@ -11,47 +11,36 @@ include stdlib.inc
 include io.inc
 include config.inc
 
-    .data
+.data
+ com_wsub PWSUB path_a
+ com_base char_t WMAXPATH dup(0)
+ com_info TEDIT {com_base,_TE_OVERWRITE,0,24,80,WMAXPATH,0,0,0,0,0,0x070020 }
 
-com_wsub  PWSUB path_a
-com_base  char_t WMAXPATH dup(0)
-com_info  TEDIT {com_base,_TE_OVERWRITE,0,24,80,WMAXPATH,0,0,0,0,0,0x070020 }
-
-    .code
+.code
 
 comhndlevent proc private event:uint_t
-
     xor eax,eax
     .if ( cflag & _C_COMMANDLINE )
-
         _cursoron()
         dledite(&com_info, event)
     .endif
     ret
-
-comhndlevent endp
-
+    endp
 
 cominit proc wsub:PWSUB
-
     ldr rax,wsub
     mov com_wsub,rax
     wsinit(rax)
-
     cominitline()
     mov eax,1
     ret
-
-cominit endp
-
+    endp
 
     assume rsi:PWSUB
 
 cominitline proc private uses rsi rdi rbx
-
     mov rbx,DLG_Commandline
     .if rbx && [rbx].DOBJ.flag & _D_DOPEN
-
         movzx eax,[rbx].DOBJ.rc.x
         movzx edx,[rbx].DOBJ.rc.y
         mov com_info.ypos,edx
@@ -67,9 +56,7 @@ cominitline proc private uses rsi rdi rbx
         sub edx,eax
         mov com_info.cols,edx
         _gotoxy(eax, com_info.ypos)
-
         .if ( [rbx].DOBJ.flag & _D_ONSCR )
-
             mov edi,com_info.ypos
             scputw(0, edi, _scrcol, ' ')
             scpath(0, edi, 50, [rsi].path)
@@ -87,29 +74,21 @@ cominitline proc private uses rsi rdi rbx
         .endif
     .endif
     ret
-
-cominitline endp
-
+    endp
 
 comshow proc
-
     mov eax,com_info.ypos
-
     lea rcx,prect_b
     .if !( [rcx].DOBJ.flag & _D_ONSCR )
-
         lea rcx,prect_a
     .endif
     .if ( [rcx].DOBJ.flag & _D_ONSCR )
-
         mov dl,[rcx].DOBJ.rc.y
         add dl,[rcx].DOBJ.rc.row
         .if dl > al
-
             mov al,dl
         .endif
     .endif
-
     .if ( !eax && cflag & _C_MENUSLINE )
         inc eax
     .endif
@@ -119,34 +98,25 @@ comshow proc
     .if ( eax > _scrrow )
         mov eax,_scrrow
     .endif
-
     mov byte ptr com_info.ypos,al
     mov rdx,DLG_Commandline
     mov [rdx+5],al
-
     .if cflag & _C_COMMANDLINE
-
         _gotoxy(0, eax)
         _cursoron()
         dlshow(DLG_Commandline)
         cominitline()
     .endif
     ret
-
-comshow endp
-
+    endp
 
 comhide proc
-
     dlhide(DLG_Commandline)
     _cursoroff()
     ret
-
-comhide endp
-
+    endp
 
 comevent proc event:UINT
-
     ldr eax,event
     .switch eax
     .case KEY_UP
@@ -185,21 +155,16 @@ comevent proc event:UINT
         .endif
     .endsw
     ret
-
-comevent endp
-
+    endp
 
 clrcmdl proc
-
     .if ( cflag & _C_COMMANDLINE )
-
         mov com_base,0
         comevent(KEY_HOME)
         cominitline()
     .endif
     ret
-
-clrcmdl endp
+    endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -222,13 +187,10 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
     mov path,rax
     add rax,_MAX_PATH
     mov temp,rax
-
     mov rdx,cmd
     .while byte ptr [rdx] == ' '
-
         add rdx,1
     .endw
-
     .return .ifd !strtrim(strnzcpy(rdi, rdx, 8000h-1))
 
     expenviron(rdi)
@@ -240,37 +202,26 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
         ; %find% [<directory>] [<file_mask(s)>] [<text_to_find_in_files>]
 
         .switch
-
           .case !_strnicmp(rdi, "%view%", 6)
-
             load_tview(addr [rdi+7], 0)
             .return 1
-
           .case !_strnicmp(rdi, "%edit%", 6)
-
             load_tedit(addr [rdi+7], 4)
             .return 1
-
           .case !_strnicmp(rdi, "%find%", 6)
-
             .if byte ptr [rdi+6] == ' '
-
                 add rdi,7
                 strchr(rdi, ' ')
                 mov rcx,rdi
                 mov rdi,rax
                 .if strrchr(rcx, ' ')
-
                     mov byte ptr [rdi],0    ; end of first arg
                     mov byte ptr [rax],0    ; start of last arg - 1
                     .if byte ptr [rax+1] != '?' && rax != rdi
-
                         inc rax
                         strcpy(&searchstring, rax)
                     .endif
-
                     .if byte ptr [rdi+1] != '?'
-
                         strcpy(&findfilemask, &[rdi+1])
                     .endif
                 .endif
@@ -284,7 +235,6 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
     .endif
 
     clrcmdl()
-
     xor eax,eax
     mov CallBatch,eax
     mov UpdateEnviron,eax
@@ -302,9 +252,7 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
 
     mov eax,[rdi]
     or  eax,0x20202020
-
     .if eax == 'tixe' && byte ptr [rdi+4] <= ' '
-
         .return cmquit()
     .endif
 
@@ -312,41 +260,26 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
 
     mov rdx,rdi
     mov ecx,1
-
     .if word ptr [rdi+1] != ':'
-
         mov eax,[rdi]
         or  ax,0x2020
-
         .if ax != 'dc'
-
             xor ecx,ecx
-
         .else
-
             add rdx,2
-
             mov al,[rdx]
-
             .if al != ' ' && al != '.' && al != '\'
-
                 xor ecx,ecx
             .endif
         .endif
     .endif
-
     .if ecx
-
         mov rsi,rdx
         .while byte ptr [rsi] == ' '
-
             add rsi,1
         .endw
-
         .ifd SetCurrentDirectory(rsi)
-
             .ifd GetCurrentDirectory(_MAX_PATH, rsi)
-
                 cpanel_setpath(rsi)
                 mov _diskflag,3
             .endif
@@ -354,18 +287,14 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
         .return
     .endif
 
-
     ; Parse the first token
 
     mov rbx,strnzcpy(path, rdi, _MAX_PATH-1)
     strtrim(rbx)
     test eax,eax
     jz execute_command
-
     .if byte ptr [rbx] == '"'
-
         .if strchr(strcpy(rbx, &[rbx+1]), '"')
-
             mov byte ptr [rax],0
         .elseif strchr(rbx, ' ')
             mov byte ptr [rax],0
@@ -383,18 +312,15 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
         _aisexec(rbx)
         test eax,eax
         jnz execute_command
-
         mov eax,[rbx]
         and eax,00FFFFFFh
         or  eax,00202020h
-
         .if ( eax == 'tes' || eax == 'rof' )
             ;
             ; Change or set environment variable
             ;
             mov al,[rbx+3]
             .if ( al == ' ' || al == 9 )
-
                 inc UpdateEnviron
                 jmp create_batch
             .endif
@@ -405,22 +331,16 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
     .switch _aisexec(rbx)
       .case _EXEC_EXE
         .if comspec_type == 0
-
             .ifd osopen(rbx, 0, M_RDONLY, A_OPEN) != -1
-
                 mov esi,eax
                 mov size,osread(esi, temp, 32)
                 _close(esi)
-
                 .if size == 32
-
                     mov rsi,temp
                     mov ax,[rsi+24]
                     .if ax == 0040h
-
                         xor eax,eax
                         .if eax != [rsi+20]
-
                             jmp create_batch
                         .endif
                     .endif
@@ -437,59 +357,44 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
     .endsw
 
 create_batch:
-
     mov eax,console
     and eax,CON_CMDENV
     .if !eax
-
         mov CallBatch,eax
         mov UpdateEnviron,eax
     .endif
-
     .if CreateBatch(rdi, CallBatch, UpdateEnviron) != -1
-
         strcpy(batch, rax)
     .endif
 
-
 execute_command:
-
     doszip_hide()
     _gotoxy(0, com_info.ypos)
     _cursoron()
     system(rdi)
     mov size,eax
-
     .if UpdateEnviron
-
         strfcat(rdi, envtemp, "dzcmd.env")
         ReadEnvironment(rdi)
         removefile(rdi)
         GetEnvironmentTEMP()
         GetEnvironmentPATH()
         .ifd !GetCurrentDirectory(WMAXPATH, rdi)
-
             xor edi,edi
         .endif
     .endif
-
     doszip_show()
     SetKeyState()
-
     mov rax,batch
     .if byte ptr [rax]
-
         removefile(rax)
     .endif
-
     .if UpdateEnviron && rdi
-
         cpanel_setpath(rdi)
     .endif
     mov eax,size
     ret
-
-command endp
+    endp
 
     END
 

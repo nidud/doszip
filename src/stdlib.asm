@@ -37,27 +37,21 @@ public envtemp
     option dotname
 
 __xtol proc string:LPSTR
-
     ldr rdx,string
-
     mov eax,[rdx]
     .if ( ax == 'x0' )
         add rdx,2
     .endif
     xor eax,eax
     xor ecx,ecx
-
     .while 1
-
         mov cl,[rdx]
         add rdx,1
         and cl,0xDF
-
         .break .if cl < 0x10
         .break .if cl > 'F'
 
         .if cl > 0x19
-
             .break .if cl < 'A'
             sub cl,'A' - 0x1A
         .endif
@@ -66,13 +60,10 @@ __xtol proc string:LPSTR
         add eax,ecx
     .endw
     ret
-
-__xtol endp
+    endp
 
 __xtoi64 proc uses rbx string:LPSTR
-
     ldr rbx,string
-
     mov eax,[rbx]
     .if ( ax == 'x0' )
         add rbx,2
@@ -82,18 +73,13 @@ __xtoi64 proc uses rbx string:LPSTR
 ifndef _WIN64
     xor edx,edx
 endif
-
     .while 1
-
         mov cl,[rbx]
         add rbx,1
         and cl,0xDF
-
         .break .if cl < 0x10
         .break .if cl > 'F'
-
         .if cl > 0x19
-
             .break .if cl < 'A'
             sub cl,'A' - 0x1A
         .endif
@@ -109,30 +95,21 @@ else
 endif
     .endw
     ret
-
-__xtoi64 endp
+    endp
 
 strtolx proc string:LPSTR
-
     ldr rcx,string
-
     .for ( rdx = rcx, al = [rdx] : al : rdx++, al = [rdx] )
-
         .if ( al > '9' )
-
             .return __xtol(rcx)
         .endif
     .endf
     .return atol(rcx)
-
-strtolx endp
+    endp
 
 mkbstring proc uses rsi rdi buf:LPSTR, qw:qword
-
   local tmp[32]:byte
-
     sprintf(&tmp, "%I64u", qw)
-
     mov rsi,_strrev(&tmp)
     mov rdi,buf
     xor edx,edx
@@ -151,28 +128,21 @@ mkbstring proc uses rsi rdi buf:LPSTR, qw:qword
     .if [rdi-2] == ah
         mov [rdi-2],dh
     .endif
-
     _strrev(buf)
-
     mov eax,dword ptr qw
     mov ecx,dword ptr qw+4
     xor edx,edx
-
     .while ecx || eax > 1024*10
-
         shrd eax,ecx,10
         shr ecx,10
         inc edx
     .endw
     ret
-
-mkbstring endp
+    endp
 
 recursive proc uses rsi rdi name:LPSTR, src:LPSTR, dst:LPSTR
-
    .new temp[WMAXPATH]:char_t
    .new path[WMAXPATH]:char_t
-
     ldr rcx,name
     ldr rdx,src
     lea rsi,path
@@ -188,30 +158,23 @@ recursive proc uses rsi rdi name:LPSTR, src:LPSTR, dst:LPSTR
     .endif
     inc eax
     ret
-
-recursive endp
+    endp
 
 __initpath proc private uses rdi
-
   local path[256]
-
     lea rdi,path
     strcpy(rdi, _pgmptr)
     .if strfn(rdi) > rdi
-
         mov byte ptr [rax-1],0
         strlen(rdi)
         mov _pgmpath,malloc(&[rax+1])
         strcpy(rax, rdi)
     .endif
     ret
-
-__initpath endp
+    endp
 
 __initcomspec proc
-
   local buffer[1024]:SBYTE
-
     .if comspec_type
         SearchPath(NULL, "cmd.exe", NULL, 1024, &buffer, NULL)
     .else
@@ -222,39 +185,30 @@ __initcomspec proc
         mov  __pCommandCom,_strdup(&buffer)
     .endif
     ret
-
-__initcomspec endp
+    endp
 
 ; expand '%TEMP%' to 'C:\TEMP'
 
 expenviron proc string:LPSTR
-
    .new buffer:LPSTR = malloc(0x8000)
-
     ExpandEnvironmentStrings(string, buffer, 0x8000-1 )
     strcpy(string, buffer)
     free(buffer)
     mov rax,string
     ret
-
-expenviron endp
+    endp
 
 
 getenvp proc private enval:LPSTR
-
   local buf[2048]:byte
-
     .ifd GetEnvironmentVariable(enval, &buf, 2048)
-
         _strdup(&buf)
     .endif
     ret
-
-getenvp endp
+    endp
 
 
 GetEnvironmentSize proc private EnvironmentStrings:LPSTR
-
     mov rdx,rdi
     mov rdi,EnvironmentStrings
     xor eax,eax
@@ -265,14 +219,11 @@ GetEnvironmentSize proc private EnvironmentStrings:LPSTR
     mov rdi,rdx
     sub eax,ecx
     ret
-
-GetEnvironmentSize endp
+    endp
 
 
 GetEnvironmentPATH proc
-
     .if getenvp("PATH")
-
         mov rcx,envpath
         mov envpath,rax
         lea rax,envpath
@@ -282,16 +233,12 @@ GetEnvironmentPATH proc
     .endif
     mov rax,envpath
     ret
-
-GetEnvironmentPATH endp
+    endp
 
 GetEnvironmentTEMP proc
-
     free(envtemp)
     mov envtemp,getenvp(&cp_temp)
-
     .if !rax
-
         mov rax,_pgmpath
         .if rax
             mov envtemp,_strdup(rax)
@@ -300,30 +247,23 @@ GetEnvironmentTEMP proc
         .endif
     .endif
     ret
-
-GetEnvironmentTEMP endp
+    endp
 
 removefile proc uses rbx file:LPSTR
-
     ldr rcx,file
-
     mov rbx,_utftows(rcx)
     _wsetfattr(rbx, 0)
     _wremove(rbx)
     ret
-
-removefile endp
+    endp
 
 removetemp proc uses rbx path:LPSTR
-
    .new buffer[1024]:char_t
-
     mov rbx,_utftows(strfcat(&buffer, envtemp, path))
     _wsetfattr(rbx, 0)
     _wremove(rbx)
     ret
-
-removetemp endp
+    endp
 
 ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
 
@@ -334,7 +274,6 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
     Result:sdword
 
     mov Result,0
-
     .if GetEnvironmentStrings()
         ;
         ; Read the current environment block
@@ -348,7 +287,6 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
         ; Read the new environment block
         ;
         .ifd osopen(FileName, _FA_NORMAL, M_RDONLY, A_OPEN) != -1
-
             mov edi,eax
             mov ebx,_filelength(eax)
             mov rsi,alloca(eax)
@@ -357,7 +295,6 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
             xchg eax,edi
             _close(eax)
             mov NewEnvironment,rsi
-
             test ebx,ebx    ; Exit on zero file or IO error
             jz toend
             cmp edi,ebx
@@ -370,7 +307,6 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
             mov esi,eax
             mov NewEnvSize,esi
             .if esi == CurrentEnvSize
-
                 mov ecx,esi
                 mov rdx,rdi
                 mov rsi,CurrentEnvironment
@@ -384,10 +320,8 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
             ;
             mov rsi,CurrentEnvironment
             .while byte ptr [rsi]
-
                 lea rax,[rsi+1]
                 .if strchr(rax, '=')
-
                     mov byte ptr [rax],0
                     mov rbx,rax
                     SetEnvironmentVariable(rsi, 0)
@@ -401,10 +335,8 @@ ReadEnvironment proc uses rsi rdi rbx FileName:LPSTR
             ;
             mov rsi,NewEnvironment
             .while byte ptr [rsi]
-
                 lea rax,[rsi+1]
                 .if strchr(rax, '=')
-
                     mov byte ptr [rax],0
                     lea rbx,[rax+1]
                     SetEnvironmentVariable(rsi, rbx)
@@ -422,63 +354,47 @@ directory:
 toend:
     mov eax,Result
     ret
-
-ReadEnvironment endp
+    endp
 
 SaveEnvironment proc uses rsi rdi rbx FileName:LPSTR
-
    .new CurrentDirectory[WMAXPATH]:sbyte
    .new retval:int_t = 0
-
     .if GetEnvironmentStrings()
-
         mov rsi,rax
         mov rbx,rax
-
         .ifd osopen(FileName, _FA_NORMAL, M_WRONLY, A_CREATETRUNC) != -1
-
             mov edi,eax
             mov _diskflag,1
             oswrite(edi, rsi, GetEnvironmentSize(rsi))
-
             lea rsi,CurrentDirectory
             .if GetCurrentDirectory(WMAXPATH, rsi)
-
                 strlen(rsi)
                 inc eax
                 oswrite(edi, rsi, eax)
                 inc retval
             .endif
             _close(edi)
-
             .if ( retval == 0 )
-
                 _wremove(_utftows(FileName))
             .endif
         .endif
         FreeEnvironmentStrings(rbx)
     .endif
     .return(retval)
-
-SaveEnvironment endp
+    endp
 
 TestPath proc private uses rsi rdi rbx file:LPSTR, buffer:LPSTR
-
   local temp[_MAX_PATH*2]:sbyte
-
     lea rdi,temp
     mov rsi,GetEnvironmentPATH()
     .if rsi
-
         .repeat
-
             .if strchr(rsi, ';')
                 sub rax,rsi
             .else
                 strlen(rsi)
             .endif
             .break .if !eax
-
             mov ebx,eax
             memcpy(rdi, rsi, eax)
             mov word ptr [rdi+rbx],'\'
@@ -493,19 +409,15 @@ TestPath proc private uses rsi rdi rbx file:LPSTR, buffer:LPSTR
     .endif
     xor eax,eax
     ret
-
-TestPath endp
+    endp
 
 
 TestPathExt proc private uses rsi rdi file:LPSTR, path:LPSTR, buffer:LPSTR
-
   local temp[_MAX_PATH*2]:sbyte
-
     lea rdi,temp
     lea rsi,exetype
     .while byte ptr [rsi]
         .ifd filexist(strcat(strfcat(rdi, path, file), rsi)) == 1
-
             .if ( buffer )
                 strcpy(buffer, rdi)
             .endif
@@ -515,8 +427,7 @@ TestPathExt proc private uses rsi rdi file:LPSTR, path:LPSTR, buffer:LPSTR
     .endw
     xor eax,eax
     ret
-
-TestPathExt endp
+    endp
 
 searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
 
@@ -529,12 +440,10 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
     .if ( rax == rbx || al == [rbx] )
         .return
     .endif
-
     ;
     ; Test valid extension
     ;
     mov isexec,_aisexec(rbx)
-
     lea rsi,path
     lea rdi,file
     _getcwd(rsi, _MAX_PATH)
@@ -542,14 +451,10 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
     ; If valid extension and exist
     ;
     .if ( isexec )
-
         .ifd ( filexist(rbx) == 1 )
-
             .if ( strfn(rbx) == rbx )
-
                 strfcat(rdi, rsi, rbx)
             .else
-
                 mov ecx,[rbx]
                 xor eax,eax
                 .if ( ch != ':' )
@@ -571,14 +476,12 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
     ; If full or relative path
     ;
     .if ( strfn(rbx) != rbx )
-
         .if isexec
             ;
             ; do not exist
             ;
             .return(NULL)
         .endif
-
         strcpy(rdi, rax)
         strpath(strcpy(rsi, rbx))
        .return TestPathExt(rdi, rsi, buffer)
@@ -587,17 +490,14 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
     ; Case filename
     ;
     .if isexec
-
         .return TestPath(rbx, buffer)
     .endif
     ;
     ; case name, no ext
     ;
     .ifd TestPathExt(rbx, rsi, buffer)
-
         .return
     .endif
-
     mov rsi,GetEnvironmentPATH()
     .repeat
         .if strchr(rsi, ';')
@@ -606,7 +506,6 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
             strlen(rsi)
         .endif
         .break .if !eax
-
         mov ecx,eax
         rep movsb
         mov byte ptr [rdi],0
@@ -615,8 +514,7 @@ searchp proc uses rsi rdi rbx fname:LPSTR, buffer:LPSTR
         lodsb
     .until !eax
     ret
-
-searchp endp
+    endp
 
 .pragma init(__initpath, 5)
 .pragma init(__initcomspec, 60)

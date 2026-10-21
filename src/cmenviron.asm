@@ -32,24 +32,19 @@ event_keys GLCMD \
     option proc:private
 
 getcurobj proc
-
     xor eax,eax
     mov rdx,FCB_Environ
-
     .if ( [rdx].LOBJ.count )
-
         mov eax,[rdx].LOBJ.index
         add eax,[rdx].LOBJ.celoff
         mov rdx,[rdx].LOBJ.list
         mov rax,[rdx+rax*size_t]
     .endif
     ret
-
-getcurobj endp
+    endp
 
 
 putcelid proc uses rbx
-
     mov rbx,DLG_Environ
     movzx eax,[rbx].DOBJ.index
     .if ( eax >= CELLCOUNT )
@@ -65,39 +60,26 @@ putcelid proc uses rbx
     add ebx,3
     scputf(ebx, edx, 0, 0, "<%02d:%02d>", eax, ecx)
     ret
-
-putcelid endp
+    endp
 
 
 read_environ proc uses rsi rdi rbx
-
    .new p:LPSTR
-
     mov rbx,FCB_Environ
     mov rdi,[rbx].LOBJ.list
     .if rdi
-
         .for ( esi = 0 : esi < [rbx].LOBJ.count : esi++ )
-
             free( [rdi+rsi*LPSTR] )
         .endf
-
-
         mov [rbx].LOBJ.count,0
         mov [rbx].LOBJ.numcel,0
-
         .if GetEnvironmentStrings()
-
             mov p,rax
             mov rsi,rax
-
             .while 1
-
                 mov al,[rsi]
                 .break .if !al
-
                 .if ( al != '=' )
-
                     mov [rdi],_strdup(rsi)
                     add rdi,size_t
                     inc [rbx].LOBJ.count
@@ -114,27 +96,21 @@ read_environ proc uses rsi rdi rbx
         .endif
     .endif
     ret
+    endp
 
-read_environ endp
 
-
-event_list proc uses rsi rdi rbx
-
+event_list proc uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
    .new x:int_t
    .new y:int_t
-
     mov rbx,DLG_Environ
     dlinit(rbx)
-
     movzx   eax,[rbx].DOBJ.rc.x
     add     eax,3
     mov     x,eax
     movzx   eax,[rbx].DOBJ.rc.y
     add     eax,2
     mov     y,eax
-
     .for ( rdi = FCB_Environ, ebx = 0 : ebx < [rdi].LOBJ.numcel : ebx++, y++ )
-
         mov eax,ebx
         add eax,[rdi].LOBJ.index
         mov rsi,[rdi].LOBJ.list
@@ -155,15 +131,12 @@ event_list proc uses rsi rdi rbx
         .endif
     .endf
     .return( 1 )
-
-event_list endp
+    endp
 
 
 update_cellid proc uses rdi rbx
-
     putcelid()
     event_list()
-
     mov rbx,DLG_Environ
     mov rdi,FCB_Environ
     mov ecx,CELLCOUNT
@@ -181,12 +154,10 @@ update_cellid proc uses rdi rbx
         dec ecx
     .endw
     .return(_C_NORMAL)
-
-update_cellid endp
+    endp
 
 
 event_xcell proc
-
     putcelid()
     mov rdx,DLG_Environ
     movzx eax,[rdx].DOBJ.index
@@ -194,53 +165,39 @@ event_xcell proc
     mov [rdx].LOBJ.celoff,eax
     dlxcellevent()
     ret
-
-event_xcell endp
+    endp
 
      ;--------------------------------------
 
 event_edit proc uses rsi rdi rbx
-
   local variable[256]:byte
   local value[2048]:byte
-
     .if getcurobj()
-
         mov rsi,rax
         lea rdi,variable
         xor ebx,ebx
         mov value,bl
-
         .if strchr(rsi, '=')
-
             mov byte ptr [rax],0
             mov rbx,rax
             inc rax
             strcpy(&value, rax)
         .endif
         strcpy(rdi, rsi)
-
         .if rbx
             mov byte ptr [rbx],'='
         .endif
         mov rsi,rbx
         lea rbx,value
-
         .if tgetline(rdi, rbx, 60, 2048)
-
             .if byte ptr [rbx]
-
                 .if rsi
-
                     inc rsi
                     .ifd !strcmp(rsi, rbx)
-
                         .return(_C_NORMAL)
                     .endif
                 .endif
-
                 .ifd SetEnvironmentVariable(rdi, rbx)
-
                     read_environ()
                     update_cellid()
                 .endif
@@ -248,27 +205,19 @@ event_edit proc uses rsi rdi rbx
         .endif
     .endif
     .return(_C_NORMAL)
-
-event_edit endp
+    endp
 
 
 event_add proc uses rsi rdi rbx
-
   local environ[2048]:byte
-
     lea rbx,environ
     mov byte ptr [rbx],0
-
     .ifd tgetline("Format: <variable>=<value>", rbx, 60, 2048)
-
         .if byte ptr [rbx]
-
             .if strchr(rbx, '=')
-
                 mov byte ptr [rax],0
                 inc rax
                 .ifd SetEnvironmentVariable(rbx, rax)
-
                     read_environ()
                     update_cellid()
                 .endif
@@ -277,8 +226,7 @@ event_add proc uses rsi rdi rbx
     .endif
     mov eax,_C_NORMAL
     ret
-
-event_add endp
+    endp
 
 
 event_delete proc uses rsi rbx
@@ -341,16 +289,12 @@ event_delete proc uses rsi rbx
     .endif
     mov eax,_C_NORMAL
     ret
-
-event_delete endp
+    endp
 
 
 event_load proc
-
   local path[_MAX_PATH]:sbyte
-
     .ifd wgetfile(&path, "*.env", _WOPEN)
-
         _close(eax)
         ReadEnvironment(&path)
         read_environ()
@@ -358,23 +302,18 @@ event_load proc
     .endif
     mov eax,_C_NORMAL
     ret
-
-event_load endp
+    endp
 
 
 event_save proc
-
   local path[_MAX_PATH]:sbyte
-
     .ifd wgetfile(&path, "*.env", _WSAVE)
-
         _close(eax)
         SaveEnvironment(&path)
     .endif
     mov eax,_C_NORMAL
     ret
-
-event_save endp
+    endp
 
 
 cmenviron proc public uses rsi rdi rbx
@@ -442,7 +381,6 @@ cmenviron proc public uses rsi rdi rbx
             .endw
             dlclose(rbx)
         .endif
-
         mov rbx,FCB_Environ
         mov rsi,[rbx].LOBJ.list
         .if rsi
@@ -459,7 +397,6 @@ cmenviron proc public uses rsi rdi rbx
     _setcursor(&cursor)
     xor eax,eax
     ret
-
-cmenviron endp
+    endp
 
     end

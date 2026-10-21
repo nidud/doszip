@@ -25,26 +25,22 @@ include stdlib.inc
 .code
 
 StringToTime proc private lpTime:LPSTR, lpDate:LPSTR
-
    .new FileTime:FILETIME
    .new SystemTime:SYSTEMTIME
    .new FatTime:uint_t
    .new FatDate:uint_t
-
     StringToSystemTimeA(lpTime, &SystemTime)
     StringToSystemDateA(lpDate, &SystemTime)
     SystemTimeToFileTime(&SystemTime, &FileTime)
     LocalFileTimeToFileTime(&FileTime, &FileTime)
     FileTimeToDosDateTime(&FileTime, &FatDate, &FatTime)
-
     mov eax,FatTime
     mov edx,FatDate
     shl edx,16
     and eax,0xFFFF
     or  eax,edx
     ret
-
-StringToTime endp
+    endp
 
 
 cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
@@ -134,8 +130,7 @@ cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
         dlclose(rbx)
     .endif
     ret
-
-cmfileattrib endp
+    endp
 
 cmzipattrib proc private uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
 
@@ -246,12 +241,9 @@ cmzipattrib proc private uses rsi rdi rbx wsub:PWSUB, fblk:PFBLK
         .endif
     .endif
     ret
-
-cmzipattrib endp
-
+    endp
 
 cmattrib proc
-
     mov rax,cpanel
     .switch
       .case !panel_curobj(rax)
@@ -266,8 +258,7 @@ cmattrib proc
        .endc
     .endsw
     ret
-
-cmattrib endp
+    endp
 
     END
 

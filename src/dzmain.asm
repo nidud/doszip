@@ -14,14 +14,12 @@ include progress.inc
 
 config_create proto
 
-    .data
+.data
+ panel_A dd 0
+ panel_B dd 0
 
-    panel_A dd 0
-    panel_B dd 0
-
-    .code
-
-    option proc:private
+.code
+ option proc:private
 
 ioupdate proc stream:PIOST
     ;
@@ -37,7 +35,6 @@ ioupdate proc stream:PIOST
     endp
 
 test_path proc
-
     xor eax,eax     ; validate path in ESI
     mov cx,[rsi]    ; path in EDI used if fail
     .if cl

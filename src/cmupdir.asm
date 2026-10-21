@@ -3,15 +3,13 @@
 
 include doszip.inc
 
-    .code
+.code
 
 cmupdir proc
-
     .ifd panel_event(cpanel, KEY_HOME)
         panel_event(cpanel, KEY_ENTER)
     .endif
     ret
-
-cmupdir endp
+    endp
 
     END
