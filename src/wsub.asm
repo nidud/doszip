@@ -1082,7 +1082,7 @@ event_file proc uses rbx
     mov rcx,o_wsub
     strnzcpy([rcx].WSUB.mask, rbx, 32-1)
     read_wsub()
-    event_list()
+    event_list(dialog, o_list)
     .if ( wsearch(o_wsub, rbx) == -1 )
         .return(_C_NORMAL)
     .endif
@@ -1092,7 +1092,7 @@ event_file proc uses rbx
 
 event_path proc
     read_wsub()
-    event_list()
+    event_list(dialog, o_list)
     .return(_C_NORMAL)
     endp
 
@@ -1132,7 +1132,7 @@ case_files proc uses rsi rdi rbx
                     .else
                         mov [rbx].LOBJ.index,eax
                     .endif
-                    event_list()
+                    event_list(dialog, rbx)
                     xor eax,eax
                 .endif
             .endif

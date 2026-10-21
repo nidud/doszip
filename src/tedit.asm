@@ -4728,9 +4728,7 @@ tdlgopen proc uses rsi rdi rbx
             mov rdi,rax
             dlshow(rax)
 
-            mov rax,rdi
-            lea rdx,ll
-            event_list()
+            event_list(rdi, &ll)
 
             mov ebx,dllevent(rdi, &ll)
             mov edx,[rdi].DOBJ.rc

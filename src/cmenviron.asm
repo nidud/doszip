@@ -102,7 +102,8 @@ read_environ proc uses rsi rdi rbx
 event_list proc uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
    .new x:int_t
    .new y:int_t
-    mov rbx,DLG_Environ
+    ldr rbx,dlg
+    ldr rdi,lst
     dlinit(rbx)
     movzx   eax,[rbx].DOBJ.rc.x
     add     eax,3
@@ -110,7 +111,7 @@ event_list proc uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
     movzx   eax,[rbx].DOBJ.rc.y
     add     eax,2
     mov     y,eax
-    .for ( rdi = FCB_Environ, ebx = 0 : ebx < [rdi].LOBJ.numcel : ebx++, y++ )
+    .for ( ebx = 0 : ebx < [rdi].LOBJ.numcel : ebx++, y++ )
         mov eax,ebx
         add eax,[rdi].LOBJ.index
         mov rsi,[rdi].LOBJ.list
@@ -136,9 +137,9 @@ event_list proc uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
 
 update_cellid proc uses rdi rbx
     putcelid()
-    event_list()
     mov rbx,DLG_Environ
     mov rdi,FCB_Environ
+    event_list(rbx, rdi)
     mov ecx,CELLCOUNT
     mov eax,_O_STATE
     .repeat

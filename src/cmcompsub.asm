@@ -551,11 +551,12 @@ event_mklist proc uses rsi rdi rbx
 
 
 event_list proc uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
-    dlinit(DLG_FindFile)
-    mov rax,DLG_FindFile
-    mov ebx,[rax].DOBJ.rc
+    ldr rbx,dlg
+    ldr rdi,lst
+    dlinit(rbx)
+    mov ebx,[rbx].DOBJ.rc
     add ebx,0x0204
-    mov rax,tdllist
+    mov rax,rdi
     mov edi,[rax].LOBJ.index
     shl edi,(2+size_t/8)
     add rdi,[rax].LOBJ.list
@@ -575,7 +576,7 @@ event_list proc uses rsi rdi rbx dlg:PDOBJ, lst:PLOBJ
 
 update_cellid proc
     ff_putcelid()
-    event_list()
+    event_list(DLG_FindFile, tdllist)
     ff_update_cellid()
     ret
     endp
