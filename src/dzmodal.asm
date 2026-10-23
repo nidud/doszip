@@ -248,11 +248,13 @@ panel_scrollup proc private panel:PPANEL
     ret
     endp
 
-
 mouseevent proc private uses rsi rdi rbx
+    .new mp:int_t
+    .new lb[256]:sbyte
     .while mousep()
         mov edi,keybmouse_x
         mov esi,keybmouse_y
+        mov mp,eax
         .if ( cflag & _C_MENUSLINE && !esi )
             mov eax,_scrcol
             sub eax,5
@@ -284,6 +286,26 @@ mouseevent proc private uses rsi rdi rbx
             panel_xycmd(rbx, edi, esi)
         .endif
         .switch eax
+        .case 0
+            .if ( mp == 2 )
+                mov ebx,esi
+                mov esi,edi
+                lea rdi,lb
+                .while esi < _scrcol
+                    getxyc(esi, ebx)
+                    stosb
+                    inc esi
+                .endw
+                xor eax,eax
+                stosb
+                lea rdi,lb
+                .if strtrim(rdi)
+                    ClipboardCopy(rdi, eax)
+                    ClipboardFree()
+                    stdmsg("Copy", "%s\n\nis copied to clipboard", rdi)
+                .endif
+            .endif
+            .endc
         .case 1
         .case 2
             panel_setactive(rbx)

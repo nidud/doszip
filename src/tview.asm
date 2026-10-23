@@ -1246,6 +1246,7 @@ endif
         .case KEY_CTRLB
             dlhide(dialog)
             .while !getkey()
+                Sleep(CON_SLEEP_TIME)
             .endw
             dlshow(dialog)
            .endc
