@@ -246,6 +246,10 @@ apiega proc
 UpdateWindowSize proc uses rsi rdi size:COORD
     movzx esi,size.X
     movzx edi,size.Y
+    .if ( si >  _scrmax.Y || di > _scrmax.Y )
+        mov si,_scrmax.X
+        mov di,_scrmax.Y
+    .endif
     dec edi
     .if ( edi != _scrrow || esi != _scrcol )
         comhide()

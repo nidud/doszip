@@ -2310,6 +2310,9 @@ putline proc uses rsi rdi rbx
     mov ecx,[rdx].cols
     mov eax,[rdx].clrc
     mov cols,ecx
+    .ifs ( ecx < 0 || ecx > MAXCOLS )
+        .return
+    .endif
     rep stosd
 
     mov rsi,[rdx].base
@@ -2438,7 +2441,7 @@ dledit proc uses rdi rbx b:LPSTR, rc:TRECT, bz, oflag
     ret
     endp
 
-dledite proc uses rdi rbx t:PVOID, event
+dledite proc uses rdi rbx t:ptr TEDIT, event
 
     mov rdi,TI
     mov rax,t

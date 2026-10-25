@@ -23,6 +23,7 @@ _disk_ready PROC _CType PUBLIC disk:size_t
 	mov	sys_erflag,al
 	mov	sys_erdrive,al
 	mov	sys_ercode,ax
+	inc	ax
 @@:
 	ret
 

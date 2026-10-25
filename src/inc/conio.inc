@@ -327,6 +327,22 @@ key		UINT ?
 cmd		DPROC ?
 GLCMD		ends
 
+TEDIT		struct
+base		LPSTR ?		; base pointer
+flags		UINT ?		; config
+xpos		UINT ?		; text window x,y
+ypos		UINT ?
+cols		UINT ?		; size of screen-line
+bcol		UINT ?		; size of buffer-line
+xoffs		UINT ?		; x offset on screen
+boffs		UINT ?		; base offset - start of screen-line
+bcount		UINT ?		; byte count in line
+clip_so		UINT ?		; Clipboard start offset
+clip_eo		UINT ?		; Clipboard end offset
+clrc		UINT ?		; clear attrib/char
+TEDIT		ends
+PTEDIT		typedef ptr TEDIT
+
 dlopen		proto __cdecl :PDOBJ, :DWORD, :LPSTR
 dlclose		proto __cdecl :PDOBJ
 dlshow		proto __cdecl :PDOBJ
@@ -338,7 +354,7 @@ dllevent	proto __cdecl :PDOBJ, :PLOBJ
 dlinit		proto __cdecl :PDOBJ
 dlinitobj	proto __cdecl :PDOBJ, :PTOBJ
 dledit		proto __cdecl :LPSTR, :TRECT, :DWORD, :DWORD
-dledite		proto __cdecl :PVOID, :DWORD
+dledite		proto __cdecl :PTEDIT, :DWORD
 dlscreen	proto __cdecl :PDOBJ, :DWORD
 dlshowall	proto __cdecl
 dlhideall	proto __cdecl
@@ -363,22 +379,6 @@ tgetline	proto __cdecl :LPSTR, :LPSTR, :DWORD, :DWORD
 externdef	tdialog:PDOBJ
 externdef	tdllist:PLOBJ
 externdef	thelp:DPROC
-
-TEDIT		struct
-base		LPSTR ?		; base pointer
-flags		UINT ?		; config
-xpos		UINT ?		; text window x,y
-ypos		UINT ?
-cols		UINT ?		; size of screen-line
-bcol		UINT ?		; size of buffer-line
-xoffs		UINT ?		; x offset on screen
-boffs		UINT ?		; base offset - start of screen-line
-bcount		UINT ?		; byte count in line
-clip_so		UINT ?		; Clipboard start offset
-clip_eo		UINT ?		; Clipboard end offset
-clrc		UINT ?		; clear attrib/char
-TEDIT		ends
-PTEDIT		typedef ptr TEDIT
 
 tidecx		proto __cdecl :PTEDIT
 tiincx		proto __cdecl :PTEDIT

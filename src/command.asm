@@ -48,11 +48,14 @@ cominitline proc private uses rsi rdi rbx
         mov rsi,com_wsub
         strlen([rsi].path)
         inc eax
+        mov edx,_scrcol
         .if eax > 51
             mov eax,51
         .endif
+        .ifs eax > edx
+            mov eax,edx
+        .endif
         mov com_info.xpos,eax
-        mov edx,_scrcol
         sub edx,eax
         mov com_info.cols,edx
         _gotoxy(eax, com_info.ypos)
