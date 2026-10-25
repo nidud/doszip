@@ -3,6 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 4.02 - xx xxx 2026
+- added parameter to ShellExecute
+
 Changes in 4.01 - 25 Oct 2026
 - allow copy of text from console (Mouse-Right)
 - added ShellExecute for Win-Gui apps: Setup->System Options

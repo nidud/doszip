@@ -110,13 +110,38 @@ system proc uses rdi rsi rbx string:LPSTR
     endp
 
 
-system_gui proc string:LPSTR
+system_gui proc uses rdi rsi string:LPSTR
    .new sei:SHELLEXECUTEINFO = {0}
-    mov sei.lpFile,ldr(string)
+   .new arg0[_MAX_PATH]:char_t
+   .new quote:int_t
     mov sei.cbSize,SHELLEXECUTEINFO
     mov sei.fMask,SEE_MASK_NOCLOSEPROCESS or SEE_MASK_NOASYNC
     mov sei.lpVerb,&@CStr("open")
     mov sei.nShow,1;SW_SHOWNORMAL
+    ldr rdi,string
+    mov edx,' '
+    .if ( byte ptr [rdi] == '"' )
+        inc rdi
+        mov edx,'"'
+    .endif
+    mov quote,edx
+    xor esi,esi
+    .if strchr(rdi, edx)
+        mov byte ptr [rax],0
+        mov rsi,rax
+    .endif
+    strncpy(&arg0, rdi, _MAX_PATH-1)
+    mov sei.lpFile,rax
+    .if rsi
+        mov edx,quote
+        mov [rsi],dl
+        .if dl == '"'
+            inc rsi
+        .endif
+        .if ( byte ptr [rsi] )
+            mov sei.lpParameters,rsi
+        .endif
+    .endif
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED or COINIT_DISABLE_OLE1DDE)
     .if ShellExecuteEx(&sei)
         .if ( sei.hProcess != NULL )
