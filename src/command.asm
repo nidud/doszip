@@ -76,6 +76,8 @@ cominitline proc private uses rsi rdi rbx
     ret
     endp
 
+    assume rsi:nothing
+
 comshow proc
     mov eax,com_info.ypos
     lea rcx,prect_b
@@ -172,14 +174,15 @@ clrcmdl proc
 ;
 command proc uses rsi rdi rbx cmd:string_t ; BOOL
 
-  local cursor:CURSOR, batch:string_t, path:string_t, temp:string_t
-  local UpdateEnviron:uint_t, CallBatch:uint_t, size:uint_t
+   .new cursor:CURSOR, batch:string_t, path:string_t, temp:string_t
+   .new UpdateEnviron:uint_t, CallBatch:uint_t, size:uint_t
+   .new exe_gui:byte = 0
 
     mov eax,console
     and eax,CON_NTCMD
     CFGetComspec(eax)
 
-    mov rdi,alloca(0x8000 + _MAX_PATH*2 + 32)
+    mov rdi,alloca(0x8000 + _MAX_PATH*4)
     add rax,0x8000
     mov batch,rax
     mov byte ptr [rax],0
@@ -330,18 +333,35 @@ command proc uses rsi rdi rbx cmd:string_t ; BOOL
 
     .switch _aisexec(rbx)
       .case _EXEC_EXE
-        .if comspec_type == 0
-            .ifd osopen(rbx, 0, M_RDONLY, A_OPEN) != -1
-                mov esi,eax
-                mov size,osread(esi, temp, 32)
-                _close(esi)
-                .if size == 32
-                    mov rsi,temp
-                    mov ax,[rsi+24]
-                    .if ax == 0040h
-                        xor eax,eax
-                        .if eax != [rsi+20]
-                            jmp create_batch
+        mov size,0
+        .ifd osopen(rbx, 0, M_RDONLY, A_OPEN) != -1
+            mov esi,eax
+            mov size,osread(esi, temp, _MAX_PATH*2)
+            _close(esi)
+        .endif
+        .if ( comspec_type == 0 )
+            .if size >= 32
+                mov rsi,temp
+                mov ax,[rsi].IMAGE_DOS_HEADER.e_lfarlc
+                .if ax == 0x40
+                    xor eax,eax
+                    .if ( ax != [rsi].IMAGE_DOS_HEADER.e_ip &&
+                          ax != [rsi].IMAGE_DOS_HEADER.e_cs )
+                        jmp create_batch
+                    .endif
+                .endif
+            .endif
+        .elseif ( size > IMAGE_DOS_HEADER && cflag & _C_SHELLEXECUTE )
+            mov rsi,temp
+            .if ( [rsi].IMAGE_DOS_HEADER.e_magic == IMAGE_DOS_SIGNATURE )
+                mov ecx,[rsi].IMAGE_DOS_HEADER.e_lfanew
+                .if ( ecx < size )
+                    movzx eax,[rsi+rcx].IMAGE_NT_HEADERS.OptionalHeader.Magic
+                    .if ( eax == IMAGE_NT_OPTIONAL_HDR32_MAGIC ||
+                          eax == IMAGE_NT_OPTIONAL_HDR64_MAGIC )
+                        movzx eax,[rsi+rcx].IMAGE_NT_HEADERS.OptionalHeader.Subsystem
+                        .if ( eax == IMAGE_SUBSYSTEM_WINDOWS_GUI )
+                            inc exe_gui
                         .endif
                     .endif
                 .endif
@@ -371,7 +391,11 @@ execute_command:
     doszip_hide()
     _gotoxy(0, com_info.ypos)
     _cursoron()
-    system(rdi)
+    .if ( exe_gui )
+        system_gui(rdi)
+    .else
+        system(rdi)
+    .endif
     mov size,eax
     .if UpdateEnviron
         strfcat(rdi, envtemp, "dzcmd.env")

@@ -14,6 +14,8 @@ include direct.inc
 include stdlib.inc
 include config.inc
 include winbase.inc
+include combaseapi.inc
+
 
 externdef _diskflag:int_t
 externdef envtemp:string_t
@@ -106,6 +108,25 @@ system proc uses rdi rsi rbx string:LPSTR
     process(0, strcat(rbx, rdi), 0)
     ret
     endp
+
+
+system_gui proc string:LPSTR
+   .new sei:SHELLEXECUTEINFO = {0}
+    mov sei.lpFile,ldr(string)
+    mov sei.cbSize,SHELLEXECUTEINFO
+    mov sei.fMask,SEE_MASK_NOCLOSEPROCESS or SEE_MASK_NOASYNC
+    mov sei.lpVerb,&@CStr("open")
+    mov sei.nShow,1;SW_SHOWNORMAL
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED or COINIT_DISABLE_OLE1DDE)
+    .if ShellExecuteEx(&sei)
+        .if ( sei.hProcess != NULL )
+            CloseHandle(sei.hProcess)
+        .endif
+    .endif
+    CoUninitialize()
+    ret
+    endp
+
 
 CreateBatch proc uses rbx cmd:string_t, CallBatch:int_t, UpdateEnviron:int_t
   local batch[_MAX_PATH]:char_t, argv0[_MAX_PATH]:char_t

@@ -24,7 +24,8 @@ define __AT__
     ID_CMDENV,          ; CMD Compatible Mode
     ID_IMODE,           ; Init screen mode on startup
     ID_DELHISTORY,
-    ID_ESCUSERSCR
+    ID_ESCUSERSCR,
+    ID_SHELLEXECUTE
     }
 
 .enumt ID_DZScreenOptions:TOBJ {
@@ -101,22 +102,28 @@ cmsystem proc uses rsi rdi rbx
         .if eax & _C_ESCUSERSCR
             or [rbx].TOBJ.flag[ID_ESCUSERSCR],_O_FLAGB
         .endif
+        .if eax & _C_SHELLEXECUTE
+            or [rbx].TOBJ.flag[ID_SHELLEXECUTE],_O_FLAGB
+        .endif
         tosetbitflag([rbx].DOBJ.object, 8, _O_FLAGB, console)
         dlinit(rbx)
         mov esi,rsevent(IDD_DZSystemOptions, rbx)
-        togetbitflag([rbx].DOBJ.object, 10, _O_FLAGB)
+        togetbitflag([rbx].DOBJ.object, 11, _O_FLAGB)
         dlclose(rbx)
         mov thelp,th
         mov eax,esi
         .if eax
             mov eax,edx
             mov edx,cflag
-            and edx,not (_C_DELHISTORY or _C_ESCUSERSCR)
+            and edx,not (_C_DELHISTORY or _C_ESCUSERSCR or _C_SHELLEXECUTE)
             .if eax & 0x100 ; Auto Delete History
                 or edx,_C_DELHISTORY
             .endif
             .if eax & 0x200 ; Use Esc for user screen
                 or edx,_C_ESCUSERSCR
+            .endif
+            .if eax & 0x400 ; Use ShellExecute
+                or edx,_C_SHELLEXECUTE
             .endif
             mov cflag,edx
             mov ecx,console
