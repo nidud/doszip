@@ -3888,15 +3888,19 @@ UpdateKeyEvent proc private uses rsi rbx pInput:ptr INPUT_RECORD
           .case 38h
             .if edx & RIGHT_ALT_PRESSED
                 or eax,SHIFT_ALT
+                .if edx & LEFT_CTRL_PRESSED && edx & ENHANCED_KEY
+                    and eax,not (SHIFT_CTRL or SHIFT_CTRLLEFT)
+                .endif
             .else
                 or eax,SHIFT_ALTLEFT or SHIFT_ALT
             .endif
             .endc
           .case 1Dh
-            .if edx & RIGHT_CTRL_PRESSED
+            .if edx & RIGHT_CTRL_PRESSED or LEFT_CTRL_PRESSED
                 or eax,SHIFT_CTRL
-            .else
-                or eax,SHIFT_CTRLLEFT or SHIFT_CTRL
+                .if !( edx & ENHANCED_KEY )
+                    or eax,SHIFT_CTRLLEFT
+                .endif
             .endif
             .endc
           .case 46h

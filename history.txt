@@ -3,8 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
-Changes in 4.02 - xx xxx 2026
+Changes in 4.02 - 2 Nov 2026
 - added parameter to ShellExecute
+- fixed keyboard issue in edit-control (AltGr)
 
 Changes in 4.01 - 25 Oct 2026
 - allow copy of text from console (Mouse-Right)
