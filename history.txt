@@ -3,6 +3,11 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 4.03 - 5 Nov 2026
+- fixed high CPU usage when a IO-process get idle
+  waiting for user input (Confirm Copy/Delete/...)
+- fixed some bugs and vulnerabilities
+
 Changes in 4.02 - 2 Nov 2026
 - added parameter to ShellExecute
 - fixed keyboard issue in edit-control (AltGr)

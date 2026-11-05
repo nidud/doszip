@@ -4285,6 +4285,8 @@ ifndef DEBUGX
             .endw
         .endif
 endif
+    .else
+        Sleep(2)
     .endif
     tupdate()
     ret

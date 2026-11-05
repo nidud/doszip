@@ -1,6 +1,7 @@
 include io.inc
 include confirm.inc
 include conio.inc
+include winuser.inc
 
 .data
  confirmflag uint_t -1
@@ -61,7 +62,10 @@ confirm_delete proc uses rbx info:LPSTR, selected:dword
             add dl,3
             scenter(ecx, edx, 53, info)
         .endif
-;       beep( 50, 6 )
+        .if console & CON_UBEEP
+            ;Beep(9, 1)
+            MessageBeep(MB_ICONHAND)
+        .endif
         rsevent(IDD_ConfirmDelete, rbx)
         xchg rbx,rax
         dlclose(rax)
