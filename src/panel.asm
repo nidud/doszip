@@ -2767,13 +2767,14 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
             ;
             ; Read 4 byte from file
             ;
-            .ifd readword(rbx)
-                .if ax == 4B50h ; 'PK'
-                    ;
-                    ; case .ZIP file
-                    ;
-                    mov eax,_W_ARCHZIP
-                .elseifd warctest(rbx, eax) == 1
+            readword(rbx)
+            .if ax == 4B50h ; 'PK'
+                ;
+                ; case .ZIP file
+                ;
+                mov eax,_W_ARCHZIP
+            .elseif eax == 0xAFBC7A37 || cflag & _C_7ZIPTYPES
+                .ifd warctest(rbx, eax) == 1
                     ;
                     ; case 7za archive
                     ;
@@ -2781,13 +2782,14 @@ panel_event proc uses rsi rdi rbx panel:PPANEL, event:UINT
                 .else
                     xor eax,eax
                 .endif
+            .else
+                xor eax,eax
             .endif
             .if !eax
                 ;
                 ; case System OS type
                 ;
                 .if console & CON_NTCMD
-
                     CreateConsole(rbx, _P_NOWAIT)
                     mov eax,1
                 .endif

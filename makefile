@@ -3,10 +3,10 @@
 #
 
 ifndef dosver
-dosver = 271
+dosver = 270
 endif
 ifndef winver
-winver = 404
+winver = 405
 endif
 dosmin = 253
 winmin = 349
@@ -36,6 +36,7 @@ DZ32:
 	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -coff -Zp4 -Cs -D__BMP__ -Isrc\inc src\*.asm -mf -Gd -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:rcdz.res
 	del *.obj
 	del *.s
+	del rcdz.res
 	del dz.bin
 	del mkdz.exe
 
@@ -47,7 +48,7 @@ DZ64:
 	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -win64 -frame -Zp8 -Cs -D__BMP__ -Isrc\inc src\*.asm -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:rcdz.res
 	del *.obj
 	del *.s
-	del dz.res
+	del rcdz.res
 	del dz.bin
 	del mkdz.exe
 

@@ -3,8 +3,16 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 4.05 - 6 Nov 2026
+- added option Use 7zip file extension (Setup->Compression)
+  this sets 7z.dll as a default handler for all types
+  defined under section [7z.dll] in dz.ini
+
 Changes in 4.04 - 6 Nov 2026
+- updated 7z.dll to version 26.05
 - fixed bug in File Search -- see exception-4.03.txt
+- stripped CR/LF endings from the default src/inc/dz.ini (build issue)
+- removed some external dependencies from the makefile
 
 Changes in 4.03 - 5 Nov 2026
 - fixed high CPU usage when a IO-process get idle

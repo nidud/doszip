@@ -1492,19 +1492,13 @@ warctest proc uses rsi rdi rbx fblk:LPSTR, sign:int_t
     ldr edi,sign
 
     .ifd ( LoadDll() == TRUE )
-
         .if ( edi == TYPE_7Z ) ; only support .7z ID..
-
             mov eax,kId_7z
-
         .elseif CFGetSection("7z.dll")
-
             mov rsi,rax
             .if strext(rbx)
-
                 inc rax
                 .if INIGetEntry(rsi, rax)
-
                     .ifd ( strtolx(rax) > kId_GZip )
                         xor eax,eax
                     .endif

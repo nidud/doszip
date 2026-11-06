@@ -422,12 +422,18 @@ cmcompression proc uses rbx
         .if cflag & _C_ZINCSUBDIR
             or [rbx].DOBJ.flag[11*TOBJ],_O_FLAGB
         .endif
+        .if cflag & _C_7ZIPTYPES
+            or [rbx].DOBJ.flag[12*TOBJ],_O_FLAGB
+        .endif
         dlinit(rbx)
         .ifd rsevent(IDD_DZCompression, rbx)
             mov eax,cflag
-            and eax,not _C_ZINCSUBDIR
+            and eax,not _C_ZINCSUBDIR or _C_7ZIPTYPES
             .if [rbx].DOBJ.flag[11*TOBJ] & _O_FLAGB
                 or eax,_C_ZINCSUBDIR
+            .endif
+            .if [rbx].DOBJ.flag[12*TOBJ] & _O_FLAGB
+                or eax,_C_7ZIPTYPES
             .endif
             mov cflag,eax
             xor eax,eax
