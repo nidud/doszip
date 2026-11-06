@@ -33,7 +33,7 @@ DZ32:
 	mkdz
 	asmc -4 -mf -Gd -res src\res\rcdz.asm
 	asmc -DVERSION=$(dosver) -mz -Fo dz.bin -q -Isrc\dos\inc src\stub\dz.asm
-	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -coff -Zp4 -Cs -D__BMP__ -Isrc\inc src\*.asm -mf -Gd -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:dz.res
+	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -coff -Zp4 -Cs -D__BMP__ -Isrc\inc src\*.asm -mf -Gd -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:rcdz.res
 	del *.obj
 	del *.s
 	del dz.bin
@@ -44,7 +44,7 @@ DZ64:
 	mkdz
 	asmc -win64 -res src\res\rcdz.asm
 	asmc -DVERSION=$(dosver) -mz -Fo dz.bin -q src\stub\dz.asm
-	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -win64 -frame -Zp8 -Cs -D__BMP__ -Isrc\inc src\*.asm -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:dz.res
+	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -win64 -frame -Zp8 -Cs -D__BMP__ -Isrc\inc src\*.asm -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:rcdz.res
 	del *.obj
 	del *.s
 	del dz.res
