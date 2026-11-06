@@ -2,12 +2,11 @@
 # Makefile for Doszip 16/32/64
 #
 
-watc   = %WATCOM%
 ifndef dosver
-dosver = 269
+dosver = 271
 endif
 ifndef winver
-winver = 397
+winver = 404
 endif
 dosmin = 253
 winmin = 349
@@ -32,7 +31,7 @@ DZ16:
 DZ32:
 	asmc -pe -DVERSION=$(winver) -DSRCFILE=src\inc\dz.txt -DOUTPATH=$@ src\stub\mkdz.asm
 	mkdz
-	$(watc)\binnt\rc.exe -nologo -fodz.res -I$(watc)\h\win src\res\dz.rc
+	asmc -4 -mf -Gd -res src\res\rcdz.asm
 	asmc -DVERSION=$(dosver) -mz -Fo dz.bin -q -Isrc\dos\inc src\stub\dz.asm
 	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -coff -Zp4 -Cs -D__BMP__ -Isrc\inc src\*.asm -mf -Gd -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:dz.res
 	del *.obj
@@ -43,7 +42,7 @@ DZ32:
 DZ64:
 	asmc -pe -DVERSION=$(winver) -DSRCFILE=src\inc\dz.txt -DOUTPATH=$@ src\stub\mkdz.asm
 	mkdz
-	$(watc)\binnt\rc.exe -nologo -fodz.res -I$(watc)\h\win src\res\dz.rc
+	asmc -win64 -res src\res\rcdz.asm
 	asmc -DVERSION=$(dosver) -mz -Fo dz.bin -q src\stub\dz.asm
 	asmc -DVERSION=$(winver) -DMINVERS=$(winmin) -MT -win64 -frame -Zp8 -Cs -D__BMP__ -Isrc\inc src\*.asm -idd src\res\*.idd -link -st:0x300000,0x200000 -o:$@\dz\dz.exe -stub:dz.bin -res:dz.res
 	del *.obj

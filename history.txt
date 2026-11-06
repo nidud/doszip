@@ -3,6 +3,9 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 4.04 - 6 Nov 2026
+- fixed bug in File Search -- see exception-4.03.txt
+
 Changes in 4.03 - 5 Nov 2026
 - fixed high CPU usage when a IO-process get idle
   waiting for user input (Confirm Copy/Delete/...)

@@ -1,0 +1,45 @@
+Exception in dz.exe version 4.03
+-----------------------------------------------------------
+This message is created due to
+and may contain data necessary to locate it.
+
+        Exception:   Segment violation
+        Code:        C0000005
+        Flags:       00000000
+        Processor:
+                RAX: 00000229099D30C0 R8:  000000B9EA2FF4D8
+                RBX: 00000229099D3060 R9:  0000000000000000
+                RCX: 000002290A9E5300 R10: 0000000000000000
+                RDX: 0000000000000000 R11: 000000B9EA2FF610
+                RSI: 00000229099D3120 R12: 0000000000000000
+                RDI: 000000000000000D R13: 0000000000000000
+                RBP: 000000B9EA2FF6B0 R14: 0000000000000000
+                RSP: 000000B9EA2FF690 R15: 0000000000ED4BF0
+                RIP: 0000000000EB99AE:
+                 dq 0x000000A2880F20E9 ; [-8]
+                 dq 0x8B48047503087980 ; [-0]
+                 dq 0x850F010879801049 ; [+8]
+             EFlags: 0000001000000110
+                     r n oditsz a p c
+-----------------------------------------------------------
+code at RIP:
+
+   0:   80 79 08 03             cmp    BYTE PTR [rcx+0x8],0x3
+   4:   75 04                   jne    0xa
+   6:   48 8b 49 10             mov    rcx,QWORD PTR [rcx+0x10]
+   a:   80 79 08 01             cmp    BYTE PTR [rcx+0x8],0x1
+
+libc/malloc/malloc.asm.free():
+        ;
+        ; If memblock is NULL, the pointer is ignored. Attempting to free an
+        ; invalid pointer not allocated by malloc() may cause errors.
+        ;
+>       .if ( [rcx].HEAP.type == _HEAP_ALIGNED )
+            mov rcx,[rcx].HEAP.prev
+        .endif
+        .if ( [rcx].HEAP.type == _HEAP_LOCAL )
+
+src/cmsearch.asm.FileSearch::ClearList():
+    ldr rbx,this
+    .for ( rsi=[rbx].ll.list, edi=[rbx].ll.count : edi : edi-- )
+>       free([rsi+rdi*size_t])

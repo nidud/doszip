@@ -497,11 +497,8 @@ FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
         mov _diskflag,1
         mov tmphandle,eax
         xor esi,esi
-
         .while 1
-
             .for ( : esi < offs : )
-
                 mov eax,offs
                 sub eax,esi
                 .if ( eax > FILEBUF )
@@ -523,13 +520,11 @@ FileSearch::Replace proc uses rsi rdi rbx backup:int_t, escape:int_t
             inc ecx
             mov eax,1
             .if ( ecx < [rbx].ll.count )
-
                 mov rdx,[rdi]
                 mov offs,[rdx+FBLK].ZINF.offs
                 strcmp(curfile, [rdx].FBLK.name)
             .endif
             .if ( eax )
-
                 .while 1
                     .break .ifd ( osread(srchandle, readbuf, FILEBUF) == 0 )
                     .break .ifd ( oswrite(tmphandle, readbuf, eax) == 0 )
@@ -636,10 +631,16 @@ FileSearch::List proc uses rsi rdi rbx
 
 FileSearch::ClearList proc uses rsi rdi rbx
     ldr rbx,this
-    .for ( rsi=[rbx].ll.list, edi=[rbx].ll.count : edi : edi-- )
-        free([rsi+rdi*size_t])
+    .for ( rdi=[rbx].ll.list, esi=[rbx].ll.count : esi : esi-- )
+        free([rdi+rsi*size_t-size_t])
     .endf
     xor eax,eax
+    mov ecx,[rbx].ll.count
+ifdef _WIN64
+    rep stosq
+else
+    rep stosd
+endif
     mov [rbx].ll.celoff,eax
     mov [rbx].ll.index,eax
     mov [rbx].ll.numcel,eax
@@ -771,14 +772,12 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
     .case KEY_F8
     .case KEY_DEL
         .if [rbx].CurItem()
-
             .repeat
                 mov rcx,[rdx+size_t]
                 mov [rdx],rcx
                 add rdx,size_t
             .until !rcx
             free(rax)
-
             dec [rbx].ll.count
             mov eax,[rbx].ll.count
             mov edx,[rbx].ll.index
@@ -833,7 +832,6 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
        .return [rbx].List()
     .case KEY_F11
         .if GetPathFromHistory(cpanel)
-
             mov rcx,[rbx].dialog
             mov rcx,[rcx].TOBJ.data[O_LOCATION]
             strcpy(rcx, [rax].DIRECTORY.path)
@@ -856,7 +854,6 @@ FileSearch::WndProc proc uses rsi rdi rbx cmd:uint_t
        .return(_C_NORMAL)
     .case KEY_ALTR
         .if ( [rbx].ll.count == 0 )
-
             stdmsg("Replace", "Nothing to do")
            .return(_C_NORMAL)
         .endif
