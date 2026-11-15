@@ -5,6 +5,7 @@ include doszip.inc
 include string.inc
 include wsub.inc
 include stdlib.inc
+include winnls.inc
 
 .enumt AttribIDD : TOBJ {
     ID_DIALOG,
@@ -24,22 +25,101 @@ include stdlib.inc
 
 .code
 
-StringToTime proc private lpTime:LPSTR, lpDate:LPSTR
-   .new FileTime:FILETIME
-   .new SystemTime:SYSTEMTIME
-   .new FatTime:uint_t
-   .new FatDate:uint_t
-    StringToSystemTimeA(lpTime, &SystemTime)
-    StringToSystemDateA(lpDate, &SystemTime)
-    SystemTimeToFileTime(&SystemTime, &FileTime)
-    LocalFileTimeToFileTime(&FileTime, &FileTime)
-    FileTimeToDosDateTime(&FileTime, &FatDate, &FatTime)
-    mov eax,FatTime
-    mov edx,FatDate
-    shl edx,16
-    and eax,0xFFFF
-    or  eax,edx
+ assume rbx:ptr SYSTEMTIME
+
+StringToSystemDate proc uses rbx string:string_t, lpSystemTime:ptr SYSTEMTIME
+
+   .new v0:int_t,v1,wc
+    ldr rbx,lpSystemTime
+    ldr rcx,string
+    mov rdx,rcx
+    .repeat
+       movzx eax,char_t ptr [rdx]
+       add rdx,char_t
+    .until ( eax > '9' || eax < '0' )
+    mov wc,eax
+    mov string,rdx
+    mov v0,atol(rcx)
+    mov v1,atol(string)
+    mov rcx,string
+    .repeat
+       movzx eax,char_t ptr [rcx]
+       add rcx,char_t
+    .until ( eax > '9' || eax < '0' )
+    atol(rcx)
+    mov ecx,v0
+    mov edx,v1
+    .if ( g_DateFormat == 2 )       ; YMD
+        mov [rbx].wYear,cx
+        mov [rbx].wMonth,dx
+        mov [rbx].wDay,ax
+    .elseif ( g_DateFormat == 0 )   ; MDY
+        mov [rbx].wYear,ax
+        mov [rbx].wMonth,cx
+        mov [rbx].wDay,dx
+    .else
+        mov [rbx].wYear,ax          ; DMY
+        mov [rbx].wMonth,dx
+        mov [rbx].wDay,cx
+    .endif
+    mov [rbx].wDayOfWeek,0
+    mov rax,rbx
     ret
+    endp
+
+StringToSystemTime proc uses rbx string:string_t, lpSystemTime:ptr SYSTEMTIME
+
+    ldr rcx,string
+    ldr rbx,lpSystemTime
+    mov rdx,rcx
+    .repeat
+        movzx eax,char_t ptr [rdx]
+        add rdx,char_t
+    .until ( eax > '9' || eax < '0' )
+    mov string,rdx
+    atol(rcx)
+    mov [rbx].wHour,ax
+    atol(string)
+    mov [rbx].wMinute,ax
+    mov rcx,string
+    .repeat
+        movzx eax,char_t ptr [rcx]
+        add rcx,char_t
+    .until ( eax > '9' || eax < '0' )
+    atol(rcx)
+    mov [rbx].wSecond,ax
+    mov [rbx].wMilliseconds,0
+    mov rax,rbx
+    ret
+    endp
+
+    assume rbx:nothing
+
+FileTimeToString proc string:string_t, ft:ptr FILETIME
+   .new st_utc:SYSTEMTIME, st_local
+    FileTimeToSystemTime(ft, &st_utc)
+    SystemTimeToTzSpecificLocalTime(NULL, &st_utc, &st_local)
+    SystemTimeToString(string, &st_local)
+    ret
+    endp
+
+FileDateToString proc string:string_t, ft:ptr FILETIME
+   .new st_utc:SYSTEMTIME, st_local
+    FileTimeToSystemTime(ft, &st_utc)
+    SystemTimeToTzSpecificLocalTime(NULL, &st_utc, &st_local)
+    SystemDateToString(string, &st_local)
+    ret
+    endp
+
+StringToTime proc private ft:LPFILETIME, lpTime:LPSTR, lpDate:LPSTR
+   .new st_utc:SYSTEMTIME
+   .new st_local:SYSTEMTIME
+    StringToSystemTime(lpTime, &st_local)
+    StringToSystemDate(lpDate, &st_local)
+    .ifd TzSpecificLocalTimeToSystemTime(NULL, &st_local, &st_utc)
+        .return SystemTimeToFileTime(&st_utc, ft)
+    .endif
+    .return( FALSE )
     endp
 
 
@@ -70,12 +150,12 @@ cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
 
             wscloseff(rax)
 
-            FileTimeToStringA([rbx].TOBJ.data[ID_ACCESSTIME], &[rdi].WIN32_FIND_DATA.ftLastAccessTime)
-            FileDateToStringA([rbx].TOBJ.data[ID_ACCESSDATE], &[rdi].WIN32_FIND_DATA.ftLastAccessTime)
-            FileTimeToStringA([rbx].TOBJ.data[ID_CREATETIME], &[rdi].WIN32_FIND_DATA.ftCreationTime)
-            FileDateToStringA([rbx].TOBJ.data[ID_CREATEDATE], &[rdi].WIN32_FIND_DATA.ftCreationTime)
-            FileTimeToStringA([rbx].TOBJ.data[ID_MODTIME], &[rdi].WIN32_FIND_DATA.ftLastWriteTime)
-            FileDateToStringA([rbx].TOBJ.data[ID_MODDATE], &[rdi].WIN32_FIND_DATA.ftLastWriteTime)
+            FileTimeToString([rbx].TOBJ.data[ID_ACCESSTIME], &[rdi].WIN32_FIND_DATA.ftLastAccessTime)
+            FileDateToString([rbx].TOBJ.data[ID_ACCESSDATE], &[rdi].WIN32_FIND_DATA.ftLastAccessTime)
+            FileTimeToString([rbx].TOBJ.data[ID_CREATETIME], &[rdi].WIN32_FIND_DATA.ftCreationTime)
+            FileDateToString([rbx].TOBJ.data[ID_CREATEDATE], &[rdi].WIN32_FIND_DATA.ftCreationTime)
+            FileTimeToString([rbx].TOBJ.data[ID_MODTIME], &[rdi].WIN32_FIND_DATA.ftLastWriteTime)
+            FileDateToString([rbx].TOBJ.data[ID_MODDATE], &[rdi].WIN32_FIND_DATA.ftLastWriteTime)
 
             dlinit(rbx)
             dlshow(rbx)
@@ -102,27 +182,31 @@ cmfileattrib proc private uses rsi rdi rbx name:LPSTR, fblk:PFBLK, flag:UINT
                 .if [rbx+ID_HIDDEN] & al
                     or dl,_A_HIDDEN
                 .endif
-
                 mov al,byte ptr flag
                 and al,_A_ARCH or _A_SYSTEM or _A_HIDDEN or _A_RDONLY
                 .if al != dl
-
                     mov edi,edx
                     mov rsi,_utftows(name)
                     .if ( flag & _A_SUBDIR )
-
                         _wsetfattr(rsi, 0)
                     .endif
                     _wsetfattr(rsi, edi)
                 .endif
-
                 .ifd ( osopen(name, _FA_NORMAL, M_WRONLY, A_OPEN) != -1 )
-
                     mov esi,eax
-                    mov _diskflag,1
-                    setftime(esi, StringToTime([rbx].TOBJ.data[ID_MODTIME], [rbx].TOBJ.data[ID_MODDATE]))
-                    setftime_create(esi, StringToTime([rbx].TOBJ.data[ID_CREATETIME], [rbx].TOBJ.data[ID_CREATEDATE]))
-                    setftime_access(esi, StringToTime([rbx].TOBJ.data[ID_ACCESSTIME], [rbx].TOBJ.data[ID_ACCESSDATE]))
+                    .ifd ( _get_osfhandle(eax) != -1 )
+                        mov rdi,rax
+                        mov _diskflag,1
+                        .ifd StringToTime(&ft, [rbx].TOBJ.data[ID_MODTIME], [rbx].TOBJ.data[ID_MODDATE])
+                            SetFileTime(rdi, NULL, NULL, &ft)
+                        .endif
+                        .ifd StringToTime(&ft, [rbx].TOBJ.data[ID_ACCESSTIME], [rbx].TOBJ.data[ID_ACCESSDATE])
+                            SetFileTime(rdi, NULL, &ft, NULL)
+                        .endif
+                        .ifd StringToTime(&ft, [rbx].TOBJ.data[ID_CREATETIME], [rbx].TOBJ.data[ID_CREATEDATE])
+                            SetFileTime(rdi, &ft, NULL, NULL)
+                        .endif
+                    .endif
                     _close(esi)
                 .endif
             .endif

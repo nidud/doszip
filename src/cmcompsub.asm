@@ -232,7 +232,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
                 .continue .if eax != [rbx].WIN32_FIND_DATA.dwFileAttributes
             .endif
             .if flags & compare_time ; Compare Last modification time
-                FileTimeToTime(&[rbx].WIN32_FIND_DATA.ftLastWriteTime)
+                __timet_from_ft(&[rbx].WIN32_FIND_DATA.ftLastWriteTime)
                 mov rcx,[rsi]
                .continue .if eax != [rcx].FBLK.time
             .endif
@@ -241,7 +241,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
                     mov h,eax
                     mov t,getftime_create(eax)
                     _close(h)
-                    FileTimeToTime(&[rbx].WIN32_FIND_DATA.ftCreationTime)
+                    __timet_from_ft(&[rbx].WIN32_FIND_DATA.ftCreationTime)
                    .continue .if eax != t
                 .endif
                 mov rcx,[rsi]
@@ -251,7 +251,7 @@ ff_fileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
                     mov h,eax
                     mov t,getftime_access(eax)
                     _close(h)
-                    FileTimeToTime(&[rbx].WIN32_FIND_DATA.ftLastAccessTime)
+                    __timet_from_ft(&[rbx].WIN32_FIND_DATA.ftLastAccessTime)
                    .continue .if eax != t
                 .endif
                 mov rcx,[rsi]
@@ -330,7 +330,7 @@ ff_addfileblock proc uses rsi rdi rbx directory:LPSTR, wfblk:PWIN32_FIND_DATA
         strfcat(&path, directory, &[rdi].WIN32_FIND_DATA.cFileName)
         mov eax,ff_count
         .if eax < MAXHIT
-            FileTimeToTime(&[rdi].WIN32_FIND_DATA.ftLastWriteTime)
+            __timet_from_ft(&[rdi].WIN32_FIND_DATA.ftLastWriteTime)
             mov ecx,eax
             .if fballoc(&path, ecx, fsize, [rdi].WIN32_FIND_DATA.dwFileAttributes)
                 mov ecx,ff_count

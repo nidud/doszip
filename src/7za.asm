@@ -971,7 +971,7 @@ warcread proc uses rsi rdi rbx ws:PWSUB
                 archive.GetProperty(edi, kpidMTime, &prop)
                 mov eax,curtime
                 .if ( prop.vt == VT_FILETIME )
-                    FileTimeToTime(&prop.filetime)
+                    __timet_from_ft(&prop.filetime)
                 .endif
                 mov ftime,eax
                 archive.GetProperty(edi, kpidSize, &prop)

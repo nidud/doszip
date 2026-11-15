@@ -49,7 +49,7 @@ PTABLE S_PRECT \
 
     .code
 
-prect_open proc private uses rsi rdi rbx panel:LPPANEL
+prect_open proc private uses rsi rdi rbx panel:PPANEL
 
   local rect:   TRECT,
         xcell:  ptr,
@@ -72,50 +72,38 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
     mov ah,byte ptr _scrrow ; rows
     mov ecx,cflag
     mov bh,9        ; panel size (rows)
-
     .if !(ecx & _C_COMMANDLINE)
-
         inc ah      ; rows++
     .endif
     .if ecx & _C_MENUSLINE
-
         inc dh      ; y++
         dec ah      ; rows--
     .endif
     .if ecx & _C_STATUSLINE
-
         dec ah      ; rows--
     .endif
     .if ecx & _C_HORIZONTAL && !(ecx & _C_WIDEVIEW)
-
         shr ah,1    ; rows / 2
         dec bh
     .endif
     mov bl,ah
     sub bl,bh       ; rows - bh (size)
     .if bl < byte ptr config.c_panelsize
-
         mov byte ptr config.c_panelsize,bl
     .endif
-
     sub ah,byte ptr config.c_panelsize
     .if ecx & _C_HORIZONTAL
-
         mov al,byte ptr _scrcol ; cols = 80
         .if edi & _W_PANELID && !(ecx & _C_WIDEVIEW)
-
             add dh,ah   ; y += rows
         .endif
     .elseif edi & _W_PANELID && !(ecx & _C_WIDEVIEW)
-
         mov dl,byte ptr _scrcol ; x = 40
         shr dl,1
     .endif
-
     mov word ptr rect,dx
     mov word ptr rect+2,ax
     xor ebx,ebx
-
     .if ecx & _C_HORIZONTAL
         mov bl,2
     .endif
@@ -131,17 +119,15 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
             inc bl
         .endif
     .endif
-
-    push    rax
-    lea     rax,PTABLE
-    imul    ebx,ebx,S_PRECT
-    add     rbx,rax
-    mov     xcell,rbx
-    mov     dl,[rbx].S_PRECT.p_rect.col
-    mov     eax,[rbx].S_PRECT.p_rect
-    mov     prect,eax
-    mov     eax,_scrcol
-
+    push rax
+    lea  rax,PTABLE
+    imul ebx,ebx,S_PRECT
+    add  rbx,rax
+    mov  xcell,rbx
+    mov  dl,[rbx].S_PRECT.p_rect.col
+    mov  eax,[rbx].S_PRECT.p_rect
+    mov  prect,eax
+    mov  eax,_scrcol
     .if dl != 78
         shr eax,1
         .if dl != 38
@@ -152,171 +138,168 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
             .endif
         .endif
     .endif
-    sub     eax,2
-    pop     rcx
-
-    mov     prect.col,al
-
-    mov     eax,prect
-    add     ax,word ptr rect
-    mov     xlrc,eax
-
-    mov     rbx,[rsi].PANEL.xl
-    mov     [rbx].XCEL.cpos,eax
-    sub     ch,3
-    mov     [rbx].XCEL.rows,ch
-
-    movzx   eax,cl
-    dec     al
-    mov     cl,xlrc.col
-    inc     cl
-    div     cl
-    mov     [rbx].XCEL.cols,al
-    mov     rbx,[rsi].PANEL.dialog
-
+    sub eax,2
+    pop rcx
+    mov prect.col,al
+    mov eax,prect
+    add ax,word ptr rect
+    mov xlrc,eax
+    mov rbx,[rsi].PANEL.xl
+    mov [rbx].XCEL.cpos,eax
+    sub ch,3
+    mov [rbx].XCEL.rows,ch
+    movzx eax,cl
+    dec al
+    mov cl,xlrc.col
+    inc cl
+    div cl
+    mov [rbx].XCEL.cols,al
+    mov rbx,[rsi].PANEL.dialog
     .if ( [rbx].DOBJ.flag & _D_DOPEN )
-
         dlclose([rsi].PANEL.xl)
         dlclose(rbx)
     .endif
 
-    mov     eax,rect
-    mov     [rbx].DOBJ.rc,eax
-    movzx   eax,at_background[B_Panel]
-    or      al,at_foreground[F_Frame]
+    mov eax,rect
+    mov [rbx].DOBJ.rc,eax
+    movzx eax,at_background[B_Panel]
+    or al,at_foreground[F_Frame]
 
     .if dlopen(rbx, eax, 0)
 
-        xor     eax,eax
-        mov     word ptr rect,ax
-
-        mov     rdx,[rsi].PANEL.dialog
-        mov     rcx,[rdx].DOBJ.wp
-        mov     dlwp,rcx
-        movzx   edx,rect.col
-        lea     rcx,[rcx+rdx*4]
-        movzx   eax,at_background[B_Panel]
-        or      al,at_foreground[F_Panel]
-        shl     eax,16
-        mov     al,' '
-
+        xor eax,eax
+        mov word ptr rect,ax
+        mov rdx,[rsi].PANEL.dialog
+        mov rcx,[rdx].DOBJ.wp
+        mov dlwp,rcx
+        movzx edx,rect.col
+        lea rcx,[rcx+rdx*4]
+        movzx eax,at_background[B_Panel]
+        or  al,at_foreground[F_Panel]
+        shl eax,16
+        mov al,' '
         wcputw(rcx, edx, eax)
-
         .if ( edi & _W_MINISTATUS )
-
-            mov     al,2
-            sub     rect.row,al
-            mov     rdx,[rsi].PANEL.xl
-            sub     [rdx].XCEL.rows,al
-
+            mov al,2
+            sub rect.row,al
+            mov rdx,[rsi].PANEL.xl
+            sub [rdx].XCEL.rows,al
             .if ( edi & _W_DRVINFO )
-
                 sub rect.row,al
                 sub [rdx].XCEL.rows,al
-
                 .if !( cflag & _C_HORIZONTAL )
-
                     dec rect.row
                     dec [rdx].XCEL.rows
                 .endif
             .endif
-            mov     eax,BOX_SINGLE
-            mov     ah,at_background[B_Panel]
-            or      ah,at_foreground[F_Frame]
-            movzx   edx,rect.col
-
+            mov eax,BOX_SINGLE
+            mov ah,at_background[B_Panel]
+            or  ah,at_foreground[F_Frame]
+            movzx edx,rect.col
             rcframe(rect, dlwp, edx, eax)
         .endif
-
-        mov     rbx,xcell
-        mov     rax,[rbx].S_PRECT.p_putfile
-        mov     [rsi].PANEL.putfcb,rax
-
-        mov     xlrc,rect
-        mov     al,prect.col
-        add     al,2
-        mov     xlrc.col,al
-        mov     edx,BOX_SINGLE_VERTICAL
-        mov     dh,at_background[B_Panel]
-        or      dh,at_foreground[F_Frame]
-        movzx   ecx,rect.col
-        mov     col,ecx
-        mov     type,edx
-        lea     edi,[rcx*4]
-        add     rdi,dlwp
-        movzx   eax,prect.col
-        lea     esi,[rax*4+4]
-        shr     eax,1
-        sub     eax,1
-
+        mov rbx,xcell
+        mov rax,[rbx].S_PRECT.p_putfile
+        mov [rsi].PANEL.putfcb,rax
+        mov xlrc,rect
+        mov al,prect.col
+        add al,2
+        mov xlrc.col,al
+        mov edx,BOX_SINGLE_VERTICAL
+        mov dh,at_background[B_Panel]
+        or  dh,at_foreground[F_Frame]
+        movzx ecx,rect.col
+        mov col,ecx
+        mov type,edx
+        lea edi,[rcx*4]
+        add rdi,dlwp
+        movzx eax,prect.col
+        lea esi,[rax*4+4]
+        shr eax,1
+        sub eax,1
         .switch [rbx].S_PRECT.p_type
-
-          .case 0
+        .case 0
             lea rdi,[rdi+rax*4]
             .repeat
-
                 wcputs(rdi, col, "Name")
                 add rdi,rsi
-
                 rcframe(xlrc, dlwp, col, type)
-
-                movzx   eax,prect.col
-                inc     eax
-                movzx   ebx,xlrc.x
-                add     ebx,eax
+                movzx eax,prect.col
+                inc eax
+                movzx ebx,xlrc.x
+                add ebx,eax
                 .break .if bh
-
-                add     xlrc.x,al
-                add     eax,ebx
+                add xlrc.x,al
+                add eax,ebx
                 .break .if ah
-
-                movzx   ebx,xlrc.col
-                add     eax,ebx
+                movzx ebx,xlrc.col
+                add eax,ebx
                 .break .if ah
-
             .until al > rect.col
-
             mov al,prect.col
             add al,2
             .if al != rect.col
                 wcputs(rdi, col, "Name")
             .endif
             .endc
-
-          .case 2
-            sub eax,[rbx].S_PRECT.p_name
-            lea rax,[rdi+rax*4]
-            wcputs(rax, col, "Name")
-            mov ecx,col
-            lea rax,[rdi+rcx*4-(7*4)]
-            wcputs(rax, ecx, "Date")
-            mov ecx,col
-            lea rax,[rdi+rcx*4-(17*4)]
-            wcputs(rax, ecx, "Size")
-            sub xlrc.col,9
-            rcframe(xlrc, dlwp, col, type)
-            sub xlrc.col,11
-            rcframe(xlrc, dlwp, col, type)
+        .case 2
+            .if ( eax > [rbx].S_PRECT.p_name )
+                sub eax,[rbx].S_PRECT.p_name
+                lea rax,[rdi+rax*4]
+                wcputs(rax, col, "Name")
+                mov ecx,col
+                .ifs ( ecx > 11 )
+                    lea rax,[rdi+rcx*4-(7*4)]
+                    wcputs(rax, ecx, "Date")
+                    mov ecx,col
+                    .ifs ( ecx > 21 )
+                        lea rax,[rdi+rcx*4-(17*4)]
+                        wcputs(rax, ecx, "Size")
+                    .endif
+                .endif
+                .if ( xlrc.col > 10 )
+                    sub xlrc.col,9
+                    rcframe(xlrc, dlwp, col, type)
+                    .if ( xlrc.col > 12 )
+                        sub xlrc.col,11
+                        rcframe(xlrc, dlwp, col, type)
+                    .endif
+                .endif
+            .endif
             .endc
-          .case 3
-            sub eax,[rbx].S_PRECT.p_name
-            lea rax,[rdi+rax*4]
-            wcputs(rax, col, "Name")
-            mov ecx,col
-            lea rax,[rdi+rcx*4-(5*4)]
-            wcputs(rax, ecx, "Time")
-            mov ecx,col
-            lea rax,[rdi+rcx*4-(13*4)]
-            wcputs(rax, ecx, "Date")
-            mov ecx,col
-            lea rax,[rdi+rcx*4-(23*4)]
-            wcputs(rax, ecx, "Size")
-            sub xlrc.col,6
-            rcframe(xlrc, dlwp, col, type)
-            sub xlrc.col,9
-            rcframe(xlrc, dlwp, col, type)
-            sub xlrc.col,11
-            rcframe(xlrc, dlwp, col, type)
+        .case 3
+            .if ( eax > [rbx].S_PRECT.p_name )
+                sub eax,[rbx].S_PRECT.p_name
+                lea rax,[rdi+rax*4]
+                wcputs(rax, col, "Name")
+                mov ecx,col
+                .ifs ( ecx > 9 )
+                    lea rax,[rdi+rcx*4-(5*4)]
+                    wcputs(rax, ecx, "Time")
+                    mov ecx,col
+                    .ifs ( ecx > 17 )
+                        lea rax,[rdi+rcx*4-(13*4)]
+                        wcputs(rax, ecx, "Date")
+                        mov ecx,col
+                        .ifs ( ecx > 27 )
+                            lea rax,[rdi+rcx*4-(23*4)]
+                            wcputs(rax, ecx, "Size")
+                        .endif
+                    .endif
+                .endif
+                .if ( xlrc.col > 7 )
+                    sub xlrc.col,6
+                    rcframe(xlrc, dlwp, col, type)
+                    .if ( xlrc.col > 10 )
+                        sub xlrc.col,9
+                        rcframe(xlrc, dlwp, col, type)
+                        .if ( xlrc.col > 12 )
+                            sub xlrc.col,11
+                            rcframe(xlrc, dlwp, col, type)
+                        .endif
+                    .endif
+                .endif
+            .endif
         .endsw
 
         mov edi,flag
@@ -357,7 +340,6 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
                 mov word ptr [rbx+rax*4-(3*4)],U_DOWN_TRIANGLE
             .endif
         .endif
-
         mov rsi,panel
         mov eax,cflag
         and eax,_C_WIDEVIEW
@@ -371,29 +353,22 @@ prect_open proc private uses rsi rdi rbx panel:LPPANEL
         mov rdx,[rsi].PANEL.wsub
         mov [rdx].WSUB.flag,edi
     .endif
-
     mov col,eax
     comshow()
     mov eax,col
     ret
-
-prect_open endp
+    endp
 
 
 prect_hide proc uses rbx panel:PPANEL
-
     ldr rbx,panel
     mov rdx,[rbx].PANEL.wsub
     mov eax,[rdx].WSUB.flag
-
     .if eax & _W_WHIDDEN
-
         xor eax,_W_WHIDDEN
         mov [rdx].WSUB.flag,eax
         mov eax,1
-
     .elseif eax & _W_VISIBLE
-
         xor eax,_W_VISIBLE
         mov [rdx].WSUB.flag,eax
         dlclose([rbx].PANEL.xl)
@@ -403,12 +378,10 @@ prect_hide proc uses rbx panel:PPANEL
         xor eax,eax
     .endif
     ret
-
-prect_hide endp
+    endp
 
 
 prect_close proc fastcall private uses rbx panel:PPANEL
-
     mov rax,[rcx].PANEL.wsub
     mov eax,[rax].WSUB.flag
     and eax,_W_VISIBLE
@@ -419,12 +392,10 @@ prect_close proc fastcall private uses rbx panel:PPANEL
         mov eax,1
     .endif
     ret
-
-prect_close endp
+    endp
 
 
 prect_open_ab proc
-
     mov eax,cflag
     and eax,_C_PANELID
     lea rax,spanela
@@ -432,7 +403,6 @@ prect_open_ab proc
         lea rax,spanelb
     .endif
     mov cpanel,rax
-
     xor eax,eax
     .if flaga & _W_VISIBLE
         prect_open(&spanela)
@@ -441,23 +411,19 @@ prect_open_ab proc
         prect_open(&spanelb)
     .endif
     ret
-
-prect_open_ab endp
+    endp
 
 
 panel_getb proc
-
     mov rax,panela
     .if rax == cpanel
         mov rax,panelb
     .endif
     ret
-
-panel_getb endp
+    endp
 
 
 panel_state proc fastcall panel:PPANEL
-
     mov rax,[rcx].PANEL.dialog
     mov rax,[rax].DOBJ.wp
     .if rax
@@ -468,61 +434,47 @@ panel_state proc fastcall panel:PPANEL
         .endif
     .endif
     ret
-
-panel_state endp
+    endp
 
 
 cpanel_state proc
-
     panel_state(cpanel)
     ret
-
-cpanel_state endp
+    endp
 
 
 panel_stateab proc
-
     .ifd panel_state(panela)
         panel_state(panelb)
     .endif
     ret
-
-panel_stateab endp
+    endp
 
 
 panel_curobj proc fastcall panel:PPANEL
-
     mov rax,[rcx].PANEL.wsub
     .if rax
-
         mov eax,[rcx].PANEL.fcb_index
         add eax,[rcx].PANEL.cel_index
-
         .if wsfblk([rcx].PANEL.wsub, eax)
-
             mov rdx,rax
             mov rax,[rax].FBLK.name
         .endif
     .endif
     ret
-
-panel_curobj endp
+    endp
 
 
 panel_findnext proc fastcall panel:PPANEL
-
     .if wsffirst([rcx].PANEL.wsub)
-
         mov rdx,rax
         mov rax,[rax].FBLK.name
     .endif
     ret
-
-panel_findnext endp
+    endp
 
 
 cpanel_findfirst proc
-
     .ifd panel_state(cpanel)
         .if !panel_findnext(rax)
             panel_curobj(cpanel)
@@ -532,14 +484,11 @@ cpanel_findfirst proc
         .endif
     .endif
     ret
-
-cpanel_findfirst endp
+    endp
 
 
 cpanel_gettarget proc
-
     .ifd panel_stateab()
-
         mov rax,path_a.path
         mov rcx,cpanel
         .if rcx == panela
@@ -547,46 +496,38 @@ cpanel_gettarget proc
         .endif
     .endif
     ret
-
-cpanel_gettarget endp
+    endp
 
 
 panel_hide proc uses rbx panel:PPANEL
-
     ldr rbx,panel
     prect_close(rbx)
     wsfree([rbx].PANEL.wsub)
     mov rax,rbx
     ret
-
-panel_hide endp
+    endp
 
 
 panel_show proc fastcall panel:PPANEL
-
     mov rdx,[rcx].PANEL.wsub
     or  [rdx].WSUB.flag,_W_VISIBLE
     panel_update(rcx)
     ret
-
-panel_show endp
+    endp
 
 
 panel_selected proc fastcall private uses rsi panel:PPANEL
-
     xor eax,eax
     .for edx = [rcx].PANEL.fcb_count,
          rcx = [rcx].PANEL.wsub,
          rsi = [rcx].WSUB.fcb : rsi && rdx : rsi+=size_t, edx--
-
         mov rcx,[rsi]
         .if [rcx].FBLK.flag & _FB_SELECTED
             inc eax
         .endif
     .endf
     ret
-
-panel_selected endp
+    endp
 
 
 pcell_set proc private uses rsi rdi rbx panel:PPANEL
@@ -629,23 +570,18 @@ pcell_set proc private uses rsi rdi rbx panel:PPANEL
     mov     [rdi].XCEL.rc,eax
     mov     eax,[rsi].PANEL.cel_index
     ret
-
-pcell_set endp
+    endp
 
 
 panel_setid proc panel:PPANEL, index:UINT
-
     mov rdx,panel
     xor eax,eax
     mov [rdx].PANEL.cel_index,eax
     mov [rdx].PANEL.fcb_index,eax
     pcell_set(rdx)
-
     mov eax,index
     mov rdx,panel
-
     .if eax < [rdx].PANEL.cel_count
-
         mov [rdx].PANEL.cel_index,eax
     .else
         sub eax,[rdx].PANEL.cel_count
@@ -656,37 +592,30 @@ panel_setid proc panel:PPANEL, index:UINT
         mov [rdx].PANEL.cel_index,eax
     .endif
     ret
-
-panel_setid endp
+    endp
 
 
 pcell_open proc fastcall private panel:PPANEL
-
     dlopen([rcx].PANEL.xl, at_background[B_InvPanel], 0)
     ret
-
-pcell_open endp
+    endp
 
 
 pcell_show proc uses rsi rdi panel:PPANEL
-
     ldr rsi,panel
     mov rdi,[rsi].PANEL.xl
     xor eax,eax
     .if !( [rdi].XCEL.flag & _D_DOPEN or _D_ONSCR )
-
         pcell_set(rsi)
         xor eax,eax
         .if ( [rsi].PANEL.cel_count != eax )
-
             pcell_open(rsi)
             dlshow(rdi)
             mov eax,1
         .endif
     .endif
     ret
-
-pcell_show endp
+    endp
 
 panel_putinfo proc private uses rsi rdi rbx panel:PPANEL
 
@@ -759,33 +688,24 @@ panel_putinfo proc private uses rsi rdi rbx panel:PPANEL
         .endif
     .endif
     ret
-
-panel_putinfo endp
+    endp
 
 
 panel_setactive proc uses rsi rdi panel:PPANEL
-
     ldr rsi,panel
     mov rdi,cpanel
     and cflag,not _C_PANELID
-
     mov rax,[rsi].PANEL.wsub
     .if [rax].WSUB.flag & _W_PANELID
-
         or cflag,_C_PANELID
     .endif
-
     cominit([rsi].PANEL.wsub)
     dlclose([rdi].PANEL.xl)
-
     mov cpanel,rsi
     panel_putinfo(rdi)
     .if cflag & _C_WIDEVIEW
-
         .if rsi != rdi
-
             .ifd panel_state(rsi)
-
                 prect_hide(rdi)
                 mov rax,[rdi].PANEL.wsub
                 or  [rax].WSUB.flag,_W_WHIDDEN
@@ -799,80 +719,63 @@ panel_setactive proc uses rsi rdi panel:PPANEL
     pcell_show(rsi)
     panel_putinfo(rsi)
     ret
-
-panel_setactive endp
+    endp
 
 panel_sethdd proc uses rsi rdi rbx panel:PPANEL, hdd:UINT
-
     mov ebx,_getdrive()
     mov rsi,panel
     mov edi,_disk_init(hdd)
-
     historysave()
     wschdrv([rsi].PANEL.wsub, edi)
     panel_read(rsi)
-
     mov eax,ebx
     .if rsi == cpanel
-
         cominit([rsi].PANEL.wsub)
     .endif
     panel_putinfozx()
     ret
-
-panel_sethdd endp
+    endp
 
 panel_toggle proc uses rsi rdi panel:PPANEL
-
     mov rsi,panel
     mov rdi,panel_getb()
     mov ecx,panel_state(rdi)
     mov rdx,[rsi].PANEL.dialog
     mov eax,[rdx]
-
     .if eax & _D_ONSCR
-
         xchg rdi,rdx
         .if ecx && rsi == cpanel
-
             panel_setactive(rdx)
         .endif
         mov eax,[rdi]
         .if eax & _D_ONSCR
-
             panel_hide(rsi)
         .endif
     .else
         panel_show(rsi)
-
         mov rdi,cpanel
         mov rdi,[rdi].PANEL.dialog
         mov eax,[rdi]
         .if !(eax & _D_ONSCR)
-
             panel_setactive(rsi)
         .endif
     .endif
     xor eax,eax
     ret
-
-panel_toggle endp
+    endp
 
 
 panel_toggleact proc
-
     .ifd panel_stateab()
-
         historysave()
         panel_setactive(panel_getb())
         mov eax,1
     .endif
     ret
+    endp
 
-panel_toggleact endp
 
 panel_update proc uses rsi panel:PPANEL
-
     mov rsi,panel
     mov rax,[rsi].PANEL.wsub
     mov eax,[rax].WSUB.flag
@@ -882,12 +785,10 @@ panel_update proc uses rsi panel:PPANEL
         panel_redraw(rsi)
     .endif
     ret
-
-panel_update endp
+    endp
 
 
 panel_xorinfo proc panel:PPANEL
-
     ldr rcx,panel
     mov rdx,[rcx].PANEL.wsub
     mov eax,[rdx].WSUB.flag
@@ -898,12 +799,10 @@ panel_xorinfo proc panel:PPANEL
     mov [rdx].WSUB.flag,eax
     panel_redraw(rcx)
     ret
-
-panel_xorinfo endp
+    endp
 
 
 panel_xormini proc panel:PPANEL
-
     ldr rcx,panel
     mov rax,[rcx].PANEL.wsub
     xor [rax].WSUB.flag,_W_MINISTATUS
@@ -913,53 +812,41 @@ panel_xormini proc panel:PPANEL
     msloop()
     xor eax,eax
     ret
-
-panel_xormini endp
+    endp
 
 
 pcell_getrect proc private uses rsi rdi rbx xcell:PXCEL, index:uint_t
-
     ldr rbx,xcell
     ldr ecx,index
     movzx edi,[rbx].XCEL.rows
-
     mov eax,ecx
     xor edx,edx
     div edi
-
     mov esi,eax
     mul edi
     sub ecx,eax
-
     movzx eax,[rbx].XCEL.cpos.col
     inc eax
     mul esi
     add eax,[rbx].XCEL.cpos
     add ah,cl
     ret
-
-pcell_getrect endp
+    endp
 
 
 panel_xycmd proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
-
     .ifd panel_state(panel)
-
         mov rsi,rax
         xor eax,eax
         mov rdx,[rsi].PANEL.dialog
-
         .if [rdx].DOBJ.flag & _D_ONSCR
-
             mov ebx,[rdx].DOBJ.rc
             .switch rcxyrow(ebx, xpos, ypos)
-
-              .case 1
+            .case 1
                 mov eax,_XY_MOVEUP
-              .case 0
+            .case 0
                 .endc
-
-              .case 2
+            .case 2
                 movzx edx,bl
                 mov ecx,xpos
                 mov eax,_XY_INSIDE
@@ -972,27 +859,21 @@ panel_xycmd proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
                 .endc .if ecx == edx
                 mov eax,_XY_MOVEUP
                 .endc
-
-              .default
-
+            .default
                 mov edx,eax
                 mov ecx,ebx
                 shr ecx,24
                 mov rax,[rsi].PANEL.wsub
-
                 .if [rax].WSUB.flag & _W_MINISTATUS
-
                     sub ecx,2
                     .if [rax].WSUB.flag & _W_DRVINFO
                         sub ecx,2
                         .if !(cflag & _C_HORIZONTAL)
-
                             dec ecx
                         .endif
                     .endif
                     mov eax,_XY_MOVEDOWN
                     .endc .if edx > ecx
-
                     .ifz
                         movzx eax,bl
                         add eax,2
@@ -1002,9 +883,7 @@ panel_xycmd proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
                         .endif
                     .endif
                 .endif
-
                 .if edx == ecx
-
                     movzx eax,bl
                     shr ebx,16
                     add al,bl
@@ -1015,7 +894,6 @@ panel_xycmd proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
                     mov eax,_XY_MOVEDOWN
                     .endc
                 .endif
-
                 xor ebx,ebx
                 .while ebx < [rsi].PANEL.cel_count
                     pcell_getrect([rsi].PANEL.xl, ebx)
@@ -1035,34 +913,26 @@ panel_xycmd proc uses rsi rdi rbx panel:PPANEL, xpos:UINT, ypos:UINT
         .endif
     .endif
     ret
-
-panel_xycmd endp
+    endp
 
 redraw_panels proc uses rbx
-
     mov ebx,prect_hide(panelb)
     .ifd prect_hide(panela)
-
         redraw_panel(panela)
     .endif
     .if ebx
         redraw_panel(panelb)
     .endif
     ret
-
-redraw_panels endp
+    endp
 
 
 panel_openmsg proc uses rsi rdi rbx panel:PPANEL
-
    .new col:int_t
-
     ldr rsi,panel
     mov rbx,[rsi].PANEL.dialog
     xor eax,eax
-
     .if [rbx].DOBJ.flag & _D_ONSCR && [rbx].DOBJ.wp != rax
-
         mov rax,[rsi].PANEL.wsub
         mov eax,[rax].WSUB.flag
         and eax,_W_MINISTATUS
@@ -1080,10 +950,8 @@ panel_openmsg proc uses rsi rdi rbx panel:PPANEL
             shl     eax,16
             mov     al,' '
             mov     edi,edx
-
             scputw( ebx, edx, ecx, eax )
             scputs( ebx, edi, 0, 5, "open:" )
-
             mov rsi,[rsi].PANEL.wsub
             mov rax,[rsi].WSUB.path
             .if [rsi].WSUB.flag & _W_ARCHIVE
@@ -1095,60 +963,46 @@ panel_openmsg proc uses rsi rdi rbx panel:PPANEL
         .endif
     .endif
     ret
-
-panel_openmsg endp
+    endp
 
 
 wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
-
    .new disk:int_t
    .new index:int_t = 0
    .new VolumeID[32]:char_t
    .new fb:PFBLK = NULL
-
     ldr rbx,wsub
-
     wsfree(rbx)
-
     mov eax,[rbx].WSUB.flag
     and eax,not (_W_ARCHIVE or _W_NETWORK)
     or  eax,_W_ROOTDIR
     mov [rbx].WSUB.flag,eax
     _disk_read()
     mov disk,_getdrive()
-
     .ifd _disk_exist(eax)
-
         mov rdi,rax
         mov rax,[rbx].WSUB.path
         mov eax,[rax]
         .if ( al && ah == ':' )
-
             and al,not 20h
             mov cp_disk,al
             .ifd GetVolumeID(&cp_disk, &VolumeID)
-
                 add rdi,DISK.name[3]
                 mov byte ptr [rdi-1],' '
                 strnzcpy(rdi, &VolumeID, 27)
             .endif
         .endif
     .endif
-
     mov rax,[rbx].WSUB.arch
     mov byte ptr [rax],0
     strcpy([rbx].WSUB.file, "home")
     xor edi,edi
     xor esi,esi
-
     .while ( esi < MAXDRIVES )
-
         inc esi
         .continue .ifd !_disk_exist(esi)
-
         lea rcx,[rax].DISK.name
         .break .if !fballoc(rcx, [rax].DISK.time, [rax].DISK.size, [rax].DISK.flag)
-
         mov rcx,fb
         mov fb,rax
         .if ( rcx == NULL )
@@ -1165,19 +1019,14 @@ wsreadroot proc private uses rsi rdi rbx wsub:PWSUB, panel:PPANEL
     wsetfcb(rbx)
     mov edx,index
     ret
-
-wsreadroot endp
+    endp
 
 
 wsub_read proc private uses rsi rdi wsub:PWSUB
-
     ldr rdi,wsub
-
     xor esi,esi
     .if ( [rdi].WSUB.flag & _W_ARCHIVE )
-
         .ifd ( filexist(strfcat(entryname, [rdi].WSUB.path, [rdi].WSUB.file)) == 1 )
-
             .if ( [rdi].WSUB.flag & _W_ARCHZIP )
                 wzipread(rdi)
             .else
@@ -1198,17 +1047,13 @@ wsub_read proc private uses rsi rdi wsub:PWSUB
     .endif
     mov eax,esi
     ret
-
-wsub_read endp
+    endp
 
 
 panel_read proc uses rsi rdi panel:PPANEL
-
     ldr rsi,panel
-
     mov rdi,[rsi].PANEL.wsub
     panel_openmsg(rsi)
-
     mov rax,[rdi].WSUB.path
     .if byte ptr [rax] && [rdi].WSUB.flag & _W_ROOTDIR
         wsreadroot(rdi, rsi)
@@ -1227,37 +1072,28 @@ panel_read proc uses rsi rdi panel:PPANEL
         .endif
     .endif
     ret
-
-panel_read endp
+    endp
 
 
 panel_open proc private uses rsi rdi panel:PPANEL
-
   local path[WMAXPATH]:byte, wsub:ptr, flags:int_t
-
     ldr rsi,panel
     mov rdi,[rsi].PANEL.wsub
     mov wsub,rdi
-
     .ifd wsopen(rdi)
-
         mov [rsi].PANEL.cel_count,0
-
         .if rsi == cpanel
-
             mov flags,[rdi].WSUB.flag
             strcpy(addr path, [rdi].WSUB.path)
             mov rax,[rdi].WSUB.path
             mov byte ptr [rax],0
             cominit(wsub)
-
             .if ( flags & _W_ARCHIVE )
                 .ifd !_stricmp(&path, [rdi].WSUB.path)
                     mov [rdi].WSUB.flag,flags
                 .endif
             .endif
         .endif
-
         .if ( [rdi].WSUB.flag & _W_VISIBLE )
             panel_reread(rsi)
             .if ( rsi == cpanel )
@@ -1267,12 +1103,10 @@ panel_open proc private uses rsi rdi panel:PPANEL
         mov eax,1
     .endif
     ret
-
-panel_open endp
+    endp
 
 
 panel_open_ab proc
-
     .ifd panel_open(cpanel)
         lea rax,spanelb
         .if rax == cpanel
@@ -1282,39 +1116,28 @@ panel_open_ab proc
     panel_open(rax)
     mov eax,1
     ret
-
-panel_open_ab endp
+    endp
 
 
 panel_close proc uses rbx panel:PPANEL
-
     ldr rcx,panel
-
     .if panel_state(rcx)
-
         mov rbx,rax
         prect_close(rax)
         wsclose([rbx].PANEL.wsub)
     .endif
     ret
-
-panel_close endp
+    endp
 
 cpanel_setpath proc path:LPSTR
-
     ldr rax,path
     mov eax,[rax]
-
     .if ah == ':'
-
         or  al,20h
         sub eax,'a' - 1
-
         _disk_ready(eax)
     .endif
-
     .if eax
-
         mov rax,cpanel
         mov rax,[rax].PANEL.wsub
         and [rax].WSUB.flag,not (_W_NETWORK or _W_ARCHIVE or _W_ROOTDIR)
@@ -1324,25 +1147,19 @@ cpanel_setpath proc path:LPSTR
         panel_reread(cpanel)
     .endif
     ret
-
-cpanel_setpath endp
+    endp
 
 
 cpanel_deselect proc uses rsi rdi rbx fp:PFBLK
-
     ldr rbx,fp
-
     and [rbx].FBLK.flag,not _FB_SELECTED
-
     .if ( cflag & _C_VISUALUPDATE )
-
         mov di,progress_dobj.DOBJ.flag
         and edi,_D_ONSCR
         .ifnz
             dlhide(&progress_dobj)
         .endif
         panel_putitem(cpanel, 0)
-
         lea rsi,spanela
         .if rsi == cpanel
             lea rsi,spanelb
@@ -1354,60 +1171,46 @@ cpanel_deselect proc uses rsi rdi rbx fp:PFBLK
         .endif
     .endif
     ret
-
-cpanel_deselect endp
+    endp
 
 
 fblk_selectable proc private fp:PFBLK
-
     ldr rcx,fp
     xor eax,eax
-
     .if !( byte ptr [rcx] & _A_VOLID )
-
         inc eax
         .if byte ptr [rcx] & _A_SUBDIR && !( cflag & _C_SELECTDIR )
-
             dec eax
         .endif
     .endif
     ret
-
-fblk_selectable endp
+    endp
 
 
 fblk_invert proc fp:PFBLK
-
     .if fblk_selectable( ldr(fp) )
-
         fbinvert(rcx)
     .endif
     ret
-
-fblk_invert endp
+    endp
 
 
 fblk_select proc fp:PFBLK
-
     .if fblk_selectable( ldr(fp) )
-
         fbselect(rcx)
     .endif
     ret
-
-fblk_select endp
+    endp
 
 
 clear37 proc fastcall private uses rcx rdx x, y
-
     mov al,at_background[B_Panel]
     or  al,at_foreground[F_Panel]
     shl eax,16
     mov al,' '
     scputw(ecx, edx, 37, eax)
     ret
-
-clear37 endp
+    endp
 
 
 panel_putmini proc private uses rsi rdi rbx panel:PPANEL
@@ -1424,7 +1227,8 @@ panel_putmini proc private uses rsi rdi rbx panel:PPANEL
    .new cTotalNumberOfBytes[32]:char_t
    .new bstring[64]:char_t
    .new FileSystemName[32]:char_t
-   .new SystemTime:SYSTEMTIME
+   .new st_utc:SYSTEMTIME
+   .new st_local:SYSTEMTIME
    .new Time[32]:char_t
    .new Date[32]:char_t
    .new len:uint_t
@@ -1678,9 +1482,10 @@ endif
                             scputf(sx, y, color, 0, "%7u%c", eax, ecx)
                         .endif
 
-                        TimeToSystemTime([rbx].FBLK.time, &SystemTime)
-                        SystemDateToStringA(&Date, &SystemTime)
-                        SystemTimeToStringA(&Time, &SystemTime)
+                        __timet_to_st([rbx].FBLK.time, &st_utc)
+                        SystemTimeToTzSpecificLocalTime(NULL, &st_utc, &st_local)
+                        SystemDateToString(&Date, &st_local)
+                        SystemTimeToString(&Time, &st_local)
 
                         sub edi,5
                         add edi,x
@@ -1712,20 +1517,21 @@ endif
         .endif
     .endif
     ret
-
-panel_putmini endp
+    endp
 
     option  proc: private
 
 fbputdate proc uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, updTime:BOOL, color:UINT
 
-  local SystemTime:SYSTEMTIME
+  local st_utc:SYSTEMTIME
+  local st_local:SYSTEMTIME
   local Time[32]:char_t
   local Date[32]:char_t
 
     ldr rbx,fb
-    TimeToSystemTime([rbx].FBLK.time, &SystemTime)
-    SystemDateToStringA(&Date, &SystemTime)
+    __timet_to_st([rbx].FBLK.time, &st_utc)
+    SystemTimeToTzSpecificLocalTime(NULL, &st_utc, &st_local)
+    SystemDateToString(&Date, &st_local)
     mov ebx,color
     shr ebx,8
     lea rsi,Date
@@ -1739,34 +1545,29 @@ fbputdate proc uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, updTime:BOOL, color:UIN
     .endif
     wcputs(wp, ebx, rsi)
     .if updTime
-        SystemTimeToStringA(&Time, &SystemTime)
+        SystemTimeToString(&Time, &st_local)
         add wp,9*4
         mov Time[5],0
         wcputs(wp, ebx, &Time)
     .endif
     ret
+    endp
 
-fbputdate endp
 
 fbputsize proc uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT, color:UINT
-
     ldr rbx,fb
     ldr rdi,wp
     ldr esi,l
-
     .if ( [rbx].FBLK.flag & _FB_UPDIR or _A_SUBDIR or _A_VOLID )
-
         mov eax,color
         mov ax,U_RIGHT_TRIANGLE
         wcputw( rdi, 1, eax)
         mov eax,color
         mov ax,U_LEFT_TRIANGLE
         wcputw( &[rdi+9*4], 1, eax)
-
         mov edx,color
         shr edx,8
         or  edx,esi
-
         .if ( [rbx].FBLK.flag & _FB_UPDIR )
             wcputs( &[rdi+2*4], edx, "UP-DIR")
         .elseif ( [rbx].FBLK.flag & _A_VOLID )
@@ -1782,8 +1583,7 @@ fbputsize proc uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT, color:UINT
         wcputf( rdi, edx, "%10lu", [rbx].FBLK.size )
     .endif
     ret
-
-fbputsize endp
+    endp
 
 
     option proc:public
@@ -1850,42 +1650,32 @@ fbputsl proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         wcputs( &[rdi+9*4], edx, rax)
     .endif
     ret
-
-fbputsl endp
+    endp
 
 fbputll proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
-
    .new color:uint_t
-
     ldr rbx,fb
     ldr rdi,wp
     ldr esi,l
-
     mov color,fbcolor(rbx)
     lea ecx,[rsi-1]
     mov ch,al
     wcputs(rdi, ecx, [rbx].FBLK.name)
-
     .ifd ( strlen([rbx].FBLK.name) > esi )
-
         movzx   eax,at_foreground[F_Panel]
         or      al,at_background[B_Panel]
         shl     eax,16
         mov     ax,0x00BB
-
         wcputw( &[rdi+rsi*4-8], 1, eax )
     .endif
-
     .if ( [rbx].FBLK.flag & _A_HIDDEN or _A_SYSTEM )
-
         mov eax,color
         shl eax,16
         mov ax,U_LIGHT_SHADE
         wcputw( &[rdi+rsi*4-4], 1, eax)
     .endif
     ret
-
-fbputll endp
+    endp
 
 fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
 
@@ -1898,14 +1688,15 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     ldr rbx,fb
     ldr rdi,wp
     ldr esi,l
+    .ifs ( esi < 25 )
+        .return
+    .endif
     shl fbcolor(rbx),16
     mov color,eax
-
     .if ( cflag & _C_HORIZONTAL ) ; Long Horizontal Detail
         mov dist,6
         mov fext,8
     .endif
-
     lea rcx,[rdi+rsi*4-8*4]
     xor eax,eax
     .if cflag & _C_HORIZONTAL
@@ -1913,29 +1704,22 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         sub rcx,((14-8)*4)
     .endif
     fbputdate(rbx, rcx, eax, color)
-
-
     lea ecx,[rsi-19]
     sub ecx,dist
     mov maxf,ecx
     fbputsize(rbx, &[rdi+rcx*4], esi, color)
-
     mov eax,fext
     add eax,3
     sub maxf,eax
-
     .ifd ( strlen([rbx].FBLK.name) > maxf )
-
-        movzx   eax,at_foreground[F_Panel]
-        or      al,at_background[B_Panel]
-        shl     eax,16
-        mov     ax,U_RIGHT_DOUBLE_QUOTE
-        mov     ecx,maxf
+        movzx eax,at_foreground[F_Panel]
+        or  al,at_background[B_Panel]
+        shl eax,16
+        mov ax,U_RIGHT_DOUBLE_QUOTE
+        mov ecx,maxf
         wcputw( &[rdi+rcx*4], 1, eax )
     .endif
-
     .if ( [rbx].FBLK.flag & _A_HIDDEN or _A_SYSTEM )
-
         mov eax,color
         shl eax,16
         mov ax,U_LIGHT_SHADE
@@ -1943,7 +1727,6 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         inc ecx
         wcputw( &[rdi+rcx*4], 1, eax)
     .endif
-
     mov rax,[rbx].FBLK.name
     .if word ptr [rax] == '..'
         xor eax,eax
@@ -1951,7 +1734,6 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         strext(rax)
     .endif
     mov ext,rax
-
     mov ecx,color
     shr ecx,8
     mov cl,byte ptr maxf
@@ -1963,10 +1745,8 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         .endif
     .endif
     wcputs(rdi, ecx, rdx)
-
     mov rax,ext
     .if rax
-
         inc rax
         mov edx,color
         shr edx,8
@@ -1976,8 +1756,7 @@ fbputld proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         wcputs( &[rdi+rcx*4], edx, rax)
     .endif
     ret
-
-fbputld endp
+    endp
 
 fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
 
@@ -1988,12 +1767,12 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     ldr rbx,fb
     ldr rdi,wp
     ldr esi,l
-
     .if ( cflag & _C_HORIZONTAL ) ; Long Horizontal Detail
-
         .return( fbputld(rbx, rdi, esi) )
     .endif
-
+    .ifs ( esi < 32 )
+        .return
+    .endif
     shl fbcolor(rbx),16
     mov color,eax
     lea rcx,[rdi+rsi*4-14*4]
@@ -2002,19 +1781,15 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
     mov maxf,ecx
     sub maxf,6
     fbputsize(rbx, &[rdi+rcx*4], esi, color)
-
     .ifd ( strlen([rbx].FBLK.name) > maxf )
-
-        movzx   eax,at_foreground[F_Panel]
-        or      al,at_background[B_Panel]
-        shl     eax,16
-        mov     ax,U_RIGHT_DOUBLE_QUOTE
-        mov     ecx,maxf
+        movzx eax,at_foreground[F_Panel]
+        or  al,at_background[B_Panel]
+        shl eax,16
+        mov ax,U_RIGHT_DOUBLE_QUOTE
+        mov ecx,maxf
         wcputw( &[rdi+rcx*4], 1, eax )
     .endif
-
     .if ( [rbx].FBLK.flag & _A_HIDDEN or _A_SYSTEM )
-
         mov eax,color
         shl eax,16
         mov ax,U_LIGHT_SHADE
@@ -2022,7 +1797,6 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         inc ecx
         wcputw( &[rdi+rcx*4], 1, eax)
     .endif
-
     mov rax,[rbx].FBLK.name
     .if word ptr [rax] == '..'
         xor eax,eax
@@ -2030,7 +1804,6 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         strext(rax)
     .endif
     mov ext,rax
-
     mov ecx,color
     shr ecx,8
     mov cl,byte ptr maxf
@@ -2042,7 +1815,6 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         .endif
     .endif
     wcputs(rdi, ecx, rdx)
-
     mov rax,ext
     .if rax
         inc rax
@@ -2054,8 +1826,7 @@ fbputsd proc private uses rsi rdi rbx fb:PFBLK, wp:PCHAR_INFO, l:UINT
         wcputs(&[rdi+rcx*4], edx, rax)
     .endif
     ret
-
-fbputsd endp
+    endp
 
 ;
 ; 0. Clear panel
@@ -2074,9 +1845,8 @@ prect_clear proc private uses rsi rdi rbx window:PCHAR_INFO, rc:TRECT, ptype:UIN
     mov     wl,eax
     movzx   edi,rc.row
     mov     eax,ptype
-
     .switch al
-      .case 1   ; move one line up
+    .case 1   ; move one line up
         mov ecx,l
         lea eax,[rdi-1]
         mov rdi,rbx
@@ -2087,7 +1857,7 @@ prect_clear proc private uses rsi rdi rbx window:PCHAR_INFO, rc:TRECT, ptype:UIN
         mov rbx,rdi
         mov edi,1
        .endc
-      .case 2   ; move one line down
+    .case 2   ; move one line down
         mov ecx,l
         lea eax,[rdi-1]
         mov rsi,rbx
@@ -2123,22 +1893,16 @@ prect_clear proc private uses rsi rdi rbx window:PCHAR_INFO, rc:TRECT, ptype:UIN
         dec edi
     .untilz
     ret
-
-prect_clear endp
+    endp
 
 
 panel_putitem proc uses rsi rdi rbx panel:PPANEL, index:UINT
-
   local rc:TRECT, rcxc:TRECT, dlrc, result, count, dlwp:PCHAR_INFO
-
     mov rsi,panel
     mov rdi,[rsi].PANEL.dialog
-
     .if !( [rdi].DOBJ.flag & _D_ONSCR )
-
         .return
     .endif
-
     mov     rc,[rdi].DOBJ.rc
     movzx   eax,ax
     mov     dlrc,eax
@@ -2148,7 +1912,6 @@ panel_putitem proc uses rsi rdi rbx panel:PPANEL, index:UINT
     sub     rc.row,3
     mov     rax,[rsi].PANEL.wsub
     mov     eax,[rax].WSUB.flag
-
     .if ( eax & _W_MINISTATUS )
         sub rc.row,2
         .if ( eax & _W_DRVINFO )
@@ -2158,52 +1921,38 @@ panel_putitem proc uses rsi rdi rbx panel:PPANEL, index:UINT
             .endif
         .endif
     .endif
-
     .if !rcalloc(rc, 0)
-
         .return
     .endif
     mov dlwp,rax
     mov rbx,rax
-
     .if ( [rsi].PANEL.fcb_count )
-
         mov result,dlclose([rsi].PANEL.xl)
-
         pcell_set(rsi)
         rcread(rc, rbx)
         prect_clear(rbx, rc, index)
-
         xor edi,edi
         mov count,-1
-
         .while  1
-
             inc count
             mov eax,count
             .if ( eax >= [rsi].PANEL.cel_count )
-
                 rcwrite(rc, rbx)
                 free(rbx)
-
                 .if result
                     pcell_show(rsi)
                 .endif
                 panel_putmini(rsi)
                .break
             .endif
-
             pcell_getrect([rsi].PANEL.xl, eax)
-
             sub     eax,dlrc
             sub     eax,0x0201
             mov     rcxc,eax
             movzx   ecx,rc.col
             mov     rdx,rcbprc(eax, dlwp, ecx)
             mov     eax,index
-
             .if eax == 1
-
                 mov rcx,[rsi].PANEL.xl
                 mov eax,edi
                 add al,[rcx].XCEL.rows
@@ -2213,9 +1962,7 @@ panel_putitem proc uses rsi rdi rbx panel:PPANEL, index:UINT
             .else
                 mov al,rcxc.y
             .endif
-
             .continue .if rcxc.y != al
-
             mov     rax,[rsi].PANEL.wsub
             mov     rcx,[rax].WSUB.fcb
             mov     eax,[rsi].PANEL.fcb_index
@@ -2223,70 +1970,56 @@ panel_putitem proc uses rsi rdi rbx panel:PPANEL, index:UINT
             mov     rcx,[rcx+rax*size_t]
             mov     rax,[rsi].PANEL.xl
             movzx   eax,[rax].XCEL.cpos.col
-
             [rsi].PANEL.putfcb(rcx, rdx, eax)
         .endw
     .else
-
         dlclose([rsi].PANEL.xl)
         pcell_set(rsi)
         rcread(rc, rbx)
         prect_clear(rbx, rc, 0)
         rcwrite(rc, rbx)
         free(rbx)
-
         mov rcx,[rsi].PANEL.wsub
         and [rcx].WSUB.flag,not (_W_ARCHIVE or _W_ROOTDIR)
     .endif
     ret
-
-panel_putitem endp
+    endp
 
 panel_putitemax proc private index:UINT
-
     panel_putitem(rsi, index)
     mov eax,1
     ret
-
-panel_putitemax endp
+    endp
 
 panel_putinfoax proc private index:UINT
-
     panel_putinfo(rsi)
     panel_putitemax(index)
     ret
-
-panel_putinfoax endp
+    endp
 
 panel_putinfozx proc private
-
     xor ecx,ecx
     mov [rsi].PANEL.cel_index,ecx
     mov [rsi].PANEL.fcb_index,ecx
     panel_putinfoax(ecx)
     ret
-
-panel_putinfozx endp
+    endp
 
 
 panel_reread proc uses rsi panel:PPANEL
-
     xor eax,eax
     ldr rsi,panel
     mov rcx,[rsi].PANEL.wsub
     .if [rcx].WSUB.flag & _W_VISIBLE
-
         panel_read(rsi)
         panel_putinfoax(0)
         mov eax,1
     .endif
     ret
-
-panel_reread endp
+    endp
 
 
 reread_panels proc
-
     .if panel_state(panela)
         panel_reread(rax)
     .endif
@@ -2294,17 +2027,14 @@ reread_panels proc
         panel_reread(rax)
     .endif
     ret
-
-reread_panels endp
+    endp
 
 
 panel_redraw proc uses rsi panel:PPANEL
-
     xor eax,eax
     ldr rsi,panel
     mov rcx,[rsi].PANEL.wsub
     .if [rcx].WSUB.flag & _W_VISIBLE
-
         prect_open(rsi)
         panel_putinfoax(0)
         mov eax,1
@@ -2313,39 +2043,29 @@ panel_redraw proc uses rsi panel:PPANEL
         .endif
     .endif
     ret
-
-panel_redraw endp
+    endp
 
 redraw_panel proc panel:PPANEL
-
     ldr rcx,panel
     mov rdx,[rcx].PANEL.wsub
     or  [rdx].WSUB.flag,_W_VISIBLE
     panel_redraw(rcx)
     ret
-
-redraw_panel endp
+    endp
 
 
 pcell_update proc uses rsi rdi rbx panel:PPANEL
-
    .new p:ptr
-
     ldr rsi,panel
     .ifd dlclose([rsi].PANEL.xl)
-
         pcell_set(rsi)
         .if panel_curobj(rsi)
-
             mov rbx,[rsi].PANEL.xl
             mov ebx,[rbx].XCEL.rc
             mov rdi,rdx
-
             .if rcalloc(ebx, 0)
-
                 mov p,rax
                 rcread(ebx, rax)
-
                 mov rcx,rdi
                 mov rdi,p
                 mov rax,[rsi].PANEL.xl
@@ -2354,7 +2074,6 @@ pcell_update proc uses rsi rdi rbx panel:PPANEL
                 rcwrite(ebx, rdi)
                 free(rdi)
             .endif
-
             pcell_open(rsi)
             dlshow([rsi].PANEL.xl)
             panel_putmini(rsi)
@@ -2362,23 +2081,18 @@ pcell_update proc uses rsi rdi rbx panel:PPANEL
         .endif
     .endif
     ret
-
-pcell_update endp
+    endp
 
 
 pcell_select proc private panel:PPANEL
-
     .if panel_curobj(panel)
-
         .if fblk_invert(rdx)
-
             pcell_update(panel)
             mov eax,1
         .endif
     .endif
     ret
-
-pcell_select endp
+    endp
 
 ;----------------------------------------------------------------------------
 ; Panel Event

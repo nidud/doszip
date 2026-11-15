@@ -3,6 +3,11 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
+Changes in 4.06 - xx xxx 2026
+- added local file time
+- fixed local date format
+- fixed more screen-size vulnerabilities
+
 Changes in 4.05 - 6 Nov 2026
 - added option Use 7zip file extension (Setup->Compression)
   this sets 7z.dll as a default handler for all types

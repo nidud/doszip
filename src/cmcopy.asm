@@ -365,7 +365,7 @@ fp_copyfile proc uses rsi rdi rbx directory:LPSTR, wblk:PWIN32_FIND_DATA
         mov q.q_l,[rbx].WIN32_FIND_DATA.nFileSizeLow
         .ifd !progress_set(&[rbx].WIN32_FIND_DATA.cFileName, __outpath, q)
 
-            FileTimeToTime(&[rbx].WIN32_FIND_DATA.ftLastWriteTime)
+            __timet_from_ft(&[rbx].WIN32_FIND_DATA.ftLastWriteTime)
             mov edx,[rbx].WIN32_FIND_DATA.dwFileAttributes
             and edx,_A_FATTRIB
             .if copy_flag & _COPY_OARCHIVE

@@ -7,6 +7,8 @@ include stdlib.inc
 include dzstr.inc
 include time.inc
 
+StringToSystemDate proto :string_t, :ptr SYSTEMTIME
+
 .enumt FilterIDD : TOBJ {
     ID_DIALOG,
     ID_INCLUDE,
@@ -83,16 +85,16 @@ cmfilter_date proc private uses rdi rbx
 
 
 TDateToString proc private string:ptr sbyte, tptr:time_t
-  local SystemTime:SYSTEMTIME
-    TimeToSystemTime(tptr, &SystemTime)
-    SystemDateToStringA(string, &SystemTime)
+   .new st_utc:SYSTEMTIME, st_local
+    __timet_to_st(tptr, &st_utc)
+    SystemTimeToTzSpecificLocalTime(NULL, &st_utc, &st_local)
+    SystemDateToString(string, &st_local)
     ret
     endp
 
-
 atodate proc private string:ptr sbyte
   local SystemTime:SYSTEMTIME
-    StringToSystemDateA(string, &SystemTime)
+    StringToSystemDate(string, &SystemTime)
     movzx eax,SystemTime.wYear
     movzx edx,SystemTime.wMonth
     movzx ecx,SystemTime.wDay

@@ -120,6 +120,7 @@ cmsavebmp proc
 
 
 TempIdle proc
+    Sleep(2)
     xor eax,eax
     ret
     endp

@@ -46,6 +46,7 @@ public time_id
      _consolecp     UINT 0
      _shift         UINT 0
      _focus         UINT 1
+     g_DateFormat   UINT 0
      keyshift       LPDWORD _shift
      keybstack      UINT MAXKEYSTACK dup(0)
      keybcount      UINT 0
@@ -4295,6 +4296,32 @@ endif
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+SystemDateToString proc uses rbx string:string_t, date:ptr SYSTEMTIME
+   .new dateString[64]:wchar_t
+    ldr rbx,string
+    GetDateFormatEx(NULL, DATE_SHORTDATE, ldr(date), NULL, &dateString, lengthof(dateString), NULL)
+    .for ( ecx = 0 : ecx < 10 : ecx++ )
+        mov al,byte ptr dateString[rcx*2]
+        mov [rbx+rcx],al
+    .endf
+    mov byte ptr [rbx+rcx],0
+    mov rax,rbx
+    ret
+    endp
+
+SystemTimeToString proc uses rbx string:string_t, stime:ptr SYSTEMTIME
+    ldr rbx,string
+   .new timeString[64]:wchar_t
+    GetTimeFormatEx(NULL, TIME_FORCE24HOURFORMAT, ldr(stime), NULL, &timeString, lengthof(timeString))
+    .for ( ecx = 0 : ecx < 9 : ecx++ )
+        mov al,byte ptr timeString[rcx*2]
+        mov [rbx+rcx],al
+    .endf
+    mov byte ptr [rbx+rcx],0
+    .return( rbx )
+    endp
+
+
 tupdtime proc uses rsi rdi rbx
 
   local ts:SYSTEMTIME
@@ -4321,7 +4348,7 @@ tupdtime proc uses rsi rdi rbx
             mov ebx,_scrcol
             inc ebx
             .if edi & CON_UTIME
-                SystemTimeToStringA(&buf, &ts)
+                SystemTimeToString(&buf, &ts)
                 .if !( edi & CON_LTIME )
                     mov buf[5],0
                     sub ebx,6
@@ -4331,7 +4358,7 @@ tupdtime proc uses rsi rdi rbx
                 scputs(ebx, 0, 0, 0, &buf)
             .endif
             .if edi & CON_UDATE
-                SystemDateToStringA(&buf, &ts)
+                SystemDateToString(&buf, &ts)
                 .if !( edi & CON_LDATE )
                     lea rsi,buf
                     mov al,[rsi+2]
@@ -4660,6 +4687,7 @@ __initcon proc private
     mov tgetevent,&getevent
     mov _consolecp,GetConsoleCP()
 
+    GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_IDATE or LOCALE_RETURN_NUMBER, &g_DateFormat, 2)
     GetConsoleMode(_coninpfh, &OldConsoleMode)
     GetWindowRect(GetConsoleWindow(), &_scrrc)
 

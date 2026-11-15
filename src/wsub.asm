@@ -123,11 +123,18 @@ fbselect proc fblk:PFBLK
     ret
     endp
 
-
 fbupdir proc flag:dword
-  local ts:SYSTEMTIME
-    GetLocalTime(&ts)
-    SystemTimeToTime(&ts)
+   .new s:SYSTEMTIME
+   .new u:SYSTEMTIME
+    GetLocalTime(&u)
+    SystemTimeToTzSpecificLocalTime(NULL, &u, &s)
+    _loctotime_t(
+        s.wYear,
+        s.wMonth,
+        s.wDay,
+        s.wHour,
+        s.wMinute,
+        s.wSecond, -1)
     mov ecx,flag
     or  ecx,_FB_UPDIR or _A_SUBDIR
     fballoc("..", eax, 0, ecx)
@@ -632,7 +639,6 @@ wscloseff proc handle:HANDLE
     ret
     endp
 
-
 wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
 
    .new path[WMAXPATH]:byte
@@ -673,17 +679,19 @@ wsreadwf proc private uses rsi rdi rbx wsub:PWSUB, attrib:uint_t
                 mov dword ptr fsize[4],eax
                 mov ecx,[rdi].WIN32_FIND_DATA.dwFileAttributes
                 lea rax,[rdi].WIN32_FIND_DATA.ftLastWriteTime
+if 0
                 .if ecx & _A_SUBDIR
                     lea rax,[rdi].WIN32_FIND_DATA.ftCreationTime
                 .endif
-                FileTimeToTime(rax)
+endif
+                __timet_from_ft(rax)
                 mov edx,[rdi].WIN32_FIND_DATA.dwFileAttributes
                 and edx,_A_FATTRIB
                 .if ( edx == _FA_NORMAL )
                     xor edx,edx
                 .endif
                 lea rcx,[rdi].WIN32_FIND_DATA.cFileName
-                .if ( !( [rbx].WSUB.flag & _W_LONGNAME) &&
+                .if ( !( [rbx].WSUB.flag & _W_LONGNAME ) &&
                       console & CON_IOSFN && [rdi].WIN32_FIND_DATA.cAlternateFileName )
                     lea rcx,[rdi].WIN32_FIND_DATA.cAlternateFileName
                 .endif
@@ -1415,6 +1423,9 @@ error:
 zip_findnext proc uses rsi rdi rbx wsub:PWSUB
     .new fnsize:SINT
     .new subdir:SINT = 0
+    .new ft_utc:FILETIME
+    .new ft_local:FILETIME
+    .new fb_tmp:ptr
     .while 1
         .if !oread(CZIP)
             .return
@@ -1528,9 +1539,13 @@ zip_findnext proc uses rsi rdi rbx wsub:PWSUB
 
             ; update time and attributes
 
-            mov ax,zip_central.date
-            shl eax,16
-            mov ax,zip_central.time
+            mov fb_tmp,rdx
+            .ifd DosDateTimeToFileTime(zip_central.date, zip_central.time, &ft_local)
+                .ifd LocalFileTimeToFileTime(&ft_local, &ft_utc)
+                    __timet_from_ft(&ft_utc)
+                .endif
+            .endif
+            mov rdx,fb_tmp
             mov [rdx].FBLK.time,eax
             .if ( zip_central.version_made == 0 )
                 mov eax,zip_attrib
@@ -1569,9 +1584,11 @@ zip_findnext proc uses rsi rdi rbx wsub:PWSUB
             mov eax,zip_central.fsize
             mov DWORD PTR [rdi].FBLK.size,eax
         .endif
-        mov ax,zip_central.date
-        shl eax,16
-        mov ax,zip_central.time
+        .ifd DosDateTimeToFileTime(zip_central.date, zip_central.time, &ft_local)
+            .ifd LocalFileTimeToFileTime(&ft_local, &ft_utc)
+                __timet_from_ft(&ft_utc)
+            .endif
+        .endif
         mov [rdi].FBLK.time,eax
         strcpy([rdi].FBLK.name, rsi)
         mov [rdi+FBLK].ZINF.offs,zip_central.off_local
@@ -2128,18 +2145,20 @@ zip_mkarchivetmp proc buffer:LPSTR
 wzipadd proc uses rsi rdi rbx fsize:uint64_t, ftime:uint_t, fattrib:uint_t
 
   .new ios:IOST
+  .new ft_utc:FILETIME
+  .new ft_local:FILETIME
   .new ztemp[384]:char_t
   .new zpath[384]:char_t
   .new local_size:uint_t
   .new result_copyl:uint_t
   .new offset_local:uint_t
   .new deflate_begin:uint_t
+  .new zip_date:word
+  .new zip_time:word
 
     _set_errno(0)
 
-    movzx edi,word ptr ftime+2
     mov esi,fattrib
-
     xor eax,eax
 if USE_DEFLATE
     mov file_method,al
@@ -2149,10 +2168,16 @@ endif
     ;
     .return .if ( eax != dword ptr fsize[4] )
 
+    __timet_to_ft(ftime, &ft_utc)
+    .ifd FileTimeToLocalFileTime(&ft_utc, &ft_local)
+        FileTimeToDosDateTime(&ft_local, &zip_date, &zip_time)
+    .endif
+    movzx edi,zip_date
+
     .if ( copy_fast )
 
         lea rax,zpath
-        movzx ebx,word ptr ftime
+        movzx ebx,zip_time
         mov edx,dword ptr fsize
         initentry()
 
@@ -2221,7 +2246,7 @@ endif
 
     strcpy(&zpath, __outpath)
     mov rax,__outpath
-    movzx ebx,word ptr ftime
+    movzx ebx,zip_time
     mov edx,dword ptr fsize
     initentry()
 

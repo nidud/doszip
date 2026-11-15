@@ -509,6 +509,7 @@ externdef		copy_fast:byte
 externdef		_diskflag:UINT
 externdef		envtemp:LPSTR
 externdef		_pgmpath:string_t
+externdef		g_DateFormat:UINT
 
 init_copy		proto :PFBLK, :UINT
 copyfile		proto :qword, :UINT, :UINT
@@ -533,5 +534,7 @@ CreateBatch		proto __cdecl :LPSTR, :SINT, :SINT
 
 GetEnvironmentTEMP	proto __cdecl
 GetEnvironmentPATH	proto __cdecl
+SystemTimeToString	proto __cdecl :string_t, :ptr SYSTEMTIME
+SystemDateToString	proto __cdecl :string_t, :ptr SYSTEMTIME
 
 endif

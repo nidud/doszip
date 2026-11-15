@@ -76,7 +76,7 @@ filter_wblk proc uses rsi rdi rbx wf:PTR WIN32_FIND_DATA
         .return( 1 )
     .endif
     ldr rdi,wf
-    FileTimeToTime( &[rdi].WIN32_FIND_DATA.ftLastWriteTime )
+    __timet_from_ft( &[rdi].WIN32_FIND_DATA.ftLastWriteTime )
     and eax,0xFFFF0000
     mov edx,[rdi].WIN32_FIND_DATA.nFileSizeLow
 ifdef _WIN64
