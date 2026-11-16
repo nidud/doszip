@@ -212,7 +212,10 @@ _disk_select proc uses rsi rdi rbx msg:LPSTR
         sub eax,ebx
         add eax,14
         mov dobj.rc.col,al
-        mov cl,byte ptr _scrcol
+        mov ecx,_scrcol
+        .if ( ecx > MAXCOLS )
+            mov ecx,MAXCOLS
+        .endif
         sub cl,al
         shr cl,1
         mov dobj.rc.x,cl

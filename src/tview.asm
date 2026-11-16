@@ -233,8 +233,14 @@ CopySection proc uses rsi rdi rbx loffs:size_t, curcol:UINT
 
 cmmcopy proc uses rsi rdi rbx
 
-  local lb[256]:byte
+   .new lb[256]:byte
+   .new cols:int_t
 
+    mov eax,_scrcol
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
+    mov cols,eax
     mov rdx,IDD_TVQuickMenu
     mov eax,keybmouse_x
     mov esi,eax
@@ -247,7 +253,7 @@ cmmcopy proc uses rsi rdi rbx
             PushEvent([rcx+rax*4-8])
         .else
             lea rdi,lb
-            .while esi < _scrcol
+            .while esi < cols
                 getxyc(esi, ebx)
                 stosb
                 inc esi
@@ -342,6 +348,9 @@ mouse_scroll proc
         add ebx,3+3
         .if eax >= ebx
             mov ecx,_scrcol
+            .if ( ecx > MAXCOLS )
+                mov ecx,MAXCOLS
+            .endif
             dec ecx
             sub ecx,eax
             mov eax,ecx
@@ -352,6 +361,9 @@ mouse_scroll proc
     shl eax,2
     .if edx > 12
         mov ecx,_scrrow
+        .if ( ecx > MAXROWS-1 )
+            mov ecx,MAXROWS-1
+        .endif
         sub ecx,edx
         mov edx,ecx
     .else
@@ -367,6 +379,12 @@ mouse_scroll proc
 mouse_scroll_proc proc uses rsi rdi rbx
     mov esi,_scrcol
     mov edi,_scrrow
+    .if ( edi > MAXROWS-1 )
+        mov edi,MAXROWS-1
+    .endif
+    .if ( esi > MAXCOLS )
+        mov esi,MAXCOLS
+    .endif
     inc edi
     shr esi,1
     shr edi,1
@@ -387,6 +405,12 @@ tview_update proc
 parse_line proc uses rsi rbx offs:ptr, curcol:UINT
 
    .new screen:LPSTR = rdi
+   .new cols:int_t
+    mov eax,_scrcol
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
+    mov cols,eax
 
     xor esi,esi
     ldr rax,offs
@@ -421,7 +445,8 @@ parse_line proc uses rsi rbx offs:ptr, curcol:UINT
             inc rdi
             inc esi
         .endif
-        .if esi == _scrcol
+
+        .if esi == cols
             .break .ifd ogetc() == -1
             inc rbx
             .if ( al == 10 || al == 13 )
@@ -446,7 +471,7 @@ parse_line proc uses rsi rbx offs:ptr, curcol:UINT
     mov rdx,offs
     mov [rdx],rbx
     .if eax == 0
-        mov ebx,_scrcol
+        mov ebx,cols
         add rdi,rbx
     .endif
     ret
@@ -729,6 +754,12 @@ endif
     mov statusline,rsopen(IDD_TVStatusline)
     mov eax,_scrcol
     mov edx,_scrrow
+    .if ( edx > MAXROWS-1 )
+        mov edx,MAXROWS-1
+    .endif
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
     mov rcx,menusline
     mov rbx,statusline
     mov [rcx].DOBJ.rc.col,al
@@ -739,11 +770,11 @@ endif
         dlshow(rbx)
     .endif
     scpath(1, 0, 41, filename)
-    mov ecx,_scrcol
+    movzx ecx,[rbx].DOBJ.rc.col
     sub ecx,38
     mov edx,dword ptr STDI.fsize
     scputf(ecx, 0, 0, 0, "%12u byte", edx)
-    mov ecx,_scrcol
+    movzx ecx,[rbx].DOBJ.rc.col
     sub ecx,5
     mov x,ecx
     scputs(ecx, 0, 0, 0, "100%")
@@ -1065,6 +1096,9 @@ endif
                         .endif
                     .endif
                     mov ecx,_scrcol
+                    .if ( ecx > MAXCOLS )
+                        mov ecx,MAXCOLS
+                    .endif
                     sub ecx,5
                     mov x,ecx
                     scputf(ecx, 0, 0, 0, "%3d", eax)

@@ -58,7 +58,9 @@ prect_open proc private uses rsi rdi rbx panel:PPANEL
         dlwp:   PCHAR_INFO,
         col:    uint_t,
         type:   uint_t,
-        flag:   uint_t
+        flag:   uint_t,
+        cols:   uint_t,
+        rows:   uint_t
 
     ldr rsi,panel
     comhide()
@@ -67,9 +69,18 @@ prect_open proc private uses rsi rdi rbx panel:PPANEL
     mov edi,[rdi].WSUB.flag
     mov flag,edi
     xor edx,edx     ; x,y
-    mov eax,_scrcol     ; cols
+    mov eax,_scrcol ; cols
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
+    mov cols,eax
+    mov ecx,_scrrow
+    .if ( ecx > MAXROWS )
+        mov ecx,MAXROWS
+    .endif
+    mov rows,ecx
     shr eax,1
-    mov ah,byte ptr _scrrow ; rows
+    mov ah,cl       ; rows
     mov ecx,cflag
     mov bh,9        ; panel size (rows)
     .if !(ecx & _C_COMMANDLINE)
@@ -93,12 +104,12 @@ prect_open proc private uses rsi rdi rbx panel:PPANEL
     .endif
     sub ah,byte ptr config.c_panelsize
     .if ecx & _C_HORIZONTAL
-        mov al,byte ptr _scrcol ; cols = 80
+        mov al,byte ptr cols ; cols = 80
         .if edi & _W_PANELID && !(ecx & _C_WIDEVIEW)
             add dh,ah   ; y += rows
         .endif
     .elseif edi & _W_PANELID && !(ecx & _C_WIDEVIEW)
-        mov dl,byte ptr _scrcol ; x = 40
+        mov dl,byte ptr cols ; x = 40
         shr dl,1
     .endif
     mov word ptr rect,dx
@@ -127,7 +138,7 @@ prect_open proc private uses rsi rdi rbx panel:PPANEL
     mov  dl,[rbx].S_PRECT.p_rect.col
     mov  eax,[rbx].S_PRECT.p_rect
     mov  prect,eax
-    mov  eax,_scrcol
+    mov  eax,cols
     .if dl != 78
         shr eax,1
         .if dl != 38
@@ -243,7 +254,7 @@ prect_open proc private uses rsi rdi rbx panel:PPANEL
             .endif
             .endc
         .case 2
-            .if ( eax > [rbx].S_PRECT.p_name )
+            .if ( eax >= [rbx].S_PRECT.p_name )
                 sub eax,[rbx].S_PRECT.p_name
                 lea rax,[rdi+rax*4]
                 wcputs(rax, col, "Name")
@@ -268,7 +279,7 @@ prect_open proc private uses rsi rdi rbx panel:PPANEL
             .endif
             .endc
         .case 3
-            .if ( eax > [rbx].S_PRECT.p_name )
+            .if ( eax >= [rbx].S_PRECT.p_name )
                 sub eax,[rbx].S_PRECT.p_name
                 lea rax,[rdi+rax*4]
                 wcputs(rax, col, "Name")
@@ -287,16 +298,16 @@ prect_open proc private uses rsi rdi rbx panel:PPANEL
                         .endif
                     .endif
                 .endif
-                .if ( xlrc.col > 7 )
-                    sub xlrc.col,6
+            .endif
+            .if ( xlrc.col > 7 )
+                sub xlrc.col,6
+                rcframe(xlrc, dlwp, col, type)
+                .if ( xlrc.col > 10 )
+                    sub xlrc.col,9
                     rcframe(xlrc, dlwp, col, type)
-                    .if ( xlrc.col > 10 )
-                        sub xlrc.col,9
+                    .if ( xlrc.col > 12 )
+                        sub xlrc.col,11
                         rcframe(xlrc, dlwp, col, type)
-                        .if ( xlrc.col > 12 )
-                            sub xlrc.col,11
-                            rcframe(xlrc, dlwp, col, type)
-                        .endif
                     .endif
                 .endif
             .endif

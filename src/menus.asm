@@ -187,6 +187,9 @@ apiopen proc
     movzx eax,console_cu.y
     mov com_info.ypos,eax
     mov eax,_scrrow
+    .if ( eax > MAXROWS-1 )
+        mov eax,MAXROWS-1
+    .endif
     mov rcx,DLG_Statusline
     mov [rcx].DOBJ.rc.y,al
     .if cflag & _C_STATUSLINE
@@ -197,6 +200,9 @@ apiopen proc
         mov al,dl
     .endif
     mov edx,_scrcol
+    .if ( edx > MAXCOLS )
+        mov edx,MAXCOLS
+    .endif
     mov rcx,DLG_Commandline
     mov [rcx].DOBJ.rc.y,al
     mov [rcx].DOBJ.rc.col,dl
@@ -235,7 +241,13 @@ apiupdate proc
 apiega proc
     and cflag,not _C_EGALINE
     mov eax,_scrcol
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
     mov edx,_scrrow
+    .if ( edx > MAXROWS )
+        mov edx,MAXROWS
+    .endif
     inc edx
     .if dx >= _scrmax.Y && ax >= _scrmax.X
         or cflag,_C_EGALINE
@@ -246,12 +258,14 @@ apiega proc
 UpdateWindowSize proc uses rsi rdi size:COORD
     movzx esi,size.X
     movzx edi,size.Y
+if 0
     .if ( si > _scrmax.X )
         mov si,_scrmax.X
     .endif
     .if ( di > _scrmax.Y )
         mov di,_scrmax.Y
     .endif
+endif
     dec edi
     .if ( edi != _scrrow || esi != _scrcol )
         comhide()

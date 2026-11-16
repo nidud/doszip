@@ -3,7 +3,7 @@ HISTORY.TXT--
 Change Log for DOSZIP - Win32
 =============================
 
-Changes in 4.06 - xx xxx 2026
+Changes in 4.06 - 16 Nov 2026
 - added local file time
 - fixed local date format
 - fixed more screen-size vulnerabilities

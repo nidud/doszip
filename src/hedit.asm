@@ -143,6 +143,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
   local \
     dialog      :PDOBJ,     ; main dialog pointer
     cdialog     :PDOBJ,     ; class dialog
+    colcnt      :UINT,      ; screen width
     rowcnt      :UINT,      ; screen lines
     lcount      :UINT,      ; lines on screen
     cline       :UINT,      ; current line
@@ -194,6 +195,13 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     mov ecx,_scrrow
     mov eax,_scrcol
     mov cools,rax
+    .if ( ecx > MAXROWS )
+        mov ecx,MAXROWS
+    .endif
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
+    mov colcnt,eax
     inc cl
     mov rsrows,cl
     mov flags,_USEMLINE or _USESLINE or _HEXOFFSET
@@ -220,7 +228,8 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     .endif
     mov rowcnt,eax ; adapt to current screen size
     add eax,2
-    mul _scrcol
+    mov rcx,cools
+    mul ecx
     mov esi,eax
     lea rax,lbh
     .if flags & _CLASSMODE
@@ -265,8 +274,8 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
     dlshow(rax)
     mov rdi,rsopen(IDD_HEMenusline)
     mov rbx,rsopen(IDD_HEStatusline)
-    mov ecx,_scrrow
-    mov eax,_scrcol
+    mov ecx,rowcnt
+    mov eax,colcnt
     mov [rdi].DOBJ.rc.col,al
     mov [rbx].DOBJ.rc.col,al
     mov [rbx].DOBJ.rc.y,cl
@@ -277,10 +286,10 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
         dlshow(rbx)
     .endif
     scpath(1, 0, 41, file)
-    mov ecx,_scrcol
+    mov ecx,colcnt
     sub ecx,38
     scputf(ecx, 0, 0, 0, "%12u byte", fsize)
-    mov ecx,_scrcol
+    mov ecx,colcnt
     sub ecx,5
     scputs(ecx, 0, 0, 0, "100%")
     .if !( flags & _USEMLINE )
@@ -299,7 +308,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                 inc eax
             .endif
             _gotoxy(x, eax)
-            mov eax,_scrcol
+            mov eax,colcnt
             mul rowcnt
             mov ecx,eax
             mov rdi,screen
@@ -473,7 +482,7 @@ hedit proc public uses rsi rdi rbx file:LPSTR, loffs:DWORD
                             mov eax,100
                         .endif
                     .endif
-                    mov ecx,_scrcol
+                    mov ecx,colcnt
                     sub ecx,5
                     scputf(ecx, 0, 0, 0, "%3d", eax)
                     .if modified

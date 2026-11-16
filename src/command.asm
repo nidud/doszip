@@ -49,6 +49,9 @@ cominitline proc private uses rsi rdi rbx
         strlen([rsi].path)
         inc eax
         mov edx,_scrcol
+        .if ( edx > MAXCOLS )
+            mov edx,MAXCOLS
+        .endif
         .if eax > 51
             mov eax,51
         .endif
@@ -61,15 +64,23 @@ cominitline proc private uses rsi rdi rbx
         _gotoxy(eax, com_info.ypos)
         .if ( [rbx].DOBJ.flag & _D_ONSCR )
             mov edi,com_info.ypos
-            scputw(0, edi, _scrcol, ' ')
+            mov ecx,_scrcol
+            .if ( ecx > MAXCOLS )
+                mov ecx,MAXCOLS
+            .endif
+            scputw(0, edi, ecx, ' ')
             scpath(0, edi, 50, [rsi].path)
             mov al,byte ptr com_info.xpos
             dec al
             scputw(eax, edi, 1, 62) ; '>'
             comhndlevent(KEY_PGUP)
         .else
+            mov edx,_scrcol
+            .if ( edx > MAXCOLS )
+                mov edx,MAXCOLS
+            .endif
             mov rdi,[rbx].DOBJ.wp
-            wcputw(rdi, _scrcol, ' ')
+            wcputw(rdi, edx, ' ')
             mov eax,com_info.xpos
             lea rax,[rdi+rax*4-8]
             wcputw(rax, 1, 62)

@@ -250,13 +250,19 @@ panel_scrollup proc private panel:PPANEL
 
 mouseevent proc private uses rsi rdi rbx
     .new mp:int_t
+    .new cols:int_t
     .new lb[256]:sbyte
+    mov eax,_scrcol
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
+    mov cols,eax
     .while mousep()
         mov edi,keybmouse_x
         mov esi,keybmouse_y
         mov mp,eax
         .if ( cflag & _C_MENUSLINE && !esi )
-            mov eax,_scrcol
+            mov eax,cols
             sub eax,5
             .if ( edi >= eax )
                 cmscreen()
@@ -291,7 +297,7 @@ mouseevent proc private uses rsi rdi rbx
                 mov ebx,esi
                 mov esi,edi
                 lea rdi,lb
-                .while esi < _scrcol
+                .while esi < cols
                     getxyc(esi, ebx)
                     stosb
                     inc esi

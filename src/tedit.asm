@@ -1105,30 +1105,32 @@ tiread proc private uses rsi rdi rbx ti:PTINFO
     endp
 
 tgetrect proc private
-
     mov rdx,cpanel
     mov eax,cflag
     mov rcx,[rdx].PANEL.dialog
     .if !( [rcx].DOBJ.flag & _D_ONSCR )
-
         and eax,NOT _C_PANELEDIT
     .endif
     mov cflag,eax
     .if eax & _C_PANELEDIT
-
         mov eax,[rcx].DOBJ.rc
         add eax,0x00000101
         sub eax,0x02020000
     .else
         mov edx,_scrrow
+        .if ( edx > MAXROWS )
+            mov edx,MAXROWS
+        .endif
         inc edx
         mov eax,_scrcol
+        .if ( eax > MAXCOLS )
+            mov eax,MAXCOLS
+        .endif
         mov ah,dl
         shl eax,16
     .endif
     ret
-
-tgetrect endp
+    endp
 
 tsetrect proc private ti:PTINFO, rect:TRECT
 

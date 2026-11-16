@@ -1096,6 +1096,9 @@ rcframe proc uses rsi rdi rbx rc:TRECT, wp:PCHAR_INFO, lsize:uint_t, type:uint_t
 
 rcpush proc private lines:UINT
     mov eax,_scrcol
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
     mov ah,byte ptr lines
     shl eax,16
     rcopen(eax, 0, 0, 0, 0)
@@ -1385,27 +1388,46 @@ wcpbutt proc uses rsi rdi rbx wp:PCHAR_INFO, l:uint_t, x:uint_t, string:LPSTR
 
 wcstline proc private
     mov ecx,_scrcol
+    mov edx,_scrrow
+    .if ( ecx > MAXCOLS )
+        mov ecx,MAXCOLS
+    .endif
+    .if ( edx > MAXROWS )
+        mov edx,MAXROWS
+    .endif
     mov ch,1
     shl ecx,16
-    mov ch,byte ptr _scrrow
+    mov ch,dl
     rcxchg(ecx, rax)
     ret
     endp
 
-wcpushst proc uses rbx wc:PCHAR_INFO, cp:LPSTR
+wcpushst proc uses rsi rbx wc:PCHAR_INFO, cp:LPSTR
     .if wcvisible == 1
         ldr rax,wc
         wcstline()
     .endif
+    mov edi,_scrcol
+    .if ( edi > MAXCOLS )
+        mov edi,MAXCOLS
+    .endif
     movzx eax,at_background[B_Menus]
-    or    al,at_foreground[F_KeyBar]
-    shl   eax,16
-    mov   al,' '
-    wcputw(wc, _scrcol, eax)
-    mov rbx,wc
-    mov word ptr [rbx+18*4],U_LIGHT_VERTICAL
-    add rbx,4
-    wcputs(rbx, _scrcol, cp)
+    or  al,at_foreground[F_KeyBar]
+    shl eax,16
+    mov al,' '
+    wcputw(wc, edi, eax)
+    .if ( edi > 18 )
+        mov rbx,wc
+        mov word ptr [rbx+18*4],U_LIGHT_VERTICAL
+        .if ( edi > 22 )
+            strlen(cp)
+            add eax,22
+            .if ( eax < edi )
+                add rbx,4
+                wcputs(rbx, edi, cp)
+            .endif
+        .endif
+    .endif
     mov rax,wc
     wcstline()
     mov wcvisible,1
@@ -3599,8 +3621,15 @@ dlscreen proc dobj:PDOBJ, attrib
     xor eax,eax
     mov [rdx],eax
     mov eax,_scrcol ; adapt to current screen
-    mov ah,byte ptr _scrrow
-    inc ah
+    mov ecx,_scrrow
+    inc ecx
+    .if ( eax > MAXCOLS )
+        mov eax,MAXCOLS
+    .endif
+    .if ( ecx > MAXROWS )
+        mov ecx,MAXROWS
+    .endif
+    mov ah,cl
     shl eax,16
     mov [rdx].DOBJ.rc,eax
     .if rcopen(eax, _D_CLEAR or _D_BACKG, attrib, 0, 0)
@@ -4171,30 +4200,38 @@ SetKeyState proc uses rsi rdi rax
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-ConsolePush proc uses rbx
+ConsolePush proc uses rsi rdi rbx
 
   local ci:CONSOLE_SCREEN_BUFFER_INFO
 
     .ifd GetConsoleScreenBufferInfo(_confh, &ci)
 
         mov eax,ci.dwSize
-        movzx ecx,ax
-        mov _scrcol,ecx
+        movzx esi,ax
+        mov _scrcol,esi
         shr eax,16
         dec eax
+        mov edi,eax
         mov _scrrow,eax
+        .if ( esi > MAXCOLS )
+            mov esi,MAXCOLS
+        .endif
+        .if ( edi > MAXROWS-1 )
+            mov edi,MAXROWS-1
+        .endif
         _getcursor(&console_cu)
         lea rbx,console_dl
         free([rbx].DOBJ.wp)
-        mov eax,_scrrow
-        mov ah,byte ptr _scrcol
+        mov ecx,esi
+        mov eax,edi
+        mov ah,cl
         inc al
         mov [rbx].DOBJ.wp,rcpush(eax)
         mov [rbx].DOBJ.flag,_D_DOPEN
-        mov eax,_scrrow
+        mov eax,edi
         inc eax
         mov [rbx].DOBJ.rc.row,al
-        mov eax,_scrcol
+        mov eax,esi
         mov [rbx].DOBJ.rc.col,al
     .endif
     ret
@@ -4346,34 +4383,39 @@ tupdtime proc uses rsi rdi rbx
         .if eax != time_id
             mov time_id,eax
             mov ebx,_scrcol
-            inc ebx
-            .if edi & CON_UTIME
-                SystemTimeToString(&buf, &ts)
-                .if !( edi & CON_LTIME )
-                    mov buf[5],0
-                    sub ebx,6
-                .else
-                    sub ebx,9
-                .endif
-                scputs(ebx, 0, 0, 0, &buf)
+            .if ( ebx > MAXCOLS )
+                mov ebx,MAXCOLS
             .endif
-            .if edi & CON_UDATE
-                SystemDateToString(&buf, &ts)
-                .if !( edi & CON_LDATE )
-                    lea rsi,buf
-                    mov al,[rsi+2]
-                    .if ( al >= '0' && al <= '9' )
-                        add rsi,2
+            .if ( ebx > 10 )
+                inc ebx
+                .if edi & CON_UTIME
+                    SystemTimeToString(&buf, &ts)
+                    .if !( edi & CON_LTIME )
+                        mov buf[5],0
+                        sub ebx,6
                     .else
-                        mov eax,[rsi+6]
-                        shr eax,16
-                        mov [rsi+6],eax
+                        sub ebx,9
                     .endif
-                    sub ebx,9
-                .else
-                    sub ebx,11
+                    scputs(ebx, 0, 0, 0, &buf)
                 .endif
-                scputs(ebx, 0, 0, 0, &buf)
+                .if edi & CON_UDATE
+                    SystemDateToString(&buf, &ts)
+                    .if !( edi & CON_LDATE )
+                        lea rsi,buf
+                        mov al,[rsi+2]
+                        .if ( al >= '0' && al <= '9' )
+                            add rsi,2
+                        .else
+                            mov eax,[rsi+6]
+                            shr eax,16
+                            mov [rsi+6],eax
+                        .endif
+                        sub ebx,9
+                    .else
+                        sub ebx,11
+                    .endif
+                    scputs(ebx, 0, 0, 0, &buf)
+                .endif
             .endif
         .endif
     .endif
