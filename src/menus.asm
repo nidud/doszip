@@ -335,7 +335,7 @@ close_idd proc private id:uint_t, wpMenusTitle:ptr
 modal_idd proc private uses rsi rdi rbx index:int_t, stInfo:ptr, dialog:PDOBJ, wpMenusTitle:ptr
   local stBuffer[MAXCOLS]:CHAR_INFO
     lea rsi,stBuffer
-    mov rdi,dialog
+    ldr rdi,dialog
     wcpushst(rsi, stInfo)
     dlinit(rdi)
     dlshow(rdi)

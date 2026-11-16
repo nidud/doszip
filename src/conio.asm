@@ -1402,7 +1402,7 @@ wcstline proc private
     ret
     endp
 
-wcpushst proc uses rsi rbx wc:PCHAR_INFO, cp:LPSTR
+wcpushst proc uses rdi rbx wc:PCHAR_INFO, cp:LPSTR
     .if wcvisible == 1
         ldr rax,wc
         wcstline()
